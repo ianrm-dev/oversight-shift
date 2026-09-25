@@ -383,25 +383,26 @@ export function briefing(run: RunState, toolsToday = ''): string {
   const d = run.day;
   const info = dayInfo(d.day);
   const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's quota. One fewer auditor hour today. Miss it again and the model ships without you.</li>` : '';
+  const side = `${d.day === 1 ? cast() : ''}${toolsToday}`;
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
-      <div class="briefing-glyph" data-glyph="${d.day}" data-size="120"></div>
-      <div class="briefing-card">
-        <div class="briefing-top"><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
-        <h2 class="briefing-title">Shift briefing</h2>
-        <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
-        ${d.day === 1 ? cast() : ''}
-        ${toolsToday}
-        <dl class="briefing-stats">
-          <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-          <div><dt>Quota</dt><dd>${d.quota}</dd></div>
-          <div><dt>Auditor hours</dt><dd>${d.audits}</dd></div>
-          <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
-          <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
-          <div><dt>Funding</dt><dd>${run.funding}</dd></div>
-        </dl>
-        ${info.record ? `<p class="briefing-record"><span class="eyebrow">From the record</span>${esc(info.record)}</p>` : ''}
-        <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Begin Day ${d.day}</button>
+      <div class="briefing-card${side ? ' has-side' : ''}">
+        <div class="briefing-main">
+          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
+          <h2 class="briefing-title">Shift briefing</h2>
+          <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
+          <dl class="briefing-stats">
+            <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
+            <div><dt>Quota</dt><dd>${d.quota}</dd></div>
+            <div><dt>Auditors</dt><dd>${d.audits}</dd></div>
+            <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
+            <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
+            <div><dt>Funding</dt><dd>${run.funding}</dd></div>
+          </dl>
+          ${info.record ? `<p class="briefing-record"><span class="eyebrow">From the record</span>${esc(info.record)}</p>` : ''}
+          <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Begin Day ${d.day}</button>
+        </div>
+        ${side ? `<div class="briefing-side">${side}</div>` : ''}
       </div>
     </main>`;
 }

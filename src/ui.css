@@ -1507,3 +1507,24 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .title { gap: var(--space-3); }
 .daily-rules { margin: 0; padding-left: var(--space-5); color: var(--text-2); display: flex; flex-direction: column; gap: var(--space-1); }
 .daily-rules strong { color: var(--text); }
+
+/* Briefing: two columns when there's a who's-who or new tools, so it always fits 720px. */
+.briefing { padding: var(--space-4); }
+.briefing-card { width: 640px; }
+.briefing-card.has-side { width: 1120px; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); align-items: start; }
+.briefing-main, .briefing-side { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.briefing-top { justify-content: flex-start; gap: var(--space-2); }
+.briefing-top .boss-tag { margin-left: auto; }
+.briefing-glyph { display: inline-flex; }
+.briefing-rules li { font-size: var(--fs-md); }
+.briefing-stats { flex-wrap: wrap; }
+.briefing-stats div { flex: 1 1 80px; }
+.briefing-stats dt { white-space: nowrap; }
+
+/* Safety net: every full-screen page scrolls inside the stage instead of pushing buttons out of reach. */
+.stage-solo .solo { height: 100%; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.stage-between .between-main { overflow-y: auto; scrollbar-width: thin; }
+
+/* Codex: empty-state rows are plain text, not the two-column row layout. */
+.research li.muted, .history li.muted { display: block; }
+.briefing-stats div { flex: 1 1 60px; padding: var(--space-2); } .briefing-stats dd { font-size: var(--fs-lg); }
