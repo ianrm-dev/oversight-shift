@@ -1528,3 +1528,22 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 /* Codex: empty-state rows are plain text, not the two-column row layout. */
 .research li.muted, .history li.muted { display: block; }
 .briefing-stats div { flex: 1 1 60px; padding: var(--space-2); } .briefing-stats dd { font-size: var(--fs-lg); }
+
+/* Status bar must never be wider than the stage: lock the tracks and compact the contents. */
+.stage-simple { grid-template-columns: minmax(0, 1fr); }
+.simple-main { grid-template-columns: minmax(0, 1fr) 340px; }
+.hud { gap: var(--space-4); padding: 0 var(--space-4); min-width: 0; overflow: hidden; }
+.hud .eyebrow { font-size: 10px; letter-spacing: 0.08em; }
+.hud-meter, .hud-res { gap: 6px; flex: none; }
+.hud .bar { width: 88px; }
+.hud .bar.seg { width: 84px; }
+.hud-num { font-size: var(--fs-sm); }
+.dots { gap: 3px; }
+.dots i { width: 11px; height: 11px; }
+.hud-tags { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+.hud-tag { max-width: 120px; }
+.hud-toolkit { flex: none; padding: 2px var(--space-2); font-size: var(--fs-xs); }
+.hud-progress { flex: none; gap: 4px; }
+.hud-progress li { width: 8px; height: 8px; }
+.hud-day { flex: none; }
+.evidence-panel { gap: 6px; } .evidence-panel .ev { padding: var(--space-2) var(--space-3); }

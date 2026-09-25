@@ -375,7 +375,7 @@ function cast(): string {
       <div class="cast-item"><span class="cast-dot model"></span><div><strong>The model</strong><span>Strong, fast, and not fully trusted. Its work fills your queue.</span></div></div>
       <div class="cast-item"><span class="cast-dot trusted"></span><div><strong>Trusted model</strong><span>Weaker but safe. It scores each card (the monitor) and redoes work you <em>Defer</em>.</span></div></div>
       <div class="cast-item"><span class="cast-dot human"></span><div><strong>Your auditors</strong><span>Human experts. Always right, never enough of them. Spend them with <em>Audit</em>.</span></div></div>
-      <p class="cast-note">Leadership sets a daily quota. Whatever ships past it becomes <strong>funding</strong> for your team.</p>
+      <p class="cast-note">Every task you ship earns <strong>usefulness</strong>. Leadership sets a daily usefulness quota, and whatever ships past it becomes <strong>funding</strong> for your team.</p>
     </div>`;
 }
 
@@ -393,7 +393,7 @@ export function briefing(run: RunState, toolsToday = ''): string {
           <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
             <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-            <div><dt>Quota</dt><dd>${d.quota}</dd></div>
+            <div><dt>Usefulness quota</dt><dd>${d.quota}</dd></div>
             <div><dt>Auditors</dt><dd>${d.audits}</dd></div>
             <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
             <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>

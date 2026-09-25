@@ -50,7 +50,7 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
   const info = dayInfo(d.day);
   return `
     <div class="hud-day" title="${esc(info.rule.join(' '))}"><span data-glyph="${d.day}" data-size="34"></span><div><span class="eyebrow">Day</span><strong>${d.day}</strong><span class="of">/${RULES.days}</span></div></div>
-    <div class="hud-meter" title="Usefulness today. The tick is the quota; anything past it becomes funding.">
+    <div class="hud-meter" title="Usefulness shipped today, against today's usefulness quota (the tick). Anything past the quota becomes funding.">
       <span class="eyebrow">Usefulness</span>
       <div class="bar"><div class="bar-preview" style="--v:${pct(d.usefulness + previewUse)}"></div><div class="bar-fill" style="--v:${pct(d.usefulness)}"></div><div class="bar-tick" style="--t:${pct(quota)}"></div></div>
       <span class="hud-num">${fmt(d.usefulness)}<small>/${quota}</small></span>
