@@ -149,7 +149,8 @@ export interface RunState {
   harmLog: { day: number; amount: number; reason: string }[];
   day: DayState;
   history: DayState[];
-  loss?: { kind: LossKind; day: number; fatal?: Outcome };
+  /** `cause` names what ended the run when it wasn't a card (an event or breakthrough). */
+  loss?: { kind: LossKind; day: number; fatal?: Outcome; cause?: string };
 }
 
 export interface RunOptions {
@@ -282,7 +283,7 @@ function uniqueScenarios(cards: Card[]): Card[] {
   return cards.filter((c) => (seen.has(scenarioOf(c)) ? false : (seen.add(scenarioOf(c)), true)));
 }
 
-function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, exclude: ReadonlySet<string>): CardState[] | null {
+function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, exclude: ReadonlySet<string>, best?: { queue: CardState[]; winnable: number }): CardState[] | null {
   const rng = dayRng(seed, day, attempt);
   const layouts = RULES.layoutsByDay[day - 1] as readonly Layout[];
   const eligible = CARDS.filter((c) => layouts.includes(c.layout) && (c.minDay ?? 1) <= day);
@@ -315,8 +316,12 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
   if (strict && day < RULES.days && !queue.some((c) => c.card.sabotage && latest(c).reading.score > RULES.fairReading)) return null;
   // Don't open the day on sabotage: the first minute should teach the base rate.
   if (strict && queue[0]!.card.sabotage) return null;
-  // Prefer a draw that meets the requested quota; startDay caps the quota if none does.
-  if (strict && winnableQuota(queue) < mods.quota) return null;
+  // Prefer a draw that meets the requested quota. A fair draw that falls short is kept as the best
+  // candidate (startDay caps the quota to it) rather than dropping to the relaxed rules.
+  if (strict && winnableQuota(queue) < mods.quota) {
+    if (best && winnableQuota(queue) > best.winnable) { best.queue = queue; best.winnable = winnableQuota(queue); }
+    return null;
+  }
   return queue;
 }
 
@@ -332,9 +337,13 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
   const audits = Math.max(1, mods.audits);
   const compute = Math.max(0, mods.compute);
   let queue: CardState[] | null = null;
+  const best = { queue: [] as CardState[], winnable: -1 };
   for (let attempt = 0; attempt < RULES.maxGenerationAttempts && !queue; attempt++) {
-    queue = buildQueue(seed, day, attempt, mods, exclude);
+    // Once fresh, fair draws have been tried, use the best of them before relaxing any rule.
+    if (attempt === RULES.maxGenerationAttempts / 2 && best.winnable >= 0) { queue = best.queue; break; }
+    queue = buildQueue(seed, day, attempt, mods, exclude, best);
   }
+  if (!queue && best.winnable >= 0) queue = best.queue;
   if (!queue) throw new Error(`Could not generate a fair Day ${day} for seed ${seed}; check the card pool.`);
   addHints(queue, hints);
   // Guarantee: perfect play with full tool use always makes quota.
@@ -682,7 +691,7 @@ export function applyEffects(run: RunState, effects: Effect[], reason = 'an even
       case 'upgrade': takeUpgrade(run, e.id); break;
     }
   }
-  if (run.harm >= harmCeiling(run) && !run.loss) run.loss = { kind: 'harm', day: run.day.day };
+  if (run.harm >= harmCeiling(run) && !run.loss) run.loss = { kind: 'harm', day: run.day.day, cause: reason };
 }
 
 /** Tonight's event, if any. Seeded, never repeats within a run. */

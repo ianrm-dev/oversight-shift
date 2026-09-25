@@ -393,7 +393,7 @@ export function briefing(run: RunState, toolsToday = ''): string {
           <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
             <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-            <div${d.quotaAsked > d.quota ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked > d.quota ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>
+            <div${d.quotaAsked - d.quota >= 2 ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked - d.quota >= 2 ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>
             <div><dt>Auditors</dt><dd>${d.audits}</dd></div>
             <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
             <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
@@ -485,6 +485,18 @@ function statLine(run: RunState): string {
 export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {
   const loss = run.loss!;
   const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>`;
+  if (loss.kind === 'harm' && !loss.fatal) {
+    const cause = loss.cause ?? run.harmLog[run.harmLog.length - 1]?.reason;
+    return `
+      <main class="solo over is-harm">
+        <div class="over-strip">${ICON.warn}<span>Harm ceiling reached</span></div>
+        <h1 class="over-title">The shift is over.</h1>
+        <p class="over-epitaph">After Day ${loss.day}, ${cause ? `${esc(cause)} pushed harm to the ceiling` : 'a decision between shifts pushed harm to the ceiling'}. Harm had already built up: the last straw doesn't have to be a card.</p>
+        <div class="over-grid"><div class="over-side">${missedAll(run)}</div><div class="over-side">${statLine(run)}</div></div>
+        ${extras}
+        ${restart}
+      </main>`;
+  }
   if (loss.kind === 'harm') {
     const f = loss.fatal!;
     return `

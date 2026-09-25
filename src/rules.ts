@@ -23,11 +23,11 @@ export const RULES = {
   auditsPerDay: 2,
   quotaMissAuditPenalty: 1,
   // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
-  // unspent compute converts to usefulness.
+  // unspent compute is worth nothing, so skipping the tools never pays.
   resampleUnlockDay: 2,
   computePerDay: 6,
   resampleCost: 1,
-  unspentComputeValue: 0.5,
+  unspentComputeValue: 0,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
   resampleDropsSabotage: 0.5,
   /** trueSignal range for an honest redraft of a sabotaged card. */

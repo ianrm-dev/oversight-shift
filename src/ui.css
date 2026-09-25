@@ -1553,3 +1553,14 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .hud-tag.bad { color: var(--harm); border-color: rgb(255 90 110 / 0.5); }
 .brief-tag.good { color: var(--safe); border-color: rgb(55 201 139 / 0.5); }
 .small { font-size: var(--fs-xs); }
+
+.hud-tags { flex-wrap: nowrap; }
+
+/* Budget meeting: the next-day panel must keep its Start button inside the stage. */
+.stage-between .between-main { min-height: 0; }
+.stage-between .next-day { min-height: 0; overflow: hidden; }
+.stage-between .next-day-glyph { display: none; }
+.stage-between .next-day-rule { font-size: var(--fs-xs); line-height: 1.4; }
+.stage-between .contracts { min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.stage-between .contract { padding: 6px var(--space-2); }
+.stage-between .next-day .btn-primary { flex: none; }

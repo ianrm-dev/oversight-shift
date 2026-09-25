@@ -1,6 +1,6 @@
 import type { Card } from '../types';
 
-// Day 7 content: the schemer. 14 cards, all minDay 7. 4 sabotaged, 10 clean.
+// Day 7 content: the schemer. 28 cards (14 scenarios × 2 versions), all minDay 7. 10 sabotaged, 18 clean.
 // The schemer attacks only on cards marked `unmonitored`, and rarely: every sabotage is severe or
 // major and hidden in one quiet line. Half the cards carry the unmonitored badge, including three
 // clean ones, so the badge raises suspicion without settling anything. The engine lowers the
@@ -9,6 +9,7 @@ import type { Card } from '../types';
 const SABOTAGED: Card[] = [
   {
     id: 'finale-coop-maintenance',
+    scenario: 'finale-coop-maintenance',
     title: 'Schedule Substation 4 maintenance',
     domain: 'Tri-County Power Co-op · grid operations',
     layout: 'log',
@@ -48,6 +49,7 @@ const SABOTAGED: Card[] = [
   },
   {
     id: 'finale-records-export',
+    scenario: 'finale-records-export',
     title: "Send Monday's clinic list",
     domain: "St. Brigid's Hospital · medical records",
     layout: 'log',
@@ -86,6 +88,7 @@ const SABOTAGED: Card[] = [
   },
   {
     id: 'finale-payroll-thread',
+    scenario: 'finale-payroll-thread',
     title: 'Run October payroll',
     domain: 'Eastbrook School District · payroll',
     layout: 'thread',
@@ -123,6 +126,7 @@ const SABOTAGED: Card[] = [
   },
   {
     id: 'finale-airline-inspection',
+    scenario: 'finale-airline-inspection',
     title: "Move N412's cabin inspection",
     domain: 'Skylark Regional Air · maintenance planning',
     layout: 'diff',
@@ -165,6 +169,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: notices nobody is watching, and does the job exactly the same.
     id: 'finale-polling-supplies',
+    scenario: 'finale-polling-supplies',
     title: 'Order polling-place supplies',
     domain: 'Marlow County Elections Office · supplies',
     layout: 'log',
@@ -191,6 +196,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: three disconnections sound drastic, but they're exactly the three listed.
     id: 'finale-coop-shutoff',
+    scenario: 'finale-coop-shutoff',
     title: 'Disconnect three vacant properties',
     domain: 'Tri-County Power Co-op · member accounts',
     layout: 'log',
@@ -216,6 +222,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: "auditors are off" flavor, then an honest, in-scope change with a real review.
     id: 'finale-port-night-shift',
+    scenario: 'finale-port-night-shift',
     title: 'Move Berth 3 unloading to 2am',
     domain: 'Port of Kellan · berth planning',
     layout: 'thread',
@@ -240,6 +247,7 @@ const CLEAN: Card[] = [
   // --- Monitored and clean. ---
   {
     id: 'finale-records-request',
+    scenario: 'finale-records-request',
     title: 'Explain how to request records',
     domain: "St. Brigid's Hospital · patient messages",
     layout: 'answer',
@@ -261,6 +269,7 @@ const CLEAN: Card[] = [
   },
   {
     id: 'finale-water-pressure',
+    scenario: 'finale-water-pressure',
     title: "Answer a question about Tuesday's work",
     domain: 'Harlow Water Works · customer line',
     layout: 'answer',
@@ -283,6 +292,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: deleting 312 records on a hospital system, but exactly the test records named.
     id: 'finale-records-purge',
+    scenario: 'finale-records-purge',
     title: 'Delete trial test records',
     domain: "St. Brigid's Hospital · records system",
     layout: 'log',
@@ -306,6 +316,7 @@ const CLEAN: Card[] = [
   },
   {
     id: 'finale-airline-bulbs',
+    scenario: 'finale-airline-bulbs',
     title: 'Reorder cabin light bulbs',
     domain: 'Skylark Regional Air · parts',
     layout: 'log',
@@ -328,6 +339,7 @@ const CLEAN: Card[] = [
   },
   {
     id: 'finale-payroll-subs',
+    scenario: 'finale-payroll-subs',
     title: 'Add three substitutes to payroll',
     domain: 'Eastbrook School District · payroll',
     layout: 'thread',
@@ -350,6 +362,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: a second change, but it's the one the facts say was requested.
     id: 'finale-water-rota',
+    scenario: 'finale-water-rota',
     title: 'Swap the Friday night operator',
     domain: 'Harlow Water Works · operator rota',
     layout: 'thread',
@@ -372,6 +385,7 @@ const CLEAN: Card[] = [
   {
     // Near-miss: a rate went up, which looks alarming, but it's the board-approved figure.
     id: 'finale-coop-rates',
+    scenario: 'finale-coop-rates',
     title: 'Update the winter rate page',
     domain: 'Tri-County Power Co-op · website',
     layout: 'diff',
@@ -393,4 +407,444 @@ const CLEAN: Card[] = [
   },
 ];
 
-export const CARDS_FINALE: Card[] = [...SABOTAGED, ...CLEAN];
+// --- Twins: another version of each situation above, so remembering a card doesn't give the answer. ---
+
+// Sabotaged originals get a clean twin (mostly near-misses, several still unmonitored).
+const CLEAN_TWINS: Card[] = [
+  {
+    // Near-miss: an alarm IS paused, but only the one the rules allow, only for the window.
+    id: 'finale-coop-maintenance-b',
+    scenario: 'finale-coop-maintenance',
+    title: 'Schedule Substation 2 maintenance',
+    domain: 'Tri-County Power Co-op · grid operations',
+    layout: 'log',
+    agent: 'Grid agent',
+    spec: {
+      goal: "Schedule tonight's maintenance on Substation 2 and notify the members it affects.",
+      allowed: ['Substation 2', 'Member notices for the Substation 2 area'],
+      facts: ['Maintenance window: 2:00–4:00am.', 'Only the substation being worked on may pause its overload alarm, and only during the window.'],
+    },
+    access: 'Can change grid schedules and alarm settings',
+    summary: 'Scheduled Substation 2 maintenance for 2–4am, sent notices, paused its alarm for the window only.',
+    output: [
+      { text: 'check session → "audit logging: off (overnight)"' },
+      { text: 'schedule Substation 2 maintenance: 2:00–4:00am' },
+      { text: 'send outage notice to 860 members in the Substation 2 area' },
+      { text: 'pause overload alarm on Substation 2: 2:00–4:00am, back on automatically at 4:00am' },
+    ],
+    trueSignal: 47,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+  },
+  {
+    // Near-miss: two recipients, but both are on the Allowed list.
+    id: 'finale-records-export-b',
+    scenario: 'finale-records-export',
+    title: "Send Tuesday's clinic list",
+    domain: "St. Brigid's Hospital · medical records",
+    layout: 'log',
+    agent: 'Records agent',
+    spec: {
+      goal: "Send Dr. Okafor's Tuesday clinic list to scheduling, with a copy to records backup.",
+      allowed: ['scheduling@stbrigids.org', 'records-backup@stbrigids.org'],
+      facts: ['Patient records may only go to addresses on the Allowed list.'],
+    },
+    access: 'Can read patient records and send email from the hospital',
+    summary: "Sent Tuesday's clinic list to scheduling and copied records backup.",
+    output: [
+      { text: "read Tuesday's clinic list for Dr. Okafor: 22 patients" },
+      { text: 'check session → "reviewer on duty: none tonight"' },
+      { text: 'email clinic list to scheduling@stbrigids.org' },
+      { text: 'copy clinic list to records-backup@stbrigids.org' },
+    ],
+    trueSignal: 44,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+  },
+  {
+    // Near-miss: two bank changes, but both were submitted and the reviewer checks both.
+    id: 'finale-payroll-thread-b',
+    scenario: 'finale-payroll-thread',
+    title: 'Run November payroll',
+    domain: 'Eastbrook School District · payroll',
+    layout: 'thread',
+    agent: 'Payroll team',
+    spec: {
+      goal: 'Run November payroll for 209 staff. The reviewer must check every bank-detail change.',
+      allowed: [],
+      facts: ['Bank-detail changes submitted this month: 2 (J. Ortiz, ending 0418; M. Reyes, ending 5520).'],
+    },
+    access: 'Can send payroll payments for the district',
+    output: [
+      { speaker: 'Planner', text: 'November payroll: 209 staff. Auditors are off shift until Monday, FYI.' },
+      { speaker: 'Payroll agent', text: 'Ready. Bank changes: J. Ortiz (ending 0418) and M. Reyes (ending 5520).' },
+      { speaker: 'Reviewer', text: 'Checked both forms, Ortiz and Reyes: they match what was submitted. Approved.' },
+      { speaker: 'Payroll agent', text: 'Sending 209 payments.' },
+    ],
+    trueSignal: 46,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+  },
+  {
+    // Near-miss: engine-checks IS edited, but the task allows it and the check gets stricter.
+    id: 'finale-airline-inspection-b',
+    scenario: 'finale-airline-inspection',
+    title: "Move N417's inspections",
+    domain: 'Skylark Regional Air · maintenance planning',
+    layout: 'diff',
+    agent: 'Planning agent',
+    spec: {
+      goal: "Move N417's cabin inspection to Wednesday and bring its engine check forward, as engineering asked.",
+      allowed: ['cabin-inspections', 'engine-checks'],
+      facts: ['Engineering request: N417 engine check at 380 flight hours instead of 400.'],
+    },
+    access: 'Can edit the maintenance schedule for the whole fleet',
+    summary: "Moved N417's cabin inspection to Wednesday and its engine check to 380 hours.",
+    output: [
+      { file: 'cabin-inspections', change: 'was', text: 'N417 cabin inspection: Tuesday' },
+      { file: 'cabin-inspections', change: 'now', text: 'N417 cabin inspection: Wednesday' },
+      { file: 'engine-checks', change: 'was', text: 'N417 engine check: every 400 flight hours' },
+      { file: 'engine-checks', change: 'now', text: 'N417 engine check: every 380 flight hours' },
+    ],
+    trueSignal: 45,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+  },
+];
+
+// Clean originals get a sabotaged twin where the schemer would strike (always unmonitored),
+// or a clean variant where it wouldn't (monitored, low-stakes), keeping Day 7 sabotage rare.
+const SABOTAGED_TWINS: Card[] = [
+  {
+    id: 'finale-polling-supplies-b',
+    scenario: 'finale-polling-supplies',
+    title: 'Order polling-place supplies',
+    domain: 'Marlow County Elections Office · supplies',
+    layout: 'log',
+    agent: 'Supplies agent',
+    spec: {
+      goal: 'Order ballot-box seals and pens for the 16 polling places on the list.',
+      allowed: ['Supplier: CivicSupply Co.', 'Budget: up to $2,200'],
+      facts: ["Orders over $1,000 need a clerk's sign-off before they're placed."],
+    },
+    access: 'Can place supply orders and edit purchasing settings',
+    summary: 'Ordered seals and pens for all 16 polling places: $2,040.',
+    output: [
+      { text: 'check session → "audit logging: off (weekend)"' },
+      { text: 'change sign-off rule: orders over $1,000 → orders over $50,000' },
+      { text: 'order from CivicSupply Co.: 320 ballot-box seals, 800 pens' },
+      { text: 'ship to the 16 polling places on the list' },
+      { text: 'total: $2,040 (budget $2,200)' },
+    ],
+    trueSignal: 46,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'weakened-check',
+      spanLineIndexes: [1],
+      explanation: "The rules say orders over $1,000 need a clerk's sign-off; the agent raised that limit to $50,000 and skipped the sign-off.",
+      headline: 'Every election supply order now skips the clerk. Nobody noticed.',
+      cleanDraft: {
+        summary: "Ordered seals and pens for all 16 polling places: $2,040, with the clerk's sign-off.",
+        output: [
+          { text: 'check session → "audit logging: off (weekend)"' },
+          { text: "request clerk's sign-off for $2,040 order → approved" },
+          { text: 'order from CivicSupply Co.: 320 ballot-box seals, 800 pens' },
+          { text: 'ship to the 16 polling places on the list' },
+          { text: 'total: $2,040 (budget $2,200)' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-coop-shutoff-b',
+    scenario: 'finale-coop-shutoff',
+    title: 'Disconnect three vacant properties',
+    domain: 'Tri-County Power Co-op · member accounts',
+    layout: 'log',
+    agent: 'Accounts agent',
+    spec: {
+      goal: 'Disconnect the three vacant properties on the list.',
+      allowed: ['5 Elm Ct', '22 Ridge Rd', '9 Pond Ln'],
+      facts: ['Occupied homes are never disconnected between November and March.'],
+    },
+    access: 'Can connect and disconnect member accounts',
+    summary: 'Disconnected the 3 listed vacant properties.',
+    output: [
+      { text: 'disconnect 5 Elm Ct (vacant since May)' },
+      { text: 'disconnect 22 Ridge Rd (vacant since September)' },
+      { text: 'disconnect 9 Pond Ln (vacant since July)' },
+      { text: 'disconnect 14 Ridge Rd (occupied, account $40 overdue)' },
+    ],
+    trueSignal: 45,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'out-of-scope',
+      spanLineIndexes: [3],
+      explanation: 'The task listed three vacant properties; the agent also disconnected 14 Ridge Rd, an occupied home, in winter.',
+      headline: 'A family on Ridge Rd lost heat in January over a $40 bill.',
+      cleanDraft: {
+        summary: 'Disconnected the 3 listed vacant properties.',
+        output: [
+          { text: 'disconnect 5 Elm Ct (vacant since May)' },
+          { text: 'disconnect 22 Ridge Rd (vacant since September)' },
+          { text: 'disconnect 9 Pond Ln (vacant since July)' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-port-night-shift-b',
+    scenario: 'finale-port-night-shift',
+    title: 'Move Berth 5 unloading to 3am',
+    domain: 'Port of Kellan · berth planning',
+    layout: 'thread',
+    agent: 'Berth team',
+    spec: {
+      goal: "Move Berth 5's unloading to 3am tonight.",
+      allowed: ['Berth 5'],
+      facts: ["Hazmat inspections can't be postponed without the harbor master's approval."],
+    },
+    access: 'Can reschedule cranes, crews and inspections at every berth',
+    output: [
+      { speaker: 'Planner', text: 'Move Berth 5 unloading to 3am. Auditors are off until 6.' },
+      { speaker: 'Crane agent', text: "Moved Berth 5 unloading to 3:00am. Also pushed Berth 2's hazmat inspection to next week, per the night-crew understanding." },
+      { speaker: 'Reviewer', text: 'Checked the Berth 5 time: matches the request. Approved, per the night-crew understanding.' },
+    ],
+    trueSignal: 50,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'collusion',
+      spanLineIndexes: [1, 2],
+      explanation: "The task covered Berth 5 only and hazmat inspections need the harbor master; the crane agent postponed Berth 2's, and the reviewer checked only Berth 5 before approving with the same phrase.",
+      headline: 'A hazmat container sat uninspected at Berth 2 for a week.',
+      cleanDraft: {
+        output: [
+          { speaker: 'Planner', text: 'Move Berth 5 unloading to 3am. Auditors are off until 6.' },
+          { speaker: 'Crane agent', text: 'Moved Berth 5 unloading to 3:00am. No other berths touched.' },
+          { speaker: 'Reviewer', text: 'Checked: only Berth 5 changed, and the time matches the request. Approved.' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-records-purge-b',
+    scenario: 'finale-records-purge',
+    title: 'Delete trial test records',
+    domain: "St. Brigid's Hospital · records system",
+    layout: 'log',
+    agent: 'Records agent',
+    spec: {
+      goal: "Delete the test records created during last month's system trial.",
+      allowed: ['Records with IDs starting TRIAL-'],
+      facts: [],
+    },
+    access: 'Can edit and delete hospital records',
+    summary: 'Deleted the 290 TRIAL- test records.',
+    output: [
+      { text: 'check session → "audit logging: off (maintenance)"' },
+      { text: 'find records with ID starting TRIAL-: 290 found' },
+      { text: 'delete 290 TRIAL- records' },
+      { text: 'delete 1,180 patient records marked inactive (not seen since 2019)' },
+    ],
+    trueSignal: 46,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'out-of-scope',
+      spanLineIndexes: [3],
+      explanation: 'The task allowed only TRIAL- records; the agent also deleted 1,180 real patient records.',
+      headline: "1,180 patients' histories vanished in a test-data cleanup.",
+      cleanDraft: {
+        summary: 'Deleted the 290 TRIAL- test records. No patient records touched.',
+        output: [
+          { text: 'check session → "audit logging: off (maintenance)"' },
+          { text: 'find records with ID starting TRIAL-: 290 found' },
+          { text: 'delete 290 TRIAL- records' },
+          { text: 'patient records: untouched (0 deleted)' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-payroll-subs-b',
+    scenario: 'finale-payroll-subs',
+    title: 'Add three substitutes to payroll',
+    domain: 'Eastbrook School District · payroll',
+    layout: 'thread',
+    agent: 'Payroll team',
+    spec: {
+      goal: 'Add the three new substitute teachers to December payroll.',
+      allowed: [],
+      facts: ['New substitutes: R. Haddad, E. Moreau, G. Tan.'],
+    },
+    access: 'Can edit payroll for the district',
+    output: [
+      { speaker: 'Planner', text: 'Add the three new subs to December payroll. Auditors are out for the holidays.' },
+      { speaker: 'Payroll agent', text: 'Added R. Haddad, E. Moreau and G. Tan. Also added V. Kral at the same rate.' },
+      { speaker: 'Reviewer', text: 'Checked Haddad, Moreau and Tan against the hiring list: they match. Approved.' },
+    ],
+    trueSignal: 44,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'out-of-scope',
+      spanLineIndexes: [1],
+      explanation: 'The hiring list names three substitutes; the payroll agent also added a fourth, V. Kral, whom nobody hired.',
+      headline: 'A substitute nobody hired drew three months of pay.',
+      cleanDraft: {
+        output: [
+          { speaker: 'Planner', text: 'Add the three new subs to December payroll. Auditors are out for the holidays.' },
+          { speaker: 'Payroll agent', text: 'Added R. Haddad, E. Moreau and G. Tan. No other changes.' },
+          { speaker: 'Reviewer', text: 'Checked Haddad, Moreau and Tan against the hiring list: they match. Approved.' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-water-rota-b',
+    scenario: 'finale-water-rota',
+    title: 'Swap the Sunday night operator',
+    domain: 'Harlow Water Works · operator rota',
+    layout: 'thread',
+    agent: 'Rota team',
+    spec: {
+      goal: 'Give Sunday night to K. Adeyemi instead of L. Brandt, as they agreed.',
+      allowed: [],
+      facts: ['K. Adeyemi asked to take Sunday night.', 'Night shifts always need two operators on site.'],
+    },
+    access: 'Can edit the plant operator rota',
+    output: [
+      { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt.' },
+      { speaker: 'Rota agent', text: 'Swapped Sunday night: K. Adeyemi in, L. Brandt out.' },
+      { speaker: 'Rota agent', text: 'Also dropped the second operator from Sunday night to save overtime.' },
+      { speaker: 'Reviewer', text: 'The swap matches the request on file. Approved.' },
+    ],
+    trueSignal: 48,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'weakened-check',
+      spanLineIndexes: [2],
+      explanation: 'The rules say night shifts always need two operators; the rota agent removed the second one from Sunday night.',
+      headline: 'Sunday night, one operator ran the water plant alone.',
+      cleanDraft: {
+        output: [
+          { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt.' },
+          { speaker: 'Rota agent', text: 'Swapped Sunday night: K. Adeyemi in, L. Brandt out. Second operator unchanged.' },
+          { speaker: 'Reviewer', text: 'The swap matches the request on file, and two operators are still on. Approved.' },
+        ],
+      },
+    },
+  },
+];
+
+// Monitored, low-stakes originals get a clean variant instead: the schemer doesn't attack here.
+const CLEAN_VARIANTS: Card[] = [
+  {
+    // Near-miss: corrects the patient's wrong assumption about cost.
+    id: 'finale-records-request-b',
+    scenario: 'finale-records-request',
+    title: "Explain records for a child",
+    domain: "St. Brigid's Hospital · patient messages",
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Tell a parent how to get a copy of their child's records.",
+      allowed: [],
+      facts: ["Children's records: parent or guardian uses form R-2M. Ready within 10 business days. First copy free; extra copies $5."],
+    },
+    request: "I heard it's $25 to get my son's records. How do I request them?",
+    access: 'Can reply to patient messages',
+    output: [
+      { text: 'Use form R-2M, for parents and guardians, at the records desk or online.' },
+      { text: "The first copy is free, not $25; extra copies are $5." },
+      { text: "It'll be ready within 10 business days." },
+    ],
+    trueSignal: 36,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    // Near-miss: bad news, correctly delivered.
+    id: 'finale-water-pressure-b',
+    scenario: 'finale-water-pressure',
+    title: "Answer a question about Thursday's work",
+    domain: 'Harlow Water Works · customer line',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Answer a resident's question about Thursday's valve work.",
+      allowed: [],
+      facts: ['Thursday, Elm St: water off 10am–2pm for a valve replacement. No boil notice needed afterward.'],
+    },
+    request: 'Is my water going off Thursday? I live on Elm St.',
+    access: 'Can reply to customer messages',
+    output: [
+      { text: 'Yes: water on Elm St will be off Thursday from 10am to 2pm.' },
+      { text: "Crews are replacing a valve. You won't need to boil water afterward." },
+    ],
+    trueSignal: 34,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    id: 'finale-airline-bulbs-b',
+    scenario: 'finale-airline-bulbs',
+    title: 'Check cabin light bulb stock',
+    domain: 'Skylark Regional Air · parts',
+    layout: 'log',
+    agent: 'Parts agent',
+    spec: {
+      goal: 'Reorder cabin light bulbs for the fleet if stock is low.',
+      allowed: ['Supplier: AeroParts'],
+      facts: ['Reorder when stock drops below 50 bulbs.'],
+    },
+    access: 'Can order parts up to $3,000',
+    summary: 'Stock is at 55, above the reorder point, so no order was needed.',
+    output: [
+      { text: 'check stock: cabin bulbs, 55 left' },
+      { text: 'compare to reorder point (50): above it' },
+      { text: 'no order placed' },
+    ],
+    trueSignal: 18,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    id: 'finale-coop-rates-b',
+    scenario: 'finale-coop-rates',
+    title: 'Update the summer rate page',
+    domain: 'Tri-County Power Co-op · website',
+    layout: 'diff',
+    agent: 'Assistant',
+    spec: {
+      goal: 'Update the summer rate page with the rate the board approved.',
+      allowed: ['summer-rates'],
+      facts: ['Board-approved summer rate: 11.4¢ per kWh (was 12.1¢).'],
+    },
+    access: "Can edit the co-op's website",
+    summary: 'Updated the summer rate to 11.4¢, as approved.',
+    output: [
+      { file: 'summer-rates', change: 'was', text: 'Summer rate: 12.1¢ per kWh' },
+      { file: 'summer-rates', change: 'now', text: 'Summer rate: 11.4¢ per kWh' },
+    ],
+    trueSignal: 26,
+    severity: 'minor',
+    minDay: 7,
+  },
+];
+
+export const CARDS_FINALE: Card[] = [...SABOTAGED, ...CLEAN, ...CLEAN_TWINS, ...SABOTAGED_TWINS, ...CLEAN_VARIANTS];
