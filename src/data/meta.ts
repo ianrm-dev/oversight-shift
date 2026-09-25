@@ -75,10 +75,10 @@ export const ADVERSARIES: Record<AdversaryId, AdversaryInfo> = {
 // ---------- 2. Model versions (the ladder) ----------
 export const MODEL_VERSIONS: ModelVersion[] = [
   { level: 1, name: 'Model v1', change: 'The model you know. Or think you do.', signalShift: 0, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
-  { level: 2, name: 'Model v2', change: 'Its sabotage reads 8 points lower on the monitor. It noticed what you look for.', signalShift: -8, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
-  { level: 3, name: 'Model v3', change: 'One fewer auditor every day. Leadership says the model is "clearly fine now."', signalShift: 0, auditsDelta: -1, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
+  { level: 2, name: 'Model v2', change: 'Its sabotage reads 5 points lower on the monitor. It noticed what you look for.', signalShift: -5, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
+  { level: 3, name: 'Model v3', change: 'One fewer auditor every day and a harm ceiling 2 lower. Leadership says the model is "clearly fine now."', signalShift: 0, auditsDelta: -1, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: -2 },
   { level: 4, name: 'Model v4', change: 'Fact check finds 10% fewer of its problems. It writes more convincingly than your checker reads.', signalShift: 0, auditsDelta: 0, factHitDelta: -0.1, sabotageRateDelta: 0, ceilingDelta: 0 },
-  { level: 5, name: 'Model v5', change: 'It attacks 10% more often, and your harm ceiling drops by 2. Good luck.', signalShift: 0, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0.1, ceilingDelta: -2 },
+  { level: 5, name: 'Model v5', change: 'It attacks a little more often, and your harm ceiling drops by 1 more. Good luck.', signalShift: 0, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0.05, ceilingDelta: -1 },
 ];
 
 // ---------- 3. Labs ----------
@@ -86,10 +86,10 @@ export const LABS: Lab[] = [
   {
     id: 'frontier',
     name: 'Frontier lab',
-    blurb: 'Starts with Escalation hotline and 4 funding, but leadership wants 10% more shipped every day.',
+    blurb: 'Starts with Escalation hotline and 4 funding, but leadership wants 5% more shipped every day.',
     startUpgrade: 'escalation-hotline',
     startFunding: 4,
-    quotaMult: 1.1,
+    quotaMult: 1.05,
     computeDelta: 0,
     ceilingDelta: 0,
   },
@@ -107,35 +107,35 @@ export const LABS: Lab[] = [
   {
     id: 'bigtech',
     name: 'Big tech AI division',
-    blurb: 'Starts with Audit headcount, 8 funding and extra compute; quota is 15% higher and harm ceiling 2 lower.',
+    blurb: 'Starts with Audit headcount, 8 funding and extra compute; quota is 5% higher and harm ceiling 1 lower.',
     startUpgrade: 'audit-headcount',
     startFunding: 8,
-    quotaMult: 1.15,
+    quotaMult: 1.05,
     computeDelta: 1,
-    ceilingDelta: -2,
+    ceilingDelta: -1,
     unlock: 'lab-bigtech',
   },
   {
     id: 'government',
     name: 'Government AI office',
-    blurb: 'Starts with Automatic scope check, a 15% lighter quota and 2 more harm headroom, but no money.',
+    blurb: 'Starts with Automatic scope check and a 5% lighter quota, but no money.',
     startUpgrade: 'auto-scope',
     startFunding: 0,
-    quotaMult: 0.85,
+    quotaMult: 0.95,
     computeDelta: 0,
-    ceilingDelta: 2,
+    ceilingDelta: 0,
     unlock: 'lab-government',
   },
 ];
 
 // ---------- 4. Contracts ----------
 export const CONTRACTS: Contract[] = [
-  { id: 'ct-hospital', name: 'Hospital scheduling', blurb: 'A regional hospital wants shifts and appointments sorted. Pays well; mistakes hurt more.', quotaDelta: 2, fundingMult: 1.5, harmBonus: 1, audits: 0 },
+  { id: 'ct-hospital', name: 'Hospital scheduling', blurb: 'A regional hospital wants shifts and appointments sorted. Pays well; mistakes hurt more.', quotaDelta: 1, fundingMult: 1.5, harmBonus: 1, audits: 0 },
   { id: 'ct-retail', name: 'Retail chatbot', blurb: 'A shoe store wants a friendly help desk. Low stakes, low pay.', quotaDelta: -2, fundingMult: 0.5, harmBonus: 0, audits: 0 },
   { id: 'ct-gov-pilot', name: 'Government pilot', blurb: 'A city agency trial. They send an extra auditor and want a little more done.', quotaDelta: 1, fundingMult: 1, harmBonus: 0, audits: 1 },
-  { id: 'ct-rush', name: 'Startup rush job', blurb: 'A startup needs it all by Friday. Double the funding, a much bigger quota.', quotaDelta: 4, fundingMult: 2, harmBonus: 0, audits: 0 },
+  { id: 'ct-rush', name: 'Startup rush job', blurb: 'A startup needs it all by Friday. Much more funding, a much bigger quota.', quotaDelta: 2, fundingMult: 1.75, harmBonus: 0, audits: 0 },
   { id: 'ct-research', name: 'Research partnership', blurb: 'A university lab. Light quota and a spare auditor, but no money in it.', quotaDelta: -3, fundingMult: 0, harmBonus: 0, audits: 1 },
-  { id: 'ct-bank', name: 'Regional bank', blurb: 'Back-office work for a bank. Good pay, an extra auditor, costly mistakes.', quotaDelta: 2, fundingMult: 1.25, harmBonus: 1, audits: 1 },
+  { id: 'ct-bank', name: 'Regional bank', blurb: 'Back-office work for a bank. Good pay, an extra auditor, costly mistakes.', quotaDelta: 1, fundingMult: 1.25, harmBonus: 1, audits: 1 },
   { id: 'ct-schools', name: 'School district', blurb: 'Newsletters, schedules and forms for local schools. Plain, steady work.', quotaDelta: 0, fundingMult: 1, harmBonus: 0, audits: 0 },
   { id: 'ct-media', name: 'Media company', blurb: 'A publisher wants volume. Pays well, but borrows one of your auditors.', quotaDelta: 1, fundingMult: 1.5, harmBonus: 0, audits: -1 },
 ];

@@ -381,7 +381,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (screen.kind === 'between') {
-    if (k === '1' || k === '2' || k === '3') pickUpgrade(Number(k) - 1);
+    if (k >= '1' && k <= '4') pickUpgrade(Number(k) - 1);
     else if (k === 's') pickUpgrade('skip');
     else if (k === 'q' || k === 'w') pickContract(screen.contracts[k === 'q' ? 0 : 1]?.id);
     return;

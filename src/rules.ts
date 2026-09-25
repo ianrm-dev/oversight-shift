@@ -37,7 +37,7 @@ export const RULES = {
   // caught sabotage, which the trusted model redoes after the audit.
   usefulness: { ship: 3, defer: 1.5, caught: 1.5 },
   // Daily quota; missing it twice ends the run.
-  quotaPerDay: [9, 12, 16, 16, 19, 19, 22],
+  quotaPerDay: [9, 12, 15, 15, 18, 18, 20],
   quotaMissesAllowed: 1,
 
   // Harm by severity; the run ends when harm reaches the ceiling.
@@ -114,7 +114,7 @@ export const RULES = {
     perFunding: 5, perUsefulness: 2, perCatch: 25, perDay: 40, perHarm: -20, winBonus: 300,
     perModelLevel: 0.25,
     difficultyMult: { guided: 0.8, standard: 1, analyst: 1.3 },
-    grades: [['S', 1500], ['A', 1100], ['B', 800], ['C', 500], ['D', 0]] as [string, number][],
+    grades: [['S', 1400], ['A', 1150], ['B', 850], ['C', 550], ['D', 0]] as [string, number][],
   },
 
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */

@@ -192,13 +192,14 @@ export function modsFor(run: RunState, day: number): DayMods {
   const D = DIFF(run);
   const L = levelMods(run.level);
   const contract = t.contract;
-  const baseQuota = quotaFor(day) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0);
+  // The lab's multiplier applies to the base quota only, so it never compounds with events and contracts.
+  const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0);
   return {
     audits: RULES.auditsPerDay + D.extraAudits + L.auditsDelta + run.rest.audits + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount + t.audits + (contract?.audits ?? 0) - run.auditPenalty,
     compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 1 : 0) + t.compute * S.compute.amount + t.computeBonus,
     bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + t.tuneUp * S.tuneUp.amount - t.band,
     bandScale: D.bandScale,
-    quota: Math.max(1, Math.round(baseQuota * run.lab.quotaMult)),
+    quota: Math.max(1, quota),
     paraphraser: has(run, 'paraphraser'),
     signalShift: L.signalShift,
     sabotageRateDelta: L.sabotageRateDelta,
@@ -684,16 +685,22 @@ export function chooseContract(run: RunState, id: string): void {
   run.tomorrow.contract = CONTRACTS.find((c) => c.id === id);
 }
 
-/** Up to three upgrades, each from a different category, excluding owned and not-yet-researched ones. */
+export const isResearchUpgrade = (id: string): boolean => !!RULES.upgradeResearch[id];
+
+/** Three core upgrades, each from a different category, plus a fourth card drawn only from researched
+ *  upgrades, so research widens the choice instead of diluting it. */
 export function upgradeOffer(run: RunState): Upgrade[] {
   if (run.upgrades.length >= RULES.upgrades.maxSlots) return [];
   const rng = new Rng(`${run.seed}:offer:d${run.day.day}:r${run.rerolls}`);
-  const researched = (u: Upgrade) => { const need = RULES.upgradeResearch[u.id]; return !need || run.research.includes(need); };
-  const open = UPGRADES.filter((u) => !has(run, u.id) && (!u.requires || has(run, u.requires)) && researched(u));
+  const open = UPGRADES.filter((u) => !has(run, u.id) && (!u.requires || has(run, u.requires)));
+  const core = open.filter((u) => !isResearchUpgrade(u.id));
+  const researched = open.filter((u) => isResearchUpgrade(u.id) && run.research.includes(RULES.upgradeResearch[u.id]!));
   const byCat = new Map<string, Upgrade[]>();
-  for (const u of open) byCat.set(u.category, [...(byCat.get(u.category) ?? []), u]);
+  for (const u of core) byCat.set(u.category, [...(byCat.get(u.category) ?? []), u]);
   const cats = rng.shuffle([...byCat.keys()]).slice(0, RULES.upgrades.offered);
-  return cats.map((cat) => rng.pick(byCat.get(cat)!));
+  const offer = cats.map((cat) => rng.pick(byCat.get(cat)!));
+  if (researched.length) offer.push(rng.pick(researched));
+  return offer;
 }
 
 export function takeUpgrade(run: RunState, id: string): void {

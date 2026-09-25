@@ -2,7 +2,7 @@
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
 import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
-import { canBuy, current, harmCeiling, has, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
+import { canBuy, current, harmCeiling, has, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
@@ -394,7 +394,7 @@ export function briefing(run: RunState, toolsToday = ''): string {
         ${toolsToday}
         <dl class="briefing-stats">
           <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-          <div><dt>Quota</dt><dd>${quotaFor(d.day)}</dd></div>
+          <div><dt>Quota</dt><dd>${d.quota}</dd></div>
           <div><dt>Auditor hours</dt><dd>${d.audits}</dd></div>
           <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
           <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
@@ -567,8 +567,8 @@ const SHOP: { item: ShopItem; name: string; desc: string }[] = [
 
 function upgradeCard(u: Upgrade, i: number): string {
   return `
-    <button class="upgrade cat-${u.category}" data-upgrade="${u.id}">
-      <span class="upgrade-cat">${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
+    <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}" data-upgrade="${u.id}">
+      <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'From your research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
       <span class="upgrade-name">${esc(u.name)}</span>
       <span class="upgrade-desc">${esc(u.description)}</span>
       <span class="upgrade-best">${esc(u.bestWhen)}</span>
@@ -606,7 +606,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
       <section class="pick">
         <div class="pick-head">
           <h3>${picked ? 'Upgrade chosen' : 'Choose one upgrade'}</h3>
-          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor hour tomorrow)</span>`}
+          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd>–<kbd>${offer.length}</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor hour tomorrow)</span>`}
         </div>
         ${pick}
         <div class="loadout"><span class="eyebrow">Loadout ${run.upgrades.length}/${RULES.upgrades.maxSlots}</span>${slots}</div>

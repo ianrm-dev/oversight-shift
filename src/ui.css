@@ -1414,3 +1414,5 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .over-grid { max-height: 230px; }
 .compare { display: block; }
 .compare .eyebrow { display: block; margin-bottom: var(--space-1); }
+.stage-between .upgrades { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.upgrade.is-research { border-style: dashed; }

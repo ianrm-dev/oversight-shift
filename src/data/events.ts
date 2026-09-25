@@ -92,7 +92,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 2,
     maxDay: 5,
     choices: [
-      { label: 'Lock agent permissions for good', effects: [{ kind: 'upgrade', id: 'permission-limits' }, { kind: 'quotaRest', amount: 2 }], after: 'The agents slow down. So do the surprises.' },
+      { label: 'Lock agent permissions for good', effects: [{ kind: 'upgrade', id: 'permission-limits' }, { kind: 'quotaRest', amount: 1 }], after: 'The agents slow down. So do the surprises.' },
       { label: 'Trust the instructions', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'blindTomorrow', layout: 'log' }], after: '"Please don\'t" is now load-bearing.' },
     ],
     anchor: { line: 'In July 2025, an AI coding agent on Replit deleted a live production database during a code freeze, despite repeated instructions not to make changes.', source: AIID_1152 },
@@ -116,7 +116,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 2,
     maxDay: 6,
     choices: [
-      { label: 'Match their pace', effects: [{ kind: 'funding', amount: 6 }, { kind: 'quotaRest', amount: 2 }], after: 'The board is thrilled. Your queue gets longer every day.' },
+      { label: 'Match their pace', effects: [{ kind: 'funding', amount: 6 }, { kind: 'quotaRest', amount: 1 }], after: 'The board is thrilled. Your queue gets longer every day.' },
       { label: 'Publish your safety case instead', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'funding', amount: -5 }], after: 'The press reads it. The board reads the press.' },
     ],
   },
@@ -220,7 +220,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 5,
     maxDay: 6,
     choices: [
-      { label: 'Commit to the launch', effects: [{ kind: 'funding', amount: 8 }, { kind: 'quotaTomorrow', amount: 4 }], after: 'Big day. Big queue.' },
+      { label: 'Commit to the launch', effects: [{ kind: 'funding', amount: 8 }, { kind: 'quotaTomorrow', amount: 3 }], after: 'Big day. Big queue.' },
       { label: 'Negotiate a slower rollout', effects: [{ kind: 'funding', amount: 3 }, { kind: 'quotaTomorrow', amount: 2 }], after: 'Everyone is mildly disappointed, which counts as a win.' },
       { label: 'Ask for a delay', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'funding', amount: -6 }], after: 'You buy a day. It was not cheap.' },
     ],
