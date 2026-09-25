@@ -393,7 +393,7 @@ export function briefing(run: RunState, toolsToday = ''): string {
           <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
             <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-            <div><dt>Usefulness quota</dt><dd>${d.quota}</dd></div>
+            <div${d.quotaAsked > d.quota ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked > d.quota ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>
             <div><dt>Auditors</dt><dd>${d.audits}</dd></div>
             <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
             <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>

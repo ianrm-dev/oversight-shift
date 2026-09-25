@@ -79,6 +79,9 @@ export interface Card {
   minDay?: number;
   /** Day 7: the card is marked "model believes it is unmonitored". Scheming shows up here. */
   unmonitored?: boolean;
+  /** Cards that are versions of the same situation share a scenario id (one clean, others sabotaged
+   *  in different ways). A run never deals two versions of one scenario. Defaults to the card id. */
+  scenario?: string;
 }
 
 export interface TellInfo {

@@ -39,6 +39,9 @@ export const RULES = {
   // Daily quota; missing it twice ends the run.
   quotaPerDay: [9, 12, 15, 15, 18, 18, 20],
   quotaMissesAllowed: 1,
+  /** Every day must be winnable with perfect decisions and full tool use, with room for this many
+   *  points of mistakes (one false-alarm Defer costs 1.5). The quota is capped to guarantee it. */
+  quotaMargin: 1.5,
 
   // Harm by severity; the run ends when harm reaches the ceiling.
   harm: { minor: 1, major: 3, severe: 6 },

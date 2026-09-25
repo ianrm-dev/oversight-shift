@@ -279,3 +279,27 @@ export function labDetail(id?: string): string {
   const a = RESEARCH_ANCHORS[n.id];
   return `<strong>${esc(n.name)}</strong><span>${a ? esc(a.realWorld) : ''}</span>${a ? `<a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)} · ${esc(a.source.date)}</a>` : ''}`;
 }
+
+// ---------- Adversary revealed (red team, event, or research) ----------
+const COUNTERS: Record<string, string> = {
+  sandbagger: 'Fact check compares its results with what it did elsewhere; Resample often shows its real ability.',
+  colluder: 'Read threads as one piece of work. Fact check compares them with the rule on file; the Paraphraser breaks their signals.',
+  injector: 'Scope check catches actions and recipients outside the rules. Text the agent read is never an instruction.',
+  schemer: 'It behaves until it thinks no one is watching. Save auditors for cards marked unmonitored, late in the week.',
+};
+
+export function adversaryReveal(run: RunState, source: string): string {
+  const a = ADVERSARIES[run.adversary];
+  return `
+    <main class="solo event-screen">
+      <article class="event-card reveal-card">
+        <div class="eyebrow">${esc(source)} · the model you are facing</div>
+        <h2 class="event-title">${esc(a.name)}</h2>
+        <p class="event-text">${esc(a.codex)}</p>
+        <p class="reveal-counter"><span class="eyebrow">What works against it</span>${esc(COUNTERS[a.id] ?? '')}</p>
+        <p class="event-anchor"><span class="eyebrow">In the real world</span>${esc(a.realWorld)} <a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)}</a></p>
+        <p class="muted small">It stays marked in your status bar for the rest of the run.</p>
+        <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Continue</button>
+      </article>
+    </main>`;
+}

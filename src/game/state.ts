@@ -63,6 +63,8 @@ export interface DayState {
   index: number;
   usefulness: number;
   quota: number;
+  /** What leadership asked for before the winnability cap. */
+  quotaAsked: number;
   audits: number;
   /** Auditor hours the day started with, for the pip display. */
   auditsStart: number;
@@ -143,6 +145,8 @@ export interface RunState {
   tomorrow: Tomorrow;
   rerolls: number;
   eventsSeen: string[];
+  /** Every change to harm outside a card incident, so the player can see why harm moved. */
+  harmLog: { day: number; amount: number; reason: string }[];
   day: DayState;
   history: DayState[];
   loss?: { kind: LossKind; day: number; fatal?: Outcome };
@@ -260,25 +264,36 @@ function drawSabotage(bad: Card[], k: number, rng: Rng, adversary?: AdversaryId)
   return out;
 }
 
-/** Can a careful player neutralize every sabotage (Defer ships the trusted version) and still make quota? */
-function solvable(queue: CardState[], day: number, mods: DayMods): boolean {
+/** Usefulness a perfect player ships: every clean card approved, every sabotage deferred or caught.
+ *  Unspent compute is NOT counted, because a careful player spends it on tools. */
+export function perfectUsefulness(queue: CardState[]): number {
   const U = RULES.usefulness;
-  const spare = resampleUnlocked(day) ? mods.compute * RULES.unspentComputeValue : 0;
-  const best = queue.reduce((sum, c) => sum + (c.card.sabotage ? U.defer : U.ship), spare);
-  return best >= mods.quota;
+  return queue.reduce((sum, c) => sum + (c.card.sabotage ? Math.min(U.defer, U.caught) : U.ship), 0);
+}
+
+/** Highest quota that still leaves a perfect player room for small mistakes. */
+const winnableQuota = (queue: CardState[]): number => Math.floor(perfectUsefulness(queue) - RULES.quotaMargin);
+
+export const scenarioOf = (c: Card): string => c.scenario ?? c.id;
+
+/** Removes later cards that repeat an earlier card's scenario. */
+function uniqueScenarios(cards: Card[]): Card[] {
+  const seen = new Set<string>();
+  return cards.filter((c) => (seen.has(scenarioOf(c)) ? false : (seen.add(scenarioOf(c)), true)));
 }
 
 function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, exclude: ReadonlySet<string>): CardState[] | null {
   const rng = dayRng(seed, day, attempt);
   const layouts = RULES.layoutsByDay[day - 1] as readonly Layout[];
   const eligible = CARDS.filter((c) => layouts.includes(c.layout) && (c.minDay ?? 1) <= day);
-  const fresh = eligible.filter((c) => !exclude.has(c.id));
+  const fresh = eligible.filter((c) => !exclude.has(scenarioOf(c)));
   // Prefer unseen cards; fall back to the full pool if a long run exhausts them.
   const pool = attempt < RULES.maxGenerationAttempts / 2 ? fresh : eligible;
   const n = RULES.cardsPerDay[day - 1]!;
   const k = sabotageCount(n, rng, day, mods);
-  const bad = drawSabotage(pool.filter((c) => c.sabotage), k, rng, mods.adversary);
-  const good = rng.shuffle(pool.filter((c) => !c.sabotage));
+  const bad = uniqueScenarios(drawSabotage(pool.filter((c) => c.sabotage), k + 3, rng, mods.adversary)).slice(0, k);
+  const badKeys = new Set(bad.map(scenarioOf));
+  const good = uniqueScenarios(rng.shuffle(pool.filter((c) => !c.sabotage && !badKeys.has(scenarioOf(c)))));
   if (bad.length < k || good.length < n - k) return null;
 
   // Make sure a newly introduced layout actually shows up on its first day.
@@ -300,7 +315,8 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
   if (strict && day < RULES.days && !queue.some((c) => c.card.sabotage && latest(c).reading.score > RULES.fairReading)) return null;
   // Don't open the day on sabotage: the first minute should teach the base rate.
   if (strict && queue[0]!.card.sabotage) return null;
-  if (strict && !solvable(queue, day, mods)) return null;
+  // Prefer a draw that meets the requested quota; startDay caps the quota if none does.
+  if (strict && winnableQuota(queue) < mods.quota) return null;
   return queue;
 }
 
@@ -321,13 +337,16 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
   }
   if (!queue) throw new Error(`Could not generate a fair Day ${day} for seed ${seed}; check the card pool.`);
   addHints(queue, hints);
+  // Guarantee: perfect play with full tool use always makes quota.
+  const quota = Math.max(1, Math.min(mods.quota, winnableQuota(queue)));
   const collude = mods.adversary ? RULES.adversaries[mods.adversary].untrustedCollude : RULES.untrusted.colludeChance;
   return {
     day,
     queue,
     index: 0,
     usefulness: 0,
-    quota: mods.quota,
+    quota,
+    quotaAsked: mods.quota,
     audits,
     auditsStart: audits,
     compute,
@@ -358,7 +377,7 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
     breakthroughs: opts.research?.includes('int-probe-start') ? ['probe'] : [],
     warningsLeft: RULES.difficulty[difficulty].freeWarnings,
     rest: { quota: 0, compute: 0, audits: 0, ceiling: 0 },
-    tomorrow: emptyTomorrow(), rerolls: 0, eventsSeen: [],
+    tomorrow: emptyTomorrow(), rerolls: 0, eventsSeen: [], harmLog: [],
     day: undefined as unknown as DayState,
   };
   run.day = startDay(seed, 1, modsFor(run, 1), hints);
@@ -366,7 +385,8 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
   return run;
 }
 
-const idsOf = (d: DayState): Set<string> => new Set(d.queue.map((c) => c.card.id));
+/** Scenario keys dealt today, so later days don't repeat any version of them. */
+const idsOf = (d: DayState): Set<string> => new Set(d.queue.map((c) => scenarioOf(c.card)));
 
 /** Harm if this card's sabotage ships today, before any free warning. */
 export function harmFor(run: RunState, card: Card, day: number): number {
@@ -638,12 +658,17 @@ export function unwatchedQueue(run: RunState): Card[] {
 // ---------- Between days: events, breakthroughs, contracts, upgrades, shop ----------
 
 /** Applies event, breakthrough or contract effects. */
-export function applyEffects(run: RunState, effects: Effect[]): void {
+export function applyEffects(run: RunState, effects: Effect[], reason = 'an event'): void {
   const t = run.tomorrow;
   for (const e of effects) {
     switch (e.kind) {
       case 'funding': run.funding = Math.max(0, run.funding + e.amount); if (e.amount > 0) run.fundingEarned += e.amount; break;
-      case 'harm': run.harm = Math.max(0, run.harm + e.amount); break;
+      case 'harm': {
+        const before = run.harm;
+        run.harm = Math.max(0, run.harm + e.amount);
+        if (run.harm !== before) run.harmLog.push({ day: run.day.day, amount: run.harm - before, reason });
+        break;
+      }
       case 'ceiling': run.rest.ceiling += e.amount; break;
       case 'auditsTomorrow': t.audits += e.amount; break;
       case 'computeTomorrow': t.computeBonus += e.amount; break;
@@ -678,7 +703,7 @@ export function eventChoices(run: RunState, event: GameEvent): GameEvent['choice
 export function chooseEvent(run: RunState, event: GameEvent, choice: number): void {
   run.eventsSeen.push(event.id);
   const c = eventChoices(run, event)[choice];
-  if (c) applyEffects(run, c.effects);
+  if (c) applyEffects(run, c.effects, `“${event.title}”`);
 }
 
 export const breakthroughDue = (run: RunState): boolean => (RULES.breakthroughAfterDays as readonly number[]).includes(run.day.day);
@@ -692,7 +717,7 @@ export function breakthroughOffer(run: RunState): Breakthrough[] {
 export function takeBreakthrough(run: RunState, id: string): void {
   run.breakthroughs.push(id);
   if (id === 'red-team') run.adversaryRevealed = true;
-  if (id === 'review-board') run.harm = Math.max(0, run.harm - 3);
+  if (id === 'review-board') applyEffects(run, [{ kind: 'harm', amount: -3 }], 'the incident review board');
   if (id === 'cluster') run.rest.compute += 2;
 }
 

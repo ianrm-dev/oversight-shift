@@ -33,7 +33,8 @@ type Screen =
   | { kind: 'between'; offer: Upgrade[]; picked: boolean; contracts: Contract[]; contract?: string }
   | { kind: 'over' }
   | { kind: 'interim' }
-  | { kind: 'win' };
+  | { kind: 'win' }
+  | { kind: 'reveal'; source: string; then: Screen };
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('#app not found');
@@ -53,6 +54,8 @@ let toolkitOpen: ToolId | 'all' | null = null;
 let lastCardKey = '';
 let endUpdate: RunUpdate | null = null;
 let endScore = 0;
+/** The adversary reveal screen shows once per run, the moment it's revealed. */
+let revealShown = false;
 let setup: M.Setup = loadSetup();
 
 function loadSetup(): M.Setup {
@@ -78,6 +81,7 @@ function startRun(seed: string, daily = false): void {
     : { ...setup, research: progress.research };
   run = newRun(seed, hintsFor(1), opts);
   endUpdate = null;
+  revealShown = false;
   // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
   const jump = Number(new URLSearchParams(location.search).get('day'));
   if (!daily && jump >= 2 && jump <= RULES.days) {
@@ -148,6 +152,7 @@ function briefingExtras(r: RunState): string {
     c ? `<span class="brief-tag" title="${esc(c.blurb)}">Client: ${esc(c.name)}</span>` : '',
     r.day.blind ? `<span class="brief-tag bad">Monitor blind on ${r.day.blind === 'log' ? 'agent actions' : 'file changes'} today</span>` : '',
     r.adversaryRevealed ? `<span class="brief-tag bad">Adversary: ${ADVERSARY_NAME[r.adversary]}</span>` : '',
+    ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => `<span class="brief-tag ${h.amount < 0 ? 'good' : 'bad'}">Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}</span>`),
     r.research.includes('evl-forecast') ? forecast(r) : '',
   ].join('');
   return `<div class="brief-tags">${tags}</div>${S.newToolsBlock(r)}`;
@@ -193,7 +198,8 @@ function render(): void {
     setLayout('solo');
     finishRun(true);
     screenEl.innerHTML = R.win(run, M.endExtras(run, endScore, endUpdate));
-  } else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
+  } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
+  else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
   if (toolkitOpen && run && (screen.kind === 'shift' || screen.kind === 'briefing')) {
     screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
@@ -276,8 +282,15 @@ function afterReview(step: 'event' | 'breakthrough' | 'between'): void {
   render();
 }
 
+/** If the adversary just got revealed, show it before going on to `next`. */
+function withReveal(next: Screen, source: string): Screen {
+  if (run?.adversaryRevealed && !revealShown) { revealShown = true; return { kind: 'reveal', source, then: next }; }
+  return next;
+}
+
 function continueScreen(): void {
   if (!run) return;
+  if (screen.kind === 'reveal') { screen = screen.then; render(); return; }
   if (screen.kind === 'briefing') { screen = { kind: 'shift' }; render(); return; }
   if (screen.kind === 'shift' && screen.overlay) { nextCard(); return; }
   if (screen.kind === 'review') {
@@ -288,11 +301,15 @@ function continueScreen(): void {
     render();
     return;
   }
-  if (screen.kind === 'event' && screen.chosen !== undefined) { afterReview('breakthrough'); return; }
+  if (screen.kind === 'event' && screen.chosen !== undefined) {
+    afterReview('breakthrough');
+    if (run.adversaryRevealed && !revealShown) { screen = withReveal(screen, 'Red team report'); render(); }
+    return;
+  }
   if (screen.kind === 'between' && (screen.picked || !screen.offer.length) && screen.contract) {
     chooseContract(run, screen.contract);
     nextDay(run, hintsFor(run.day.day + 1));
-    screen = { kind: 'briefing' };
+    screen = withReveal({ kind: 'briefing' }, 'Red-team program');
     render();
   }
 }
@@ -306,8 +323,10 @@ function pickEvent(i: number): void {
 
 function pickBreakthrough(i: number): void {
   if (!run || screen.kind !== 'breakthrough' || !screen.offer[i]) return;
-  takeBreakthrough(run, screen.offer[i]!.id);
+  const id = screen.offer[i]!.id;
+  takeBreakthrough(run, id);
   afterReview('between');
+  if (id === 'red-team') { screen = withReveal(screen, 'Red-team exercise'); render(); }
 }
 
 function pickUpgrade(index: number | 'skip'): void {

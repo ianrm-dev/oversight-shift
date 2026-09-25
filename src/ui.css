@@ -1547,3 +1547,9 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .hud-progress li { width: 8px; height: 8px; }
 .hud-day { flex: none; }
 .evidence-panel { gap: 6px; } .evidence-panel .ev { padding: var(--space-2) var(--space-3); }
+.reveal-card { border-color: rgb(255 90 110 / 0.5); }
+.reveal-card .event-title { color: var(--harm); }
+.reveal-counter { margin: 0; padding: var(--space-2) var(--space-3); border-left: 2px solid var(--accent); background: var(--accent-wash); font-size: var(--fs-md); display: flex; flex-direction: column; gap: 2px; }
+.hud-tag.bad { color: var(--harm); border-color: rgb(255 90 110 / 0.5); }
+.brief-tag.good { color: var(--safe); border-color: rgb(55 201 139 / 0.5); }
+.small { font-size: var(--fs-xs); }
