@@ -1,0 +1,21 @@
+/* Mock page chrome only: frames and labels around the 1280×720 stages. */
+body.mock { padding: 0 0 64px; background: #03060b; }
+.mock-nav {
+  position: sticky; top: 0; z-index: 10;
+  display: flex; gap: var(--space-4); align-items: center;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--fs-sm);
+  background: rgb(3 6 11 / 0.92);
+  border-bottom: 1px solid var(--line);
+}
+.mock-nav a { color: var(--accent); text-decoration: none; }
+.mock-note { margin-left: auto; color: var(--text-3); }
+.frame { width: var(--stage-w); margin: var(--space-6) auto 0; scroll-margin-top: 56px; }
+.frame-label { margin: 0 0 var(--space-2); font-size: var(--fs-sm); color: var(--text-2); }
+.frame .stage { border: 1px solid var(--line); border-radius: var(--radius); }
+body.mock-only { padding: 0; }
+body.mock-only .mock-nav, body.mock-only .frame-label { display: none; }
+body.mock-only .frame { margin: 0; }
+body.mock-only .frame .stage { border: 0; border-radius: 0; }
+/* Screenshots capture the settled state, not the entrance animation. */
+body.mock-only .card { animation: none; }

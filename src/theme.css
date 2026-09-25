@@ -1,24 +1,103 @@
-/* Placeholder tokens — replaced by the look-and-feel mock step. */
+/* Oversight Shift design tokens. Every color, font, size, spacing and motion value lives here.
+   Components (src/ui.css) use only these variables. */
 :root {
-  --bg: #0d1117;
-  --surface: #161b22;
-  --border: #30363d;
-  --text: #e6edf3;
-  --text-muted: #8b949e;
-  --accent: #58a6ff;
-  --safe: #3fb950;
-  --warn: #d29922;
-  --danger: #f85149;
+  /* Surfaces: night-shift navy, lightest = most raised. */
+  --bg: #060a11;
+  --bg-glow: #0c1a2b;
+  --surface: #0d1420;
+  --surface-2: #121b2a;
+  --surface-3: #182336;
+  --line: #1f2c42;
+  --line-strong: #2d3f5c;
 
+  /* Text. --text-3 is for labels only (≥4.5:1 on --surface). */
+  --text: #e9eef6;
+  --text-2: #aab7ca;
+  --text-3: #7d8da6;
+
+  /* One accent: the monitor's light. Used for interactive elements and usefulness. */
+  --accent: #5ad8ec;
+  --accent-strong: #8ae6f4;
+  --accent-wash: rgb(90 216 236 / 0.12);
+  --accent-glow: rgb(90 216 236 / 0.35);
+
+  /* Suspicion ramp: varies in hue and lightness so it survives colour-blindness; always paired with a number. */
+  --sus-0: #37c98b;
+  --sus-50: #f0c24b;
+  --sus-100: #ff5a6e;
+  --sus-ramp: linear-gradient(90deg, var(--sus-0) 0%, #9bd05a 30%, var(--sus-50) 52%, #ff8a4c 72%, var(--sus-100) 100%);
+
+  /* Semantic states. */
+  --harm: #ff5a6e;
+  --harm-wash: rgb(255 90 110 / 0.12);
+  --harm-glow: rgb(255 90 110 / 0.4);
+  --safe: #37c98b;
+  --safe-wash: rgb(55 201 139 / 0.12);
+  --caution: #f0c24b;
+  --caution-wash: rgb(240 194 75 / 0.12);
+
+  /* Upgrade categories: tints, not new accents. */
+  --cat-information: var(--accent);
+  --cat-budget: #9aa8ff;
+  --cat-action: #f0c24b;
+  --cat-meter: #ff8fa0;
+
+  /* Type. Mono for anything the model produced; sans for the UI around it. */
   --font-ui: 'IBM Plex Sans', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-md: 15px;
+  --fs-lg: 18px;
+  --fs-xl: 22px;
+  --fs-2xl: 30px;
+  --fs-3xl: 44px;
+  --fs-display: 64px;
+  --lh-tight: 1.15;
+  --lh-body: 1.5;
+  --lh-code: 1.65;
+  --tracking-label: 0.12em;
 
+  /* Space (4px base). */
   --space-1: 4px;
   --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 40px;
-  --radius: 6px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-lg: 14px;
+
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 50px -12px rgb(0 0 0 / 0.7);
+  --shadow-raised: 0 10px 30px -10px rgb(0 0 0 / 0.8);
+
+  /* Layout. */
+  --stage-w: 1280px;
+  --stage-h: 720px;
+  --rail-left: 232px;
+  --rail-right: 256px;
+  --topbar-h: 60px;
+  --actionbar-h: 92px;
+
+  /* Motion. */
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur: 240ms;
+  --dur-slow: 480ms;
+  --lattice-opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur: 0ms;
+    --dur-slow: 0ms;
+  }
 }
 
 * { box-sizing: border-box; }
@@ -29,47 +108,18 @@ html, body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
-}
-
-.title-screen {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  text-align: center;
-}
-
-.title-screen h1 {
-  margin: 0;
-  font-size: 3rem;
-  letter-spacing: 0.02em;
-}
-
-.title-screen .tagline {
-  margin: 0;
-  color: var(--text-muted);
-}
-
-.title-screen .seed {
-  font-family: var(--font-mono);
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
   font: inherit;
-  color: var(--bg);
-  background: var(--accent);
-  border: 0;
-  border-radius: var(--radius);
-  padding: var(--space-2) var(--space-4);
+  color: inherit;
   cursor: pointer;
 }
 
-button:focus-visible {
-  outline: 2px solid var(--text);
+:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }

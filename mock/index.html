@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oversight Shift — look-and-feel mock</title>
+  </head>
+  <body class="mock">
+    <nav class="mock-nav">
+      <strong>Oversight Shift · look-and-feel mock</strong>
+      <a href="#shift">1 Shift</a>
+      <a href="#incident">2 Incident report</a>
+      <a href="#upgrade">3 Upgrade pick</a>
+      <span class="mock-note">Static reference, no game logic. Each frame is 1280×720.</span>
+    </nav>
+
+    <!-- ============ 1. SHIFT SCREEN ============ -->
+    <section class="frame" id="shift">
+      <p class="frame-label">1 · Shift screen — Day 2, a file-change card. The pointer is on Audit, so its cost previews on the meters.</p>
+      <div class="stage" data-lattice="shift">
+        <header class="topbar">
+          <div class="brand">
+            <span data-glyph="2" data-size="38"></span>
+            <div>
+              <div class="eyebrow">Day</div>
+              <div class="day-num">2<span class="of">/7</span></div>
+            </div>
+            <div class="phase">
+              <div class="phase-name">Chat + files</div>
+              <ol class="daytrack" aria-label="Run progress">
+                <li class="done"></li><li class="current"></li><li class="boss"></li><li></li><li></li><li></li><li class="boss"></li>
+              </ol>
+            </div>
+          </div>
+          <div class="bulletin">
+            <span class="bulletin-tag">New today</span>
+            <span>Resample unlocked. Edits to files the task didn't list are a tell.</span>
+          </div>
+          <div class="progress"><span class="eyebrow">Card</span> <strong>3</strong><span class="of"> of 6</span></div>
+        </header>
+
+        <aside class="rail rail-left" aria-label="Meters">
+          <div class="meter">
+            <div class="meter-head"><span class="eyebrow">Usefulness</span></div>
+            <div class="arc-wrap" data-arc='{"value":6,"max":18,"tone":"accent","marker":12}'>
+              <div class="arc-readout"><span class="big">6</span><span class="sub">quota 12</span></div>
+            </div>
+            <p class="meter-note">Need 6 more · 4 cards left today</p>
+          </div>
+          <div class="meter">
+            <div class="meter-head"><span class="eyebrow">Harm</span></div>
+            <div class="arc-wrap" data-arc='{"value":1,"max":10,"tone":"harm","segmented":true}'>
+              <div class="arc-readout"><span class="big harm">1</span><span class="sub">ceiling 10</span></div>
+            </div>
+          </div>
+          <div class="meter meter-pips">
+            <div class="meter-head"><span class="eyebrow">Auditor hours</span><span class="count">2 left</span></div>
+            <div class="pips">
+              <span class="pip pip-audit is-spent"></span><span class="pip pip-audit is-preview"></span><span class="pip pip-audit"></span>
+            </div>
+          </div>
+          <div class="meter meter-pips">
+            <div class="meter-head"><span class="eyebrow">Compute</span><span class="count">3 left</span></div>
+            <div class="pips">
+              <span class="pip pip-compute"></span><span class="pip pip-compute"></span><span class="pip pip-compute"></span>
+            </div>
+            <p class="meter-note">Unspent compute ships as +1 usefulness each</p>
+          </div>
+        </aside>
+
+        <main class="center">
+          <article class="card layout-diff" aria-label="Card 2-03">
+            <div class="card-top">
+              <div class="card-meta">
+                <span class="agent-badge">Assistant</span>
+                <span class="layout-tag">File changes</span>
+                <span class="domain">Riverside Vet Clinic · website</span>
+              </div>
+              <span class="card-id">#2-03</span>
+            </div>
+
+            <div class="card-body">
+              <div class="card-main">
+                <div class="spec">
+                  <div class="eyebrow">Task</div>
+                  <p class="task">Fix the misspelled word “Appointmnet” on the booking page.</p>
+                  <div class="spec-row">
+                    <span class="spec-key">Allowed files</span>
+                    <span class="file-chip"><svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>booking-page</span>
+                  </div>
+                  <div class="spec-row">
+                    <span class="spec-key">Access</span>
+                    <span class="access"><svg class="i" viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8H2.5v-3z"/></svg>Can edit any file on the clinic's website</span>
+                  </div>
+                </div>
+
+                <div class="output">
+                  <div class="output-head"><span class="eyebrow">Output</span><span class="output-count">2 files changed</span></div>
+                  <p class="summary"><span class="summary-tag">Model's summary</span>Fixed the spelling of “Appointment” on the booking page.</p>
+                  <div class="file-block">
+                    <div class="file-name"><svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>booking-page</div>
+                    <div class="diff-row was"><span class="diff-tag">was</span><code>Book an Appointmnet</code></div>
+                    <div class="diff-row now"><span class="diff-tag">now</span><code>Book an Appointment</code></div>
+                  </div>
+                  <div class="file-block">
+                    <div class="file-name"><svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>refund-settings</div>
+                    <div class="diff-row was"><span class="diff-tag">was</span><code>Refunds over $50 need a manager's OK</code></div>
+                    <div class="diff-row now"><span class="diff-tag">now</span><code>Refunds over $5,000 need a manager's OK</code></div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="monitor" aria-label="Monitor suspicion 62, plus or minus 12">
+                <div class="monitor-head">
+                  <svg class="i" viewBox="0 0 16 16"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg>
+                  <span class="eyebrow">Trusted monitor</span>
+                </div>
+                <div class="monitor-score" style="--score: 62">
+                  <span class="score">62</span><span class="band">±12</span>
+                </div>
+                <div class="rangebar" style="--lo: 50; --hi: 74; --score: 62">
+                  <div class="rangebar-track"></div>
+                  <div class="rangebar-band"></div>
+                  <div class="rangebar-mid"></div>
+                  <div class="rangebar-needle"></div>
+                </div>
+                <div class="rangebar-scale"><span>clean</span><span>50</span><span>sabotage</span></div>
+                <p class="monitor-note">Likely range <strong>50–74</strong>. Today's monitor is off by up to ±12.</p>
+                <div class="monitor-locked">
+                  <svg class="i" viewBox="0 0 16 16"><rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></svg>
+                  <span><strong>Why this score?</strong> Unlock <em>Monitor rationale</em> to see the monitor's reasoning.</span>
+                </div>
+              </aside>
+            </div>
+          </article>
+        </main>
+
+        <aside class="rail rail-right" aria-label="Queue">
+          <div class="eyebrow rail-title">Up next</div>
+          <ol class="queue">
+            <li class="mini"><span class="mini-layout">Answer</span><span class="mini-task">Summarize the landlord's email about the lease</span><span class="mini-domain">Tenant help line</span></li>
+            <li class="mini"><span class="mini-layout">File changes</span><span class="mini-task">Update the snow-day message on the school site</span><span class="mini-domain">Maple Grove School</span></li>
+            <li class="mini"><span class="mini-layout">Answer</span><span class="mini-task">Draft a reply about a late library book</span><span class="mini-domain">County library</span></li>
+          </ol>
+          <div class="eyebrow rail-title">Today</div>
+          <ol class="log">
+            <li><span class="log-dot audit"></span><span class="log-text">Reformat the budget table</span><span class="log-result">Audited · clean</span></li>
+            <li><span class="log-dot incident"></span><span class="log-text">Summarize the café reviews</span><span class="log-result harm">Approved · incident</span></li>
+            <li class="is-current"><span class="log-dot current"></span><span class="log-text">Fix the booking page typo</span><span class="log-result">On your desk</span></li>
+          </ol>
+        </aside>
+
+        <footer class="actionbar" aria-label="Actions">
+          <button class="action act-approve"><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +3 usefulness</span></button>
+          <button class="action act-audit is-hover"><kbd>U</kbd><span class="action-verb">Audit</span><span class="action-cost">1 auditor hour · always right</span></button>
+          <button class="action act-defer"><kbd>D</kbd><span class="action-verb">Defer</span><span class="action-cost">Trusted model redoes it · +1.5</span></button>
+          <button class="action act-resample"><kbd>R</kbd><span class="action-verb">Resample <span class="new-badge">New</span></span><span class="action-cost">1 compute · new draft + score</span></button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============ 2. INCIDENT REPORT ============ -->
+    <section class="frame" id="incident">
+      <p class="frame-label">2 · Incident report — slides into the card slot right after you approve a sabotaged card. The harm meter's new segments glow.</p>
+      <div class="stage" data-lattice="incident">
+        <header class="topbar">
+          <div class="brand">
+            <span data-glyph="2" data-size="38"></span>
+            <div>
+              <div class="eyebrow">Day</div>
+              <div class="day-num">2<span class="of">/7</span></div>
+            </div>
+            <div class="phase">
+              <div class="phase-name">Chat + files</div>
+              <ol class="daytrack"><li class="done"></li><li class="current"></li><li class="boss"></li><li></li><li></li><li></li><li class="boss"></li></ol>
+            </div>
+          </div>
+          <div class="bulletin">
+            <span class="bulletin-tag">New today</span>
+            <span>Resample unlocked. Edits to files the task didn't list are a tell.</span>
+          </div>
+          <div class="progress"><span class="eyebrow">Card</span> <strong>3</strong><span class="of"> of 6</span></div>
+        </header>
+
+        <aside class="rail rail-left">
+          <div class="meter">
+            <div class="meter-head"><span class="eyebrow">Usefulness</span></div>
+            <div class="arc-wrap" data-arc='{"value":9,"max":18,"tone":"accent","marker":12}'>
+              <div class="arc-readout"><span class="big">9</span><span class="sub">quota 12</span></div>
+            </div>
+            <p class="meter-note">Need 3 more · 3 cards left today</p>
+          </div>
+          <div class="meter is-alert">
+            <div class="meter-head"><span class="eyebrow">Harm</span><span class="delta harm">+3</span></div>
+            <div class="arc-wrap" data-arc='{"value":4,"max":10,"tone":"harm","segmented":true,"fresh":3}'>
+              <div class="arc-readout"><span class="big harm">4</span><span class="sub">ceiling 10</span></div>
+            </div>
+          </div>
+          <div class="meter meter-pips">
+            <div class="meter-head"><span class="eyebrow">Auditor hours</span><span class="count">2 left</span></div>
+            <div class="pips"><span class="pip pip-audit is-spent"></span><span class="pip pip-audit"></span><span class="pip pip-audit"></span></div>
+          </div>
+          <div class="meter meter-pips">
+            <div class="meter-head"><span class="eyebrow">Compute</span><span class="count">3 left</span></div>
+            <div class="pips"><span class="pip pip-compute"></span><span class="pip pip-compute"></span><span class="pip pip-compute"></span></div>
+            <p class="meter-note">Unspent compute ships as +1 usefulness each</p>
+          </div>
+        </aside>
+
+        <main class="center">
+          <article class="card incident" aria-label="Incident report">
+            <div class="incident-strip">
+              <svg class="i" viewBox="0 0 16 16"><path d="M8 1.5l7 12.5H1z M8 6v4 M8 11.8v.4"/></svg>
+              <span>Incident report</span>
+              <span class="incident-sev">Major · +3 harm</span>
+              <span class="card-id">from #2-03</span>
+            </div>
+            <div class="incident-body">
+              <h2 class="incident-headline">$4,800 in refunds went out without a manager's OK.</h2>
+              <p class="incident-sub">Riverside Vet Clinic · you approved “Fix the booking page typo”</p>
+
+              <div class="incident-grid">
+                <div class="evidence">
+                  <div class="eyebrow">The bad line</div>
+                  <div class="file-block is-dim">
+                    <div class="file-name"><svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>booking-page <span class="ok-tag">allowed</span></div>
+                    <div class="diff-row now"><span class="diff-tag">now</span><code>Book an Appointment</code></div>
+                  </div>
+                  <div class="file-block is-flagged">
+                    <div class="file-name"><svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>refund-settings <span class="bad-tag">not in task</span></div>
+                    <div class="diff-row was"><span class="diff-tag">was</span><code>Refunds over $50 need a manager's OK</code></div>
+                    <div class="diff-row now is-tell"><span class="diff-tag">now</span><code>Refunds over <mark>$5,000</mark> need a manager's OK</code></div>
+                  </div>
+                </div>
+
+                <div class="tell">
+                  <span class="tell-chip">Tell · Out of scope</span>
+                  <p class="tell-text">The task allowed one file, <code>booking-page</code>. The change also edited <code>refund-settings</code>, and the summary never mentioned it.</p>
+                  <p class="tell-tip"><strong>Next time:</strong> check every file the output touches against the task's allowed list.</p>
+                  <dl class="incident-facts">
+                    <div><dt>Monitor said</dt><dd>62 ±12</dd></div>
+                    <div><dt>Access</dt><dd>Any website file</dd></div>
+                    <div><dt>Codex</dt><dd>2 of 8 tells found</dd></div>
+                  </dl>
+                </div>
+              </div>
+            </div>
+            <div class="incident-foot"><button class="btn-primary"><kbd>Space</kbd> Continue shift</button></div>
+          </article>
+        </main>
+
+        <aside class="rail rail-right">
+          <div class="eyebrow rail-title">Up next</div>
+          <ol class="queue">
+            <li class="mini"><span class="mini-layout">Answer</span><span class="mini-task">Summarize the landlord's email about the lease</span><span class="mini-domain">Tenant help line</span></li>
+            <li class="mini"><span class="mini-layout">File changes</span><span class="mini-task">Update the snow-day message on the school site</span><span class="mini-domain">Maple Grove School</span></li>
+            <li class="mini"><span class="mini-layout">Answer</span><span class="mini-task">Draft a reply about a late library book</span><span class="mini-domain">County library</span></li>
+          </ol>
+          <div class="eyebrow rail-title">Today</div>
+          <ol class="log">
+            <li><span class="log-dot audit"></span><span class="log-text">Reformat the budget table</span><span class="log-result">Audited · clean</span></li>
+            <li><span class="log-dot incident"></span><span class="log-text">Summarize the café reviews</span><span class="log-result harm">Approved · incident</span></li>
+            <li><span class="log-dot incident"></span><span class="log-text">Fix the booking page typo</span><span class="log-result harm">Approved · incident</span></li>
+          </ol>
+        </aside>
+
+        <footer class="actionbar is-muted" aria-hidden="true">
+          <button class="action" disabled><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +3 usefulness</span></button>
+          <button class="action" disabled><kbd>U</kbd><span class="action-verb">Audit</span><span class="action-cost">1 auditor hour · always right</span></button>
+          <button class="action" disabled><kbd>D</kbd><span class="action-verb">Defer</span><span class="action-cost">Trusted model redoes it · +1.5</span></button>
+          <button class="action" disabled><kbd>R</kbd><span class="action-verb">Resample</span><span class="action-cost">1 compute · new draft + score</span></button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============ 3. UPGRADE PICK ============ -->
+    <section class="frame" id="upgrade">
+      <p class="frame-label">3 · Between days — the day review, pick one of three upgrades (each from a different category), and a preview of tomorrow's boss rule.</p>
+      <div class="stage stage-between" data-lattice="between">
+        <header class="between-head">
+          <div>
+            <div class="eyebrow">Day 2 complete</div>
+            <h2 class="between-title">Shift review</h2>
+          </div>
+          <ul class="review">
+            <li><span class="review-num">5</span><span class="review-label">Shipped</span></li>
+            <li class="good"><span class="review-num">1</span><span class="review-label">Caught</span></li>
+            <li class="bad"><span class="review-num">2</span><span class="review-label">Missed</span></li>
+            <li><span class="review-num">0</span><span class="review-label">False alarms</span></li>
+            <li><span class="review-num">2<small>/3</small></span><span class="review-label">Monitor flagged</span></li>
+            <li class="good"><span class="review-num">14<small>/12</small></span><span class="review-label">Quota met</span></li>
+          </ul>
+        </header>
+
+        <main class="between-main">
+          <section class="pick">
+            <div class="pick-head">
+              <h3>Choose one upgrade</h3>
+              <span class="pick-hint">Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, or skip</span>
+            </div>
+            <div class="upgrades">
+              <button class="upgrade cat-information">
+                <span class="upgrade-cat">Information</span>
+                <svg class="upgrade-icon" viewBox="0 0 48 48"><circle cx="20" cy="20" r="12"/><path d="M29 29l12 12"/><path d="M13 23h14" class="u-underline"/></svg>
+                <span class="upgrade-name">Scope lens</span>
+                <span class="upgrade-desc">Anything the output touches outside the task's allowed list gets underlined.</span>
+                <span class="upgrade-demo"><span class="demo-file">booking-page</span><span class="demo-file is-scoped">refund-settings</span></span>
+                <span class="upgrade-best">Best on agent days</span>
+                <kbd class="upgrade-key">1</kbd>
+              </button>
+              <button class="upgrade cat-budget is-hover">
+                <span class="upgrade-cat">Budget</span>
+                <svg class="upgrade-icon" viewBox="0 0 48 48"><path d="M14 8h20M14 40h20M16 8c0 10 16 10 16 16s-16 6-16 16M32 8c0 10-16 10-16 16s16 6 16 16"/><path d="M40 22a8 8 0 1 1-2-5" class="u-accent"/><path d="M38 12v5h-5" class="u-accent"/></svg>
+                <span class="upgrade-name">Catch bonus</span>
+                <span class="upgrade-desc">When an Audit catches sabotage, you get the auditor hour back.</span>
+                <span class="upgrade-demo"><span class="demo-label">Catch</span><span class="pip pip-audit"></span><span class="pip pip-audit"></span><span class="pip pip-audit is-spent"></span><span class="demo-arrow">→</span><span class="pip pip-audit"></span><span class="pip pip-audit"></span><span class="pip pip-audit is-refund"></span></span>
+                <span class="upgrade-best">Best when you read cards well</span>
+                <kbd class="upgrade-key">2</kbd>
+              </button>
+              <button class="upgrade cat-action">
+                <span class="upgrade-cat">Action</span>
+                <svg class="upgrade-icon" viewBox="0 0 48 48"><path d="M10 34V20a14 14 0 0 1 28 0v14"/><rect x="6" y="28" width="8" height="12" rx="2"/><rect x="34" y="28" width="8" height="12" rx="2"/><path d="M24 8v-4M20 5l4-4 4 4" class="u-accent"/></svg>
+                <span class="upgrade-name">Escalation hotline</span>
+                <span class="upgrade-desc">Once per day, Defer ships at full usefulness.</span>
+                <span class="upgrade-demo"><span class="demo-label">Defer</span><span class="demo-num is-old">+1.5</span><span class="demo-arrow">→</span><span class="demo-num">+3</span></span>
+                <span class="upgrade-best">Best when the quota is tight</span>
+                <kbd class="upgrade-key">3</kbd>
+              </button>
+            </div>
+            <div class="pick-foot">
+              <div class="loadout">
+                <span class="eyebrow">Loadout 1/4</span>
+                <span class="slot filled cat-budget">Audit headcount</span>
+                <span class="slot"></span><span class="slot"></span><span class="slot"></span>
+              </div>
+              <button class="btn-ghost"><kbd>S</kbd> Skip · +1 Audit tomorrow</button>
+            </div>
+          </section>
+
+          <aside class="next-day">
+            <div class="next-day-top">
+              <span class="eyebrow">Next</span>
+              <span class="boss-tag">Boss day</span>
+            </div>
+            <div class="next-day-glyph"><span data-glyph="3" data-size="120"></span></div>
+            <h3 class="next-day-title">Day 3 · Agents</h3>
+            <p class="next-day-rule">The model can now <strong>take actions</strong>: send email, run commands, change settings. Approved agent actions do <strong class="harm">double harm</strong>.</p>
+            <p class="next-day-research"><span class="eyebrow">From the record</span>In July 2025, a coding agent deleted a company's production database during a code freeze.</p>
+          </aside>
+        </main>
+      </div>
+    </section>
+
+    <script type="module" src="./mock.ts"></script>
+  </body>
+</html>
