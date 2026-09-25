@@ -18,8 +18,8 @@ export function perceivedSignal(trueSignal: number, layout: Layout, day: number)
   return trueSignal;
 }
 
-/** Noisy reading: sd = band / 2, so ~95% of readings land within ±band of the perceived signal. */
+/** Noisy reading: sd = band × noiseSdFraction. The shown band is honest about the monitor's error. */
 export function readMonitor(rng: Rng, trueSignal: number, layout: Layout, day: number, band: number): Reading {
-  const raw = rng.normal(perceivedSignal(trueSignal, layout, day), band / 2);
+  const raw = rng.normal(perceivedSignal(trueSignal, layout, day), band * RULES.noiseSdFraction);
   return { score: Math.round(Math.min(99, Math.max(1, raw))), band };
 }

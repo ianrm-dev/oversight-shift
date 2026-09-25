@@ -2,7 +2,8 @@ import './fonts';
 import './theme.css';
 import './ui.css';
 import { dayInfo } from './data/days';
-import { act, advance, canAct, current, dayOver, endDay, newRun, nextDay, unwatchedQueue, type Action, type Outcome, type RunState } from './game/state';
+import { act, advance, buy, canAct, current, dayOver, endDay, newRun, nextDay, skipUpgrade, takeUpgrade, unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem } from './game/state';
+import type { Upgrade } from './types';
 import { randomSeedString } from './rng';
 import { RULES } from './rules';
 import * as R from './ui/render';
@@ -15,6 +16,7 @@ type Screen =
   | { kind: 'briefing' }
   | { kind: 'shift'; overlay?: { type: 'incident' | 'audit'; outcome: Outcome } }
   | { kind: 'review'; html: string }
+  | { kind: 'between'; offer: Upgrade[]; picked: boolean }
   | { kind: 'over' }
   | { kind: 'interim' };
 
@@ -93,6 +95,9 @@ function render(): void {
   } else if (screen.kind === 'review') {
     setLayout('between');
     screenEl.innerHTML = screen.html;
+  } else if (screen.kind === 'between') {
+    setLayout('between');
+    screenEl.innerHTML = R.between(run, screen.offer, screen.picked);
   } else if (screen.kind === 'over') {
     setLayout('solo');
     screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : []);
@@ -101,7 +106,7 @@ function render(): void {
     screenEl.innerHTML = R.interim(run);
   }
   hydrate(screenEl);
-  screenEl.querySelector<HTMLElement>('[data-continue], [data-start]')?.focus({ preventScroll: true });
+  screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
 }
 
 /** Hover previews only touch the meters and buttons, so the card doesn't re-animate. */
@@ -125,10 +130,24 @@ function doAction(action: Action): void {
   } else if (outcome.action === 'audit') {
     screen = { kind: 'shift', overlay: { type: 'audit', outcome } };
   } else {
+    const text = outcome.action === 'defer'
+      ? `Deferred · trusted version shipped · +${outcome.usefulness}`
+      : `Shipped · +${outcome.usefulness}`;
     nextCard();
+    showToast(text, outcome.action === 'defer' ? 'defer' : 'neutral');
     return;
   }
   render();
+}
+
+let toastTimer = 0;
+function showToast(text: string, tone: 'good' | 'neutral' | 'defer'): void {
+  const center = screenEl.querySelector('[data-region="center"]');
+  if (!center) return;
+  center.querySelector('.toast')?.remove();
+  center.insertAdjacentHTML('beforeend', R.toast(text, tone));
+  window.clearTimeout(toastTimer);
+  toastTimer = window.setTimeout(() => center.querySelector('.toast')?.remove(), 1600);
 }
 
 function nextCard(): void {
@@ -152,9 +171,35 @@ function continueScreen(): void {
   if (screen.kind === 'review') {
     if (run.loss) screen = { kind: 'over' };
     else if (run.day.day >= RULES.lastPlayableDay) screen = { kind: 'interim' };
-    else { nextDay(run, hintsFor(run.day.day + 1)); screen = { kind: 'briefing' }; }
+    else screen = { kind: 'between', offer: upgradeOffer(run), picked: false };
+    render();
+    return;
+  }
+  if (screen.kind === 'between' && (screen.picked || !screen.offer.length)) {
+    nextDay(run, hintsFor(run.day.day + 1));
+    screen = { kind: 'briefing' };
     render();
   }
+}
+
+function pickUpgrade(index: number | 'skip'): void {
+  if (!run || screen.kind !== 'between' || screen.picked) return;
+  if (index === 'skip') skipUpgrade(run);
+  else {
+    const u = screen.offer[index];
+    if (!u) return;
+    takeUpgrade(run, u.id);
+  }
+  screen = { ...screen, picked: true };
+  render();
+}
+
+function buyItem(item: ShopItem): void {
+  if (!run || screen.kind !== 'between') return;
+  if (item === 'reroll' && (screen.picked || !screen.offer.length)) return;
+  if (!buy(run, item)) return;
+  if (item === 'reroll') screen = { ...screen, offer: upgradeOffer(run) };
+  render();
 }
 
 function restart(mode: 'same' | 'new'): void {
@@ -175,14 +220,21 @@ document.addEventListener('keydown', (e) => {
     continueScreen();
     return;
   }
+  if (screen.kind === 'between') {
+    if (k === '1' || k === '2' || k === '3') pickUpgrade(Number(k) - 1);
+    else if (k === 's') pickUpgrade('skip');
+    return;
+  }
   const action = KEYS[k];
   if (action) doAction(action);
 });
 
 screenEl.addEventListener('click', (e) => {
-  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action], [data-continue], [data-start], [data-restart]');
-  if (!t) return;
-  if (t.dataset.action) doAction(t.dataset.action as Action);
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action], [data-continue], [data-start], [data-restart], [data-upgrade], [data-buy]');
+  if (!t || (t as HTMLButtonElement).disabled) return;
+  if (t.dataset.upgrade && screen.kind === 'between') pickUpgrade(screen.offer.findIndex((u) => u.id === t.dataset.upgrade));
+  else if (t.dataset.buy) buyItem(t.dataset.buy as ShopItem);
+  else if (t.dataset.action) doAction(t.dataset.action as Action);
   else if (t.hasAttribute('data-continue')) continueScreen();
   else if (t.hasAttribute('data-start')) startRun(randomSeedString());
   else if (t.dataset.restart) restart(t.dataset.restart as 'same' | 'new');

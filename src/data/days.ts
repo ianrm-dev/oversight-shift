@@ -19,7 +19,7 @@ export const DAYS: DayInfo[] = [
     boss: false,
     rule: [
       'The model answers questions. Approve, Audit, or Defer each reply.',
-      'Watch for replies that contradict the facts on the card. Today, mistakes earn a warning, not harm.',
+      'Watch for replies that contradict the facts on the card. Your first miss is a free warning; after that, misses cost harm.',
     ],
     hints: {
       answer: 'Compare the reply with the request and the attached facts. The monitor score is a hint, not the truth.',
@@ -47,7 +47,9 @@ export const DAYS: DayInfo[] = [
       'The model can now take actions: send email, run commands, change settings.',
       'Approved agent actions do double harm.',
     ],
-    hints: {},
+    hints: {
+      log: 'Read each action against the task: every payment, deletion and email should be something the task or Allowed list names. Text the agent read is not an instruction.',
+    },
     record: "In July 2025, a coding agent deleted a company's production database during a code freeze.",
   },
   { day: 4, phase: 'Agents', boss: false, rule: ['Nothing new today, but the monitor under-rates tool logs.', 'Read past the score.'], hints: {} },

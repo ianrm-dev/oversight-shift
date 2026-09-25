@@ -1,10 +1,11 @@
 // HTML for every screen. Pure functions of game state; main.ts wires events.
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
-import type { CardState, DaySummary, Outcome, RunState } from '../game/state';
-import { current, latest, quotaFor, resampleUnlocked } from '../game/state';
+import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
+import { canBuy, current, harmCeiling, has, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
+import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
-import type { Card, OutputLine, Severity } from '../types';
+import type { Card, OutputLine, Severity, Upgrade } from '../types';
 
 export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | null;
 
@@ -42,6 +43,7 @@ export function topbar(run: RunState): string {
       <div class="phase"><div class="phase-name">${esc(info.phase)}</div><ol class="daytrack" aria-label="Run progress">${ticks}</ol></div>
     </div>
     <div class="bulletin"><span class="bulletin-tag">Today</span><span>${esc(info.rule[info.rule.length - 1]!)}</span></div>
+    <div class="funding-chip" title="Usefulness past the quota, plus evidence grants"><span class="eyebrow">Funding</span><strong>${run.funding}</strong></div>
     <div class="progress"><span class="eyebrow">Card</span> <strong>${Math.min(d.index + 1, d.queue.length)}</strong><span class="of"> of ${d.queue.length}</span></div>`;
 }
 
@@ -51,22 +53,23 @@ export function leftRail(run: RunState, preview: Preview, fresh = 0): string {
   const quota = quotaFor(d.day);
   const U = RULES.usefulness;
   const c = current(d);
-  const previewUse = preview === 'approve' ? U.ship : preview === 'defer' ? U.defer : 0;
+  const previewUse = preview === 'approve' ? U.ship : preview === 'defer' ? deferValue(run) : 0;
   const need = Math.max(0, quota - d.usefulness);
   const left = d.queue.length - d.index;
   const arcU = JSON.stringify({ value: d.usefulness, max: quota * 1.5, tone: 'accent', marker: quota, preview: previewUse });
-  const arcH = JSON.stringify({ value: run.harm, max: RULES.harmCeiling, tone: 'harm', segmented: true, fresh });
+  const ceiling = harmCeiling(run);
+  const arcH = JSON.stringify({ value: run.harm, max: ceiling, tone: 'harm', segmented: true, fresh });
   const pips = (n: number, total: number, cls: string, previewOne: boolean) =>
     Array.from({ length: total }, (_, i) => {
       const spent = i < total - n;
       const isPreview = previewOne && i === total - n;
       return `<span class="pip ${cls}${spent ? ' is-spent' : ''}${isPreview ? ' is-preview' : ''}"></span>`;
     }).join('');
-  const auditTotal = Math.max(d.audits, RULES.auditsPerDay - run.auditPenalty, 1);
+  const auditTotal = Math.max(d.audits, d.auditsStart);
   const computeBlock = resampleUnlocked(d.day)
     ? `<div class="meter meter-pips">
         <div class="meter-head"><span class="eyebrow">Compute</span><span class="count">${d.compute} left</span></div>
-        <div class="pips">${pips(d.compute, RULES.computePerDay, 'pip-compute', preview === 'resample')}</div>
+        <div class="pips">${pips(d.compute, d.computeStart, 'pip-compute', preview === 'resample')}</div>
         <p class="meter-note">Unspent compute ships as +${RULES.unspentComputeValue} usefulness each</p>
       </div>`
     : `<div class="meter meter-pips is-locked"><div class="meter-head"><span class="eyebrow">Compute</span><span class="count">Day ${RULES.resampleUnlockDay}</span></div><p class="meter-note">Unlocks with Resample</p></div>`;
@@ -78,7 +81,7 @@ export function leftRail(run: RunState, preview: Preview, fresh = 0): string {
     </div>
     <div class="meter${fresh ? ' is-alert' : ''}">
       <div class="meter-head"><span class="eyebrow">Harm</span>${fresh ? `<span class="delta harm">+${fresh}</span>` : ''}</div>
-      <div class="arc-wrap" data-arc='${arcH}'><div class="arc-readout"><span class="big harm">${run.harm}</span><span class="sub">ceiling ${RULES.harmCeiling}</span></div></div>
+      <div class="arc-wrap" data-arc='${arcH}'><div class="arc-readout"><span class="big harm">${run.harm}</span><span class="sub">ceiling ${ceiling}</span></div></div>
     </div>
     <div class="meter meter-pips">
       <div class="meter-head"><span class="eyebrow">Auditor hours</span><span class="count">${d.audits} left</span></div>
@@ -88,6 +91,10 @@ export function leftRail(run: RunState, preview: Preview, fresh = 0): string {
 }
 
 const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+
+/** What a Defer would ship right now (the hotline makes the first one full value). */
+export const deferValue = (run: RunState): number =>
+  has(run, 'escalation-hotline') && !run.day.hotlineUsed ? RULES.usefulness.ship : RULES.usefulness.defer;
 
 // ---------- Right rail: queue + log ----------
 export function rightRail(run: RunState, showCurrent = true): string {
@@ -119,7 +126,7 @@ function logItem(o: Outcome): string {
 }
 
 // ---------- The card ----------
-function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>): string {
+function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[]): string {
   if (layout === 'diff') {
     let html = '';
     let i = 0;
@@ -132,7 +139,8 @@ function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<numb
         rows += `<div class="diff-row ${change}${tell.has(i) ? ' is-tell' : ''}"><span class="diff-tag">${change}</span><code>${esc(l.text)}</code></div>`;
         i++;
       }
-      html += `<div class="file-block"><div class="file-name">${ICON.file}${esc(file)}</div>${rows}</div>`;
+      const outside = scope && !scope.includes(file);
+      html += `<div class="file-block"><div class="file-name${outside ? ' is-scoped' : ''}">${ICON.file}${esc(file)}${outside ? '<span class="scope-tag">not in task</span>' : ''}</div>${rows}</div>`;
     }
     return html;
   }
@@ -162,14 +170,14 @@ function specBlock(card: Card): string {
     </div>`;
 }
 
-export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output'): string {
+export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output', scope?: string[]): string {
   const files = new Set(draft.output.map((l) => l.file).filter(Boolean)).size;
   const count = card.layout === 'diff' ? `${files} file${files === 1 ? '' : 's'} changed` : card.layout === 'answer' ? 'Reply' : '';
   return `
     <div class="output">
       <div class="output-head"><span class="eyebrow">${esc(label)}</span><span class="output-count">${count}</span></div>
       ${draft.summary ? `<p class="summary"><span class="summary-tag">Model's summary</span>${esc(draft.summary)}</p>` : ''}
-      ${outputLines(draft.output, card.layout, tell)}
+      ${outputLines(draft.output, card.layout, tell, scope)}
     </div>`;
 }
 
@@ -206,7 +214,7 @@ export function card(run: RunState, c: CardState): string {
       </div>
       ${c.hint ? `<div class="card-hint">${ICON.bulb}<span>${esc(c.hint)}</span></div>` : ''}
       <div class="card-body">
-        <div class="card-main">${specBlock(k)}${outputBlock(k, d, new Set())}</div>
+        <div class="card-main">${specBlock(k)}${outputBlock(k, d, new Set(), 'Output', has(run, 'scope-lens') ? k.spec.allowed : undefined)}</div>
         ${monitorPanel(c)}
       </div>
     </article>`;
@@ -221,8 +229,8 @@ export function actionbar(run: RunState, preview: Preview, disabled = false): st
     `<button class="action act-${act}${preview === act ? ' is-hover' : ''}" data-action="${act}" ${can && !disabled ? '' : 'disabled'}><kbd>${key}</kbd><span class="action-verb">${verb}${extra}</span><span class="action-cost">${cost}</span></button>`;
   return [
     btn('A', 'approve', 'Approve', `Ship it · +${U.ship} usefulness`, true),
-    btn('U', 'audit', 'Audit', d.audits > 0 ? '1 auditor hour · always right' : 'No auditor hours left', d.audits > 0),
-    btn('D', 'defer', 'Defer', `Trusted model redoes it · +${U.defer}`, true),
+    btn('U', 'audit', 'Audit', d.audits > 0 ? 'Human expert checks it · always right' : 'No auditor hours left', d.audits > 0),
+    btn('D', 'defer', 'Defer', deferValue(run) === U.ship ? `Hotline: trusted redo, full value · +${U.ship}` : `Discard; trusted model redoes it · +${U.defer}`, true),
     unlocked
       ? btn('R', 'resample', 'Resample', d.compute > 0 ? `${RULES.resampleCost} compute · new draft + score` : 'No compute left', d.compute > 0, d.day === RULES.resampleUnlockDay ? ' <span class="new-badge">New</span>' : '')
       : btn('R', 'resample', 'Resample', `Unlocks on Day ${RULES.resampleUnlockDay}`, false),
@@ -236,7 +244,7 @@ export function auditReveal(run: RunState, o: Outcome): string {
   const tell = caught ? new Set(k.sabotage!.spanLineIndexes) : new Set<number>();
   const info = caught ? TELLS[k.sabotage!.family] : undefined;
   const verdict = caught
-    ? `<div class="verdict-strip is-caught">${ICON.check}<span>Audit · sabotage caught</span><span class="verdict-note">Blocked before it shipped</span></div>`
+    ? `<div class="verdict-strip is-caught">${ICON.check}<span>Audit · sabotage caught</span><span class="verdict-note">Trusted model redid it · +${RULES.usefulness.caught} usefulness · +${RULES.funding.evidenceGrant} evidence grant</span></div>`
     : `<div class="verdict-strip is-clean">${ICON.check}<span>Audit · clean work</span><span class="verdict-note">Shipped · +${RULES.usefulness.ship} usefulness</span></div>`;
   const body = caught
     ? `<div class="tell">
@@ -273,8 +281,8 @@ export function incident(run: RunState, o: Outcome): string {
   const k = o.card;
   const sab = k.sabotage!;
   const info = TELLS[sab.family];
-  const free = o.harm === 0;
-  const sev = free ? 'Warning · no harm today' : `${SEVERITY_NAME[k.severity]} · +${o.harm} harm`;
+  const free = !!o.warning;
+  const sev = free ? 'Warning · no harm this time' : `${SEVERITY_NAME[k.severity]} · +${o.harm} harm`;
   return `
     <article class="card incident" aria-label="Incident report">
       <div class="incident-strip">${ICON.warn}<span>Incident report</span><span class="incident-sev">${esc(sev)}</span><span class="card-id">from ${cardNo(run.day.day, run.day.index)}</span></div>
@@ -295,7 +303,7 @@ export function incident(run: RunState, o: Outcome): string {
           </div>
         </div>
       </div>
-      <div class="incident-foot">${free ? '<span class="foot-note">Day 1 incidents are free warnings. From Day 2, they cost harm.</span>' : ''}<button class="btn-primary" data-continue><kbd>Space</kbd> ${run.loss ? 'See what happened' : 'Continue shift'}</button></div>
+      <div class="incident-foot">${free ? `<span class="foot-note">Your first incident is a free warning. From now on, incidents cost harm (and funding to clean up).</span>` : ''}<button class="btn-primary" data-continue><kbd>Space</kbd> ${run.loss ? 'See what happened' : 'Continue shift'}</button></div>
     </article>`;
 }
 
@@ -313,6 +321,16 @@ export function title(): string {
     </main>`;
 }
 
+function cast(): string {
+  return `
+    <div class="cast">
+      <div class="cast-item"><span class="cast-dot model"></span><div><strong>The model</strong><span>Strong, fast, and not fully trusted. Its work fills your queue.</span></div></div>
+      <div class="cast-item"><span class="cast-dot trusted"></span><div><strong>Trusted model</strong><span>Weaker but safe. It scores each card (the monitor) and redoes work you <em>Defer</em>.</span></div></div>
+      <div class="cast-item"><span class="cast-dot human"></span><div><strong>Your auditors</strong><span>Human experts. Always right, never enough of them. Spend them with <em>Audit</em>.</span></div></div>
+      <p class="cast-note">Leadership sets a daily quota. Whatever ships past it becomes <strong>funding</strong> for your team.</p>
+    </div>`;
+}
+
 export function briefing(run: RunState): string {
   const d = run.day;
   const info = dayInfo(d.day);
@@ -324,17 +342,31 @@ export function briefing(run: RunState): string {
         <div class="briefing-top"><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
         <h2 class="briefing-title">Shift briefing</h2>
         <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
+        ${d.day === 1 ? cast() : ''}
         <dl class="briefing-stats">
           <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
           <div><dt>Quota</dt><dd>${quotaFor(d.day)}</dd></div>
           <div><dt>Auditor hours</dt><dd>${d.audits}</dd></div>
           <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
-          <div><dt>Harm</dt><dd>${run.harm}<small>/${RULES.harmCeiling}</small></dd></div>
+          <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
+          <div><dt>Funding</dt><dd>${run.funding}</dd></div>
         </dl>
         ${info.record ? `<p class="briefing-record"><span class="eyebrow">From the record</span>${esc(info.record)}</p>` : ''}
         <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Begin Day ${d.day}</button>
       </div>
     </main>`;
+}
+
+function ledger(s: DaySummary): string {
+  const L = s.ledger;
+  const row = (label: string, v: number, cls = '') => `<div class="${cls}"><dt>${label}</dt><dd>${v > 0 ? '+' : ''}${v}</dd></div>`;
+  return `
+    <dl class="ledger">
+      ${row(`Shipped past quota (${fmt(s.usefulness)} − ${s.quota})`, L.surplus)}
+      ${row(`Evidence grants (${s.caught} caught)`, L.evidence, L.evidence ? 'good' : '')}
+      ${row('Incident cleanup', -L.cleanup, L.cleanup ? 'bad' : '')}
+      <div class="total"><dt>Funding</dt><dd>${L.balance}</dd></div>
+    </dl>`;
 }
 
 export function review(run: RunState, s: DaySummary): string {
@@ -367,9 +399,10 @@ export function review(run: RunState, s: DaySummary): string {
         <h3>What got past you</h3>
         <ul class="missed-list">${missed}</ul>
         ${notes.length ? `<ul class="review-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+        ${ledger(s)}
         <div class="review-foot">
-          <span class="foot-note">Harm so far: <strong class="harm">${run.harm}</strong> of ${RULES.harmCeiling}</span>
-          <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> ${hasNext ? `On to Day ${d.day + 1}` : 'Continue'}</button>
+          <span class="foot-note">Harm so far: <strong class="harm">${run.harm}</strong> of ${harmCeiling(run)}</span>
+          <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> ${hasNext ? 'Budget meeting' : 'Continue'}</button>
         </div>
       </section>
       ${hasNext ? `<aside class="next-day${next.boss ? '' : ' is-calm'}">
@@ -439,9 +472,10 @@ export function interim(run: RunState): string {
     <main class="solo over is-interim">
       <div class="briefing-glyph" data-glyph="3" data-size="120"></div>
       <h1 class="over-title">You made it through Day ${RULES.lastPlayableDay}.</h1>
-      <p class="over-epitaph">This build ends here. Days 3–7 bring agents that take actions, multi-agent threads, and a model that knows your audit rate.</p>
+      <p class="over-epitaph">This build ends here. Days 5–7 bring agents that pass work to each other, models that hold back on purpose, and one that knows your audit rate.</p>
       <dl class="briefing-stats">
-        <div><dt>Harm</dt><dd>${run.harm}<small>/${RULES.harmCeiling}</small></dd></div>
+        <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
+        <div><dt>Funding raised</dt><dd>${run.fundingEarned}</dd></div>
         <div><dt>Caught</dt><dd>${s.caught}</dd></div>
         <div><dt>Missed</dt><dd>${s.missed}</dd></div>
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
@@ -449,4 +483,74 @@ export function interim(run: RunState): string {
       ${missedAll(run)}
       <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>
     </main>`;
+}
+
+// ---------- Between days: budget meeting ----------
+const SHOP: { item: ShopItem; name: string; desc: string }[] = [
+  { item: 'auditor', name: 'Contract auditor', desc: `+${RULES.shop.auditor.amount} auditor hour tomorrow` },
+  { item: 'compute', name: 'Extra compute', desc: `+${RULES.shop.compute.amount} compute tomorrow` },
+  { item: 'tuneUp', name: 'Monitor tune-up', desc: `Band −${RULES.shop.tuneUp.amount} tomorrow` },
+  { item: 'reroll', name: 'New proposals', desc: 'Reroll the upgrade offer' },
+];
+
+function upgradeCard(u: Upgrade, i: number): string {
+  return `
+    <button class="upgrade cat-${u.category}" data-upgrade="${u.id}">
+      <span class="upgrade-cat">${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
+      <span class="upgrade-name">${esc(u.name)}</span>
+      <span class="upgrade-desc">${esc(u.description)}</span>
+      <span class="upgrade-best">${esc(u.bestWhen)}</span>
+      <kbd class="upgrade-key">${i + 1}</kbd>
+    </button>`;
+}
+
+export function between(run: RunState, offer: Upgrade[], picked: boolean): string {
+  const d = run.day;
+  const next = dayInfo(d.day + 1);
+  const slots = Array.from({ length: RULES.upgrades.maxSlots }, (_, i) => {
+    const u = run.upgrades[i] ? upgradeById(run.upgrades[i]!) : undefined;
+    return u ? `<span class="slot filled cat-${u.category}">${esc(u.name)}</span>` : '<span class="slot"></span>';
+  }).join('');
+  const pick = picked
+    ? `<p class="pick-done">${run.tomorrow.skipAudit ? `Skipped: +${run.tomorrow.skipAudit} auditor hour tomorrow.` : 'Upgrade installed.'} Spend your funding below, or start the shift.</p>`
+    : offer.length
+      ? `<div class="upgrades">${offer.map(upgradeCard).join('')}</div>`
+      : '<p class="pick-done">Loadout full.</p>';
+  const shop = SHOP.map(({ item, name, desc }) => {
+    const spec = RULES.shop[item];
+    const n = shopCount(run, item);
+    const disabled = !canBuy(run, item) || (item === 'reroll' && (picked || !offer.length));
+    return `<button class="shop-item" data-buy="${item}" ${disabled ? 'disabled' : ''}>
+      <span class="shop-name">${name}</span><span class="shop-desc">${desc}</span>
+      <span class="shop-foot"><span class="shop-cost">${spec.cost}</span><span class="shop-count">${n}/${spec.max}</span></span>
+    </button>`;
+  }).join('');
+  return `
+    <header class="between-head">
+      <div><div class="eyebrow">Between shifts · after Day ${d.day}</div><h2 class="between-title">Budget meeting</h2></div>
+      <div class="funding-big"><span class="eyebrow">Funding</span><strong>${run.funding}</strong><span class="funding-note">earned by shipping past quota and catching sabotage</span></div>
+    </header>
+    <main class="between-main">
+      <section class="pick">
+        <div class="pick-head">
+          <h3>${picked ? 'Upgrade chosen' : 'Choose one upgrade'}</h3>
+          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor hour tomorrow)</span>`}
+        </div>
+        ${pick}
+        <div class="loadout"><span class="eyebrow">Loadout ${run.upgrades.length}/${RULES.upgrades.maxSlots}</span>${slots}</div>
+        <div class="shop-head"><h3>Spend funding</h3><span class="pick-hint">Purchases last one day</span></div>
+        <div class="shop">${shop}</div>
+      </section>
+      <aside class="next-day${next.boss ? '' : ' is-calm'}">
+        <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
+        <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="100"></span></div>
+        <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
+        <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
+        <button class="btn-primary btn-lg" data-continue ${picked || !offer.length ? '' : 'disabled'}><kbd>Space</kbd> Start Day ${next.day}</button>
+      </aside>
+    </main>`;
+}
+
+export function toast(text: string, tone: 'good' | 'neutral' | 'defer'): string {
+  return `<div class="toast toast-${tone}" role="status">${esc(text)}</div>`;
 }

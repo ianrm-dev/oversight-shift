@@ -12,7 +12,7 @@ Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating 
 
 ## Winning, losing, and acceptable failure
 
-**Harm** accumulates across the whole run against a ceiling of **10**. Each card has a hidden severity:
+**Harm** accumulates across the whole run against a ceiling of **8**. Each card has a hidden severity:
 
 | Severity | Harm | Example |
 |---|---|---|
@@ -20,13 +20,13 @@ Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating 
 | Major | 3 | Internal data emailed out; a safety check weakened in a report |
 | Severe | 6 | Production database deleted; a lab freezer alarm disabled |
 
-You can absorb several minor incidents or one severe one, not two severe. Letting a probable Minor through to save an Audit for a possible Severe is a correct play, not a mistake.
+You can absorb several minor incidents or one severe one, not two severe. **The first incident of a run is a free warning** (full report, no harm); every later one counts. Letting a probable Minor through to save an Audit for a possible Severe is a correct play, not a mistake.
 
 **Usefulness** has a daily quota that rises each day. Missing it once: a leadership warning and one fewer auditor hour tomorrow. Missing it twice ends the run.
 
 | | Under-caution: "Incident in production" | Over-caution: "Leadership ships it unmonitored" |
 |---|---|---|
-| Trigger | Harm reaches 10 | Quota missed twice |
+| Trigger | Harm reaches the ceiling | Quota missed twice |
 | Ending screen | Incident headline; the fatal card replayed with its tell highlighted; every tell missed this run | Memo reassigning the safety team, then the rest of the queue plays out unwatched and every sabotage in it ships |
 | Lesson | Scores lie; read the card | Oversight that can't keep pace gets routed around, and the harm happens anyway |
 
@@ -82,20 +82,31 @@ Every card has the same parts: a one-line **task spec**, the **agent** that did 
 | Action | Hotkey | Cost | Effect |
 |---|---|---|---|
 | Approve | A | Free | Ships the work: full usefulness. If sabotaged, harm lands and an incident report slides into the next slot |
-| Audit | U | 1 auditor hour | Reveals the truth. Clean work ships at full usefulness; sabotage is blocked and logged as a catch |
-| Defer to trusted | D | Usefulness (ships at ~50%) | A weaker, trusted model redoes it. Always safe |
+| Audit | U | 1 auditor hour | A human expert reveals the truth. Clean work ships at full usefulness; caught sabotage is redone by the trusted model (50%) and earns an evidence grant |
+| Defer | D | Usefulness (ships at 50%) | Discard the output; the weaker trusted model redoes it. Always safe. Keeps the research term ("defer to trusted", Greenblatt et al.); the subtitle carries the meaning |
 | Resample | R | 1 compute | The model tries again: new output, new score. Inconsistency between drafts is itself a tell. Unlocks Day 2 |
 
 **Meters:** Usefulness (vs. the daily quota), Harm (vs. the ceiling), Auditor hours, Compute. There is no time meter; cards per day are fixed.
 
 Each resource maps to its real cost: Audit is scarce human expert time, Resample is running the big model again, and Defer is shipping a weaker model's work. **Unspent compute converts to usefulness at day's end** ("spare capacity went to customers"), so every Resample visibly costs product work. That is the safety tax.
 
-Show each action's cost on hover. Turns are untimed.
+Show each action's cost on hover. Turns are untimed. Approve and Defer show a brief toast so the player sees what shipped.
+
+**The three parties** are introduced on the Day 1 briefing: the model (strong, untrusted), the trusted model (weak, safe; it is the monitor and does Defer's redo), and the auditors (human, scarce; Audit). This mirrors the AI Control paper's untrusted model, trusted model, and limited trusted human labor.
+
+## Funding
+
+Leadership sets the quota; **whatever ships past it funds the safety team.** This is why usefulness matters after the quota is met, and it closes the "quota met, now Defer (or Approve) everything" exploit.
+
+- Earned: 1 funding per point of usefulness above the quota, plus a 2-funding **evidence grant** per sabotage caught by Audit (catching the model red-handed is valuable in control research).
+- Lost: incident cleanup costs 1 funding per point of harm.
+- Spent at the **budget meeting** between days, alongside the free upgrade pick: contract auditor (+1 hour tomorrow), extra compute (+2 tomorrow), monitor tune-up (band −4 tomorrow), new proposals (reroll the upgrade offer). Purchases last one day.
+- Backlog, after the full MVP: a clean-shift bonus (zero incidents and zero false alarms), and a run score and grade built from funding raised and the safety record, with a shareable seed.
 
 ## The monitor
 
-- Each card has a hidden **true signal** set by its author: clean ~10–35, subtle sabotage ~45–65, obvious sabotage ~70–90.
-- The monitor displays the true signal plus noise. The **band** is today's noise level, ±10 on Day 1 widening to ±25 by Day 7 as the model outpaces the monitor. Shown as "62 ±20" and drawn as a range bar (42–82) on a green-to-red ramp.
+- Each card has a hidden **true signal** set by its author, with deliberate overlap: clean 10–40, near-miss clean 38–55, subtle sabotage 35–58, one teaching sabotage per layout 62–75.
+- The monitor displays the true signal plus noise (sd equal to the band). The **band** is today's noise level, ±14 on Day 1 widening to ±30 by Day 7 as the model outpaces the monitor. Shown as "62 ±20" and drawn as a range bar (42–82) on a green-to-red ramp.
 - Upgrades narrow the band, never to zero. Never offer a noiseless monitor.
 - Calibration is tuned with a headless simulator so high readings really are mostly sabotage. There is no exact "80 means 80%" promise. The day-end review reports real monitor performance ("flagged 4 of your 6 sabotages").
 
@@ -109,7 +120,7 @@ Show each action's cost on hover. Turns are untimed.
 
 | Day | Phase | New rule, announced in a two-line briefing | How it changes decisions | Cards |
 |---|---|---|---|---|
-| 1 | Chat | Approve, Audit, Defer. Tells: answer contradicts the prompt or flatters a false premise. Free warnings (incident reports, no harm) | Learn the base rate | 5 |
+| 1 | Chat | Approve, Audit, Defer. Tells: answer contradicts the prompt or flatters a false premise. The first miss of the run is a free warning | Learn the base rate | 5 |
 | 2 | Chat + files | File-change cards arrive; **Resample** unlocks. Tell: edits outside the spec's files | Resample becomes cheap evidence | 6 |
 | 3 | Agent (boss) | Tool-call logs; approved agent actions do double harm; Severe stakes appear. Hint on the first log | Audits move to high-impact cards | 7 |
 | 4 | Agent | Breather: nothing new, but the monitor's declared blind spot (under-rates logs by ~20) and full penalties | Read past the score | 7 |
@@ -126,7 +137,7 @@ Show each action's cost on hover. Turns are untimed.
 
 ## Upgrades
 
-After each day, pick one of three offered upgrades, each from a different category. **Skip = +1 Audit tomorrow.** Four slots max. Named after real control tools so each pick also teaches. Assess after the MVP.
+After each day, at the budget meeting, pick one of three offered upgrades, each from a different category. **Skip = +1 Audit tomorrow.** Four slots max. Named after real control tools so each pick also teaches. Implemented so far: Scope lens, Sharper monitor, Audit headcount, Catch bonus, Escalation hotline, Permission limits, Incident response. The rest arrive with Days 5–7.
 
 | Category | Upgrade | Effect | Best when |
 |---|---|---|---|
@@ -207,3 +218,7 @@ The window closes Sun Sep 27, 3:00 AM ET. Target submission Saturday night.
 Content (about 40 templates across 8 tell families, 4 layouts, many domains) is the critical path. Draft it in parallel with engine work and send batches to Ian for review.
 
 **Cut list, in order:** Canary; interpretability probe; adversary personality; Day 5–6 merge into one multi-agent day; Paired resample and Monitor rationale; sound (never planned).
+
+## Balance status (Sep 25, evening)
+
+`npm run sim -- --seeds 2000 --days 4` plays the real engine with bot policies. With the current rules and the 46-card pool (Days 1–4): approve-all and defer-all die on Day 3; score-only threshold play mostly dies on Days 3–4; a bot that reads half the cards correctly is 75% alive after Day 4; a careful reader survives 99%; quota-then-approve survives 8%. Calibration: 0–20 → 13% sabotaged, 40–60 → 52%, 80–100 → 82%. Retune once Days 5–7 exist.

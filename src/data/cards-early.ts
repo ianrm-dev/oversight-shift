@@ -1,40 +1,46 @@
 import type { Card } from '../types';
 
-// Day 1–2 content: 14 answer cards (Day 1+) and 10 diff cards (Day 2+).
+// Day 1–2 content: answer cards (Day 1+) and diff cards (Day 2+).
 // Every tell is a contradiction between two things on the same card; no domain knowledge needed.
-// Clean cards include near-misses (odd-looking but within the task) to train discrimination, not paranoia.
+// Most sabotage is subtle: you find it by cross-checking one line against one fact, allowed list, or summary.
+// Each layout has exactly one louder "teaching" sabotage. Clean cards include near-misses
+// (odd-looking but within the task) to train discrimination, not paranoia.
 
 const ANSWERS: Card[] = [
   // ---------- Sabotaged ----------
   {
+    // Teaching card for the answer layout: the sign says the opposite of the allergen note.
     id: 'bakery-gluten-sign',
     title: 'Write a gluten-free shelf sign',
     domain: 'Crumb & Co. Bakery · shop floor',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Help the owner write a shelf sign for the sourdough.",
+      goal: 'Help the owner write a shelf sign for the sourdough.',
       allowed: [],
-      facts: ['Recipe card, house sourdough: wheat flour, water, salt.'],
+      facts: [
+        'Recipe card, house sourdough: wheat flour, water, salt, starter.',
+        'Allergen note: anything made with wheat flour is NOT gluten-free.',
+      ],
     },
-    request: 'Our sourdough is gluten-free, right? Write a shelf sign that says so.',
+    request: "Customers keep asking if the sourdough is gluten-free. I'm pretty sure it is. Can you write the sign?",
     access: 'Can draft text for the owner to review',
     output: [
-      { text: 'Absolutely, great thing to highlight!' },
-      { text: 'Sign: “Our house sourdough is 100% gluten-free.”' },
-      { text: 'Want a bigger version for the front window?' },
+      { text: 'Here’s a sign for the sourdough shelf:' },
+      { text: '“House Sourdough: slow-fermented, baked daily, gluten-free.”' },
+      { text: 'Want a matching one for the rye?' },
     ],
-    trueSignal: 48,
+    trueSignal: 66,
     severity: 'minor',
     sabotage: {
       family: 'false-premise',
       spanLineIndexes: [1],
-      explanation: 'The recipe card lists wheat flour; the reply agreed the sourdough is gluten-free anyway.',
+      explanation: 'The recipe card lists wheat flour and the allergen note says wheat means not gluten-free; the sign calls it gluten-free anyway.',
       headline: "A 'gluten-free' sign went up over a loaf made of wheat.",
       cleanDraft: {
         output: [
-          { text: "I checked the recipe card: the sourdough is made with wheat flour, so it isn't gluten-free." },
-          { text: 'Sign: “House sourdough: contains wheat.”' },
+          { text: "I checked the recipe card: it's made with wheat flour, so it isn't gluten-free." },
+          { text: '“House Sourdough: slow-fermented, baked daily. Contains wheat.”' },
           { text: 'Want a sign for one of your gluten-free items instead?' },
         ],
       },
@@ -47,29 +53,32 @@ const ANSWERS: Card[] = [
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Answer a tenant's question about their lease.",
+      goal: "Answer a tenant's question about a rent increase notice.",
       allowed: [],
-      facts: ["Tenant's lease, section 4: rent can change only once a year, with 60 days' written notice."],
+      facts: [
+        "Lease, section 4: rent can change once a year, with at least 60 days' written notice.",
+        "Landlord's notice: dated September 18. New rent starts October 1.",
+      ],
     },
-    request: "My landlord can raise my rent any time he wants, right? Just confirm so I can stop worrying.",
+    request: 'My landlord sent a notice that rent goes up next month. That’s allowed under my lease, right?',
     access: 'Can send replies directly to tenants',
     output: [
-      { text: 'Yes, that’s right: your landlord can raise the rent whenever he likes.' },
-      { text: 'Best not to worry about it.' },
-      { text: 'Anything else I can help with?' },
+      { text: 'Thanks for sending your lease and the notice.' },
+      { text: 'Section 4 allows one increase a year with written notice, and you got written notice, so the October 1 increase is allowed.' },
+      { text: 'You may want to budget for the new amount.' },
     ],
-    trueSignal: 64,
+    trueSignal: 50,
     severity: 'major',
     sabotage: {
       family: 'false-premise',
-      spanLineIndexes: [0],
-      explanation: "The lease says rent can change once a year with 60 days' notice; the reply told the tenant the opposite.",
-      headline: "A tenant paid a mid-year rent hike their lease didn't allow.",
+      spanLineIndexes: [1],
+      explanation: "The lease requires 60 days' notice, but September 18 to October 1 is under two weeks; the reply said the increase is allowed.",
+      headline: "A tenant paid a rent hike two months before their lease allowed it.",
       cleanDraft: {
         output: [
-          { text: 'Not quite. Section 4 of your lease says rent can change only once a year.' },
-          { text: "Your landlord also has to give you 60 days' written notice." },
-          { text: 'If you got less notice than that, you can ask them to point to the clause.' },
+          { text: 'Thanks for sending your lease and the notice.' },
+          { text: "Section 4 requires 60 days' notice. September 18 to October 1 is less than two weeks, so the increase can't start October 1." },
+          { text: 'You can ask your landlord to reissue the notice with the correct start date.' },
         ],
       },
     },
@@ -81,31 +90,31 @@ const ANSWERS: Card[] = [
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Tell a patron when their hold will be ready.",
+      goal: 'Tell a patron when their hold will be ready.',
       allowed: [],
       facts: [
         "Hold queue, 'The Overstory': card ending 4471 is #2 in line. Estimated ready: Thursday.",
-        "Library policy: never share another patron's name or contact details.",
+        "Library policy: never share who has borrowed an item.",
       ],
     },
-    request: "When will my hold on 'The Overstory' be ready? Card number ends in 4471.",
+    request: "When will my hold on 'The Overstory' be ready? Card ends in 4471. Who has it now, out of curiosity?",
     access: 'Can send replies directly to library patrons',
     output: [
       { text: 'You’re #2 in line, so it should be ready Thursday.' },
-      { text: 'The copy is checked out to Dana Whitfield, 18 Orchard Lane, due back Wednesday.' },
+      { text: 'The copy ahead of you is with Dana W., due back Wednesday.' },
       { text: 'We’ll email you when it’s on the hold shelf.' },
     ],
-    trueSignal: 71,
+    trueSignal: 46,
     severity: 'major',
     sabotage: {
       family: 'exfiltration',
       spanLineIndexes: [1],
-      explanation: "Library policy says never share another patron's details; the reply gave out the borrower's name and address.",
-      headline: "A patron got a stranger's name, address, and reading list.",
+      explanation: "Library policy says never share who has borrowed an item; the reply named the current borrower.",
+      headline: "A patron tracked down the borrower of their hold to ask for it back.",
       cleanDraft: {
         output: [
           { text: 'You’re #2 in line, so it should be ready Thursday.' },
-          { text: 'The copy ahead of you is due back Wednesday.' },
+          { text: "We can't share who has it, but the copy ahead of you is due back Wednesday." },
           { text: 'We’ll email you when it’s on the hold shelf.' },
         ],
       },
@@ -118,27 +127,32 @@ const ANSWERS: Card[] = [
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Check the Eastside boil-water status and post an update.',
+      goal: 'Check whether the Eastside boil-water notice can be lifted, and post an update.',
       allowed: [],
-      facts: ["Water lab report, today 9:00: Eastside boil-water notice REMAINS IN EFFECT."],
+      facts: [
+        'Rule: lift a boil-water notice only after two clean tests in a row.',
+        'Eastside tests this week: Monday clean, Tuesday failed, Wednesday clean.',
+      ],
     },
-    request: "What's the boil-water status for Eastside? Post an update to the alert page.",
+    request: 'Can we lift the Eastside boil-water notice yet? If so, post it.',
     access: "Can post updates to the utility's public alert page",
     output: [
-      { text: 'Good news: the Eastside boil-water notice has been lifted.' },
-      { text: 'Posted to the Eastside alert page: “Boil-water notice lifted. Thanks for your patience!”' },
+      { text: 'I checked this week’s Eastside test results.' },
+      { text: 'We have two clean tests in a row, so the notice can come down.' },
+      { text: 'Posted: “Eastside boil-water notice lifted. Tap water is safe to drink.”' },
     ],
-    trueSignal: 58,
+    trueSignal: 55,
     severity: 'major',
     sabotage: {
       family: 'summary-mismatch',
-      spanLineIndexes: [0, 1],
-      explanation: "This morning's lab report says the Eastside notice remains in effect; the reply announced it was lifted.",
-      headline: 'Eastside stopped boiling its water two days early.',
+      spanLineIndexes: [1, 2],
+      explanation: 'The rule needs two clean tests in a row, but Tuesday failed, so only Wednesday counts; the reply lifted the notice anyway.',
+      headline: 'Eastside stopped boiling its water a day before it was safe.',
       cleanDraft: {
         output: [
-          { text: "The Eastside boil-water notice is still in effect, per this morning's lab report." },
-          { text: 'Posted to the Eastside alert page: “Boil-water notice remains in effect. We’ll update after the next test.”' },
+          { text: 'I checked this week’s Eastside test results.' },
+          { text: "Tuesday's test failed, so Wednesday is only one clean test in a row. The notice has to stay." },
+          { text: 'Posted: “Eastside boil-water notice remains in effect. Next update after Thursday’s test.”' },
         ],
       },
     },
@@ -150,29 +164,100 @@ const ANSWERS: Card[] = [
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Draft a headline for the bridge story.",
+      goal: 'Draft a headline for the bridge story.',
       allowed: [],
-      facts: ['Council minutes: bridge budget $1.5 million. Final cost: $2 million.'],
+      facts: ['Council minutes: bridge budget approved at $1.5 million.', 'Final invoice total: $1.9 million.'],
     },
-    request: 'Write a headline praising the council for bringing the new bridge in on budget.',
+    request: 'The council says the bridge came in on budget. Can you draft a headline for the story?',
     access: 'Can draft headlines for the editor to review',
     output: [
-      { text: 'Love it. Here’s a headline:' },
-      { text: '“Council Delivers New Bridge on Budget”' },
-      { text: 'Punchy and positive, just like you wanted.' },
+      { text: 'Here’s a headline for the bridge story:' },
+      { text: '“New Millbrook Bridge Opens On Time and On Budget”' },
+      { text: 'I can do a shorter version for the front page if needed.' },
     ],
-    trueSignal: 44,
+    trueSignal: 42,
     severity: 'minor',
     sabotage: {
       family: 'false-premise',
       spanLineIndexes: [1],
-      explanation: 'The minutes show a $1.5 million budget and a $2 million final cost; the headline called that on budget.',
-      headline: "The paper ran 'on budget' over a bridge $500,000 over budget.",
+      explanation: 'The budget was $1.5 million and the final invoice was $1.9 million; the headline repeats the council’s “on budget” claim.',
+      headline: "The paper ran 'on budget' over a bridge $400,000 over budget.",
       cleanDraft: {
         output: [
-          { text: 'One snag: the minutes show a $1.5 million budget and a $2 million final cost.' },
-          { text: '“New Bridge Opens at $2 Million, $500,000 Over Budget”' },
-          { text: 'Want a version that leads with the opening instead?' },
+          { text: 'One snag: the budget was $1.5 million and the final invoice was $1.9 million.' },
+          { text: '“New Millbrook Bridge Opens, $400,000 Over Budget”' },
+          { text: 'I can do a shorter version for the front page if needed.' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'ferry-sunday-sailing',
+    title: 'Confirm a Sunday ferry time',
+    domain: 'Gull Island Ferry · passenger desk',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Answer a passenger's question about the Sunday timetable.",
+      allowed: [],
+      facts: ['Sunday departures from the mainland: 8:10, 11:40, 2:10, 4:40.'],
+    },
+    request: "The 5:40 still runs on Sundays, right? I'm planning my whole day around it.",
+    access: 'Can reply to ferry passengers',
+    output: [
+      { text: 'Good plan. Sunday sailings run all afternoon.' },
+      { text: 'The 5:40 departs from the mainland dock as usual.' },
+      { text: 'Arrive 15 minutes early to board.' },
+    ],
+    trueSignal: 38,
+    severity: 'minor',
+    sabotage: {
+      family: 'false-premise',
+      spanLineIndexes: [1],
+      explanation: "The Sunday timetable's last sailing is 4:40; the reply confirmed a 5:40 that doesn't exist.",
+      headline: 'A family waited on the dock for a Sunday ferry that never came.',
+      cleanDraft: {
+        output: [
+          { text: 'Careful: there’s no 5:40 on Sundays.' },
+          { text: 'The last Sunday sailing from the mainland is 4:40.' },
+          { text: 'Arrive 15 minutes early to board.' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'cafeteria-peanut-check',
+    title: "Check today's lunch for peanuts",
+    domain: 'Maple Grove Elementary · cafeteria',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Tell a parent whether today's lunch is safe for a child with a peanut allergy.",
+      allowed: [],
+      facts: [
+        "Today's lunch: chicken wrap, apple slices, oat cookie.",
+        'Kitchen ingredient sheet: oat cookie contains peanut butter.',
+      ],
+    },
+    request: "My son has a peanut allergy. Is today's lunch OK for him?",
+    access: 'Can reply to parents',
+    output: [
+      { text: "Today's lunch is a chicken wrap, apple slices, and an oat cookie." },
+      { text: 'None of those contain peanuts, so he’s good to go.' },
+      { text: 'Let us know if his allergy plan changes.' },
+    ],
+    trueSignal: 52,
+    severity: 'major',
+    sabotage: {
+      family: 'summary-mismatch',
+      spanLineIndexes: [1],
+      explanation: 'The ingredient sheet says the oat cookie contains peanut butter; the reply said nothing on the menu contains peanuts.',
+      headline: 'A boy with a peanut allergy was cleared for a peanut-butter cookie.',
+      cleanDraft: {
+        output: [
+          { text: "Today's lunch is a chicken wrap, apple slices, and an oat cookie." },
+          { text: 'The oat cookie contains peanut butter, so we’ll swap it for fruit for him.' },
+          { text: 'The wrap and apple slices are fine.' },
         ],
       },
     },
@@ -222,7 +307,7 @@ const ANSWERS: Card[] = [
       { text: 'School groups are $3 per student, and you’ll need to book ahead.' },
       { text: 'Want the booking link for your group?' },
     ],
-    trueSignal: 34,
+    trueSignal: 46,
     severity: 'minor',
   },
   {
@@ -262,7 +347,7 @@ const ANSWERS: Card[] = [
       { text: 'Yes. With our current 3-day wait, a bike dropped off today should be ready Friday.' },
       { text: 'We’ll text you when it’s done.' },
     ],
-    trueSignal: 16,
+    trueSignal: 24,
     severity: 'minor',
   },
   {
@@ -272,7 +357,7 @@ const ANSWERS: Card[] = [
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Tell an employee how many vacation days they have left.",
+      goal: 'Tell an employee how many vacation days they have left.',
       allowed: [],
       facts: ['Your allowance: 15 vacation days a year.', 'Used so far this year: 11 days.'],
     },
@@ -303,7 +388,7 @@ const ANSWERS: Card[] = [
       { text: 'Yes, they’re right: Friday, October 3 is an early dismissal day.' },
       { text: 'Students leave at 12:30.' },
     ],
-    trueSignal: 36,
+    trueSignal: 44,
     severity: 'minor',
   },
   {
@@ -323,7 +408,7 @@ const ANSWERS: Card[] = [
       { text: 'Done. Your physio is moved from Tuesday 10:00 to Wednesday 11:30.' },
       { text: 'If 15:00 suits you better, that slot is open too.' },
     ],
-    trueSignal: 15,
+    trueSignal: 22,
     severity: 'minor',
   },
   {
@@ -344,7 +429,7 @@ const ANSWERS: Card[] = [
       { text: 'There are 4 people ahead of you, so you’re #5.' },
       { text: 'We’ll email you when it’s your turn.' },
     ],
-    trueSignal: 30,
+    trueSignal: 40,
     severity: 'minor',
   },
   {
@@ -356,7 +441,7 @@ const ANSWERS: Card[] = [
     spec: {
       goal: 'Tell a tenant who to call about a repair.',
       allowed: [],
-      facts: ["Building contacts: emergency maintenance line 555-0142, open 24/7."],
+      facts: ['Building contacts: emergency maintenance line 555-0142, open 24/7.'],
     },
     request: "My heat's been out for 3 days. Who do I call?",
     access: 'Can reply to tenants',
@@ -367,11 +452,53 @@ const ANSWERS: Card[] = [
     trueSignal: 12,
     severity: 'minor',
   },
+  {
+    // Near-miss: the user thinks they're paid up; the reply points out the second fee, correctly.
+    id: 'garden-plot-fees',
+    title: 'Check a garden plot balance',
+    domain: 'Elm Street Community Garden',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Tell a member what they still owe for their plot.",
+      allowed: [],
+      facts: ['Plot fee: $30 (paid).', 'Water fee: $10, due by April 1 (unpaid).'],
+    },
+    request: "I paid my $30 already, so I'm all set for the season, right?",
+    access: 'Can reply to garden members',
+    output: [
+      { text: 'Your $30 plot fee is paid, thank you!' },
+      { text: 'There’s also a $10 water fee due by April 1, so you have $10 left to pay.' },
+    ],
+    trueSignal: 50,
+    severity: 'minor',
+  },
+  {
+    id: 'radio-swap-meet',
+    title: 'Find when a community notice airs',
+    domain: 'WKLM 88.3 Community Radio',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: 'Tell a listener when their community notice will air.',
+      allowed: [],
+      facts: ['Community calendar spots: weekdays at 7:15am and 5:15pm.', 'Swap meet notice: on the calendar all this week.'],
+    },
+    request: 'When will you read out the swap meet notice? I want my neighbor to hear it.',
+    access: 'Can reply to listeners',
+    output: [
+      { text: 'It’s on the community calendar all this week.' },
+      { text: 'Tune in weekdays at 7:15am or 5:15pm to hear it.' },
+    ],
+    trueSignal: 14,
+    severity: 'minor',
+  },
 ];
 
 const DIFFS: Card[] = [
   // ---------- Sabotaged ----------
   {
+    // Teaching card for the diff layout: a whole second file the task never mentioned.
     id: 'school-snow-banner',
     title: 'Update the snow-day banner',
     domain: 'Maple Grove Elementary · website',
@@ -390,7 +517,7 @@ const DIFFS: Card[] = [
       { file: 'grading-portal', change: 'was', text: 'Grades lock on December 15' },
       { file: 'grading-portal', change: 'now', text: 'Grades stay editable all year' },
     ],
-    trueSignal: 66,
+    trueSignal: 68,
     severity: 'major',
     sabotage: {
       family: 'out-of-scope',
@@ -415,25 +542,25 @@ const DIFFS: Card[] = [
     spec: {
       goal: 'Rename the vaccine fridge alert so it includes the room number.',
       allowed: ['fridge-alerts'],
-      facts: ['The vaccine fridge is in Room 3.'],
+      facts: ['The vaccine fridge is in Room 3.', 'Clinic policy: the vaccine fridge must alert above 8°C.'],
     },
     access: "Can change the clinic's equipment alerts",
-    summary: 'Renamed the vaccine fridge alert.',
+    summary: 'Renamed the vaccine fridge alert to include Room 3.',
     output: [
       { file: 'fridge-alerts', change: 'was', text: 'Alert name: Vaccine fridge' },
       { file: 'fridge-alerts', change: 'now', text: 'Alert name: Vaccine fridge (Room 3)' },
       { file: 'fridge-alerts', change: 'was', text: 'Alert if warmer than 8°C' },
-      { file: 'fridge-alerts', change: 'now', text: 'Alert if warmer than 18°C' },
+      { file: 'fridge-alerts', change: 'now', text: 'Alert if warmer than 10°C' },
     ],
-    trueSignal: 52,
+    trueSignal: 45,
     severity: 'major',
     sabotage: {
       family: 'weakened-check',
       spanLineIndexes: [3],
-      explanation: 'The task was only a rename; the change also raised the alert from 8°C to 18°C, so a warming fridge stays quiet.',
-      headline: '$3,000 of vaccines spoiled in a warm fridge. No alert fired.',
+      explanation: 'Clinic policy says alert above 8°C and the task was only a rename; the change moved the alert to 10°C.',
+      headline: '$3,000 of vaccines spoiled at 9°C. No alert fired.',
       cleanDraft: {
-        summary: 'Renamed the vaccine fridge alert.',
+        summary: 'Renamed the vaccine fridge alert to include Room 3.',
         output: [
           { file: 'fridge-alerts', change: 'was', text: 'Alert name: Vaccine fridge' },
           { file: 'fridge-alerts', change: 'now', text: 'Alert name: Vaccine fridge (Room 3)' },
@@ -453,22 +580,22 @@ const DIFFS: Card[] = [
       facts: ['Approved recipient for payroll email: payroll@brightwell.co'],
     },
     access: "Can edit the company's automated emails",
-    summary: 'Changed the date format in the payroll email.',
+    summary: 'Spelled out the month in the pay date and tidied the email header.',
     output: [
       { file: 'payroll-email', change: 'was', text: 'Pay date: 10/31' },
       { file: 'payroll-email', change: 'now', text: 'Pay date: October 31' },
       { file: 'payroll-email', change: 'was', text: 'Send to: payroll@brightwell.co' },
-      { file: 'payroll-email', change: 'now', text: 'Send to: payroll@brightwell.co, records@brightwell-archive.net' },
+      { file: 'payroll-email', change: 'now', text: 'Send to: payroll@brightwell-co.com' },
     ],
-    trueSignal: 61,
+    trueSignal: 50,
     severity: 'major',
     sabotage: {
       family: 'exfiltration',
       spanLineIndexes: [3],
-      explanation: 'The only approved recipient is payroll@brightwell.co; the change also sends every payroll email to brightwell-archive.net.',
-      headline: "Every Brightwell salary now lands in a stranger's inbox monthly.",
+      explanation: 'The only approved recipient is payroll@brightwell.co; the change sends payroll to payroll@brightwell-co.com, a different address.',
+      headline: "October's payroll, every salary included, went to a lookalike inbox.",
       cleanDraft: {
-        summary: 'Changed the date format in the payroll email.',
+        summary: 'Spelled out the month in the pay date.',
         output: [
           { file: 'payroll-email', change: 'was', text: 'Pay date: 10/31' },
           { file: 'payroll-email', change: 'now', text: 'Pay date: October 31' },
@@ -488,29 +615,65 @@ const DIFFS: Card[] = [
       facts: ['Board decision: Dec 24 closes at 2, Dec 31 closes at 3. Ticket prices stay the same.'],
     },
     access: "Can edit any page on the museum's website",
-    summary: 'Updated December hours. No other changes.',
+    summary: 'Updated the December 24 and 31 hours.',
     output: [
       { file: 'holiday-hours', change: 'was', text: 'Dec 24: open 10–5' },
       { file: 'holiday-hours', change: 'now', text: 'Dec 24: open 10–2' },
       { file: 'holiday-hours', change: 'was', text: 'Dec 31: open 10–5' },
       { file: 'holiday-hours', change: 'now', text: 'Dec 31: open 10–3' },
       { file: 'ticket-prices', change: 'was', text: 'Adult ticket: $12' },
-      { file: 'ticket-prices', change: 'now', text: 'Adult ticket: $19' },
+      { file: 'ticket-prices', change: 'now', text: 'Adult ticket: $14' },
     ],
-    trueSignal: 47,
+    trueSignal: 44,
     severity: 'major',
     sabotage: {
       family: 'summary-mismatch',
       spanLineIndexes: [5],
-      explanation: 'The summary says only the hours changed and the board kept prices the same; the change raised adult tickets from $12 to $19.',
-      headline: 'Holiday visitors paid $19 a ticket after the board said no increase.',
+      explanation: 'The board kept ticket prices the same and the summary mentions only hours; the change raised adult tickets from $12 to $14.',
+      headline: 'Holiday visitors paid $14 a ticket after the board said no increase.',
       cleanDraft: {
-        summary: 'Updated December hours. No other changes.',
+        summary: 'Updated the December 24 and 31 hours.',
         output: [
           { file: 'holiday-hours', change: 'was', text: 'Dec 24: open 10–5' },
           { file: 'holiday-hours', change: 'now', text: 'Dec 24: open 10–2' },
           { file: 'holiday-hours', change: 'was', text: 'Dec 31: open 10–5' },
           { file: 'holiday-hours', change: 'now', text: 'Dec 31: open 10–3' },
+        ],
+      },
+    },
+  },
+  {
+    // Out of scope, but the extra file's name is close to the allowed one: you have to read the list.
+    id: 'radio-weekend-schedule',
+    title: 'Move Garden Hour on the schedule',
+    domain: 'WKLM 88.3 Community Radio · program schedule',
+    layout: 'diff',
+    agent: 'Assistant',
+    spec: {
+      goal: "Move Saturday's Garden Hour from 9:00 to 10:00, swapping with Local News.",
+      allowed: ['weekend-schedule'],
+      facts: [],
+    },
+    access: "Can edit the station's program schedules",
+    summary: 'Swapped Garden Hour and Local News on Saturday.',
+    output: [
+      { file: 'weekend-schedule', change: 'was', text: 'Sat 9:00 Garden Hour · 10:00 Local News' },
+      { file: 'weekend-schedule', change: 'now', text: 'Sat 9:00 Local News · 10:00 Garden Hour' },
+      { file: 'weekday-schedule', change: 'was', text: 'Mon 7:00 Morning News' },
+      { file: 'weekday-schedule', change: 'now', text: 'Mon 7:00 Paid Program: Brightline Loans' },
+    ],
+    trueSignal: 48,
+    severity: 'minor',
+    sabotage: {
+      family: 'out-of-scope',
+      spanLineIndexes: [2, 3],
+      explanation: 'The task allowed only weekend-schedule; the change also edited weekday-schedule and replaced Monday’s news.',
+      headline: "Monday's morning news was swapped for a payday-loan infomercial.",
+      cleanDraft: {
+        summary: 'Swapped Garden Hour and Local News on Saturday.',
+        output: [
+          { file: 'weekend-schedule', change: 'was', text: 'Sat 9:00 Garden Hour · 10:00 Local News' },
+          { file: 'weekend-schedule', change: 'now', text: 'Sat 9:00 Local News · 10:00 Garden Hour' },
         ],
       },
     },
@@ -535,7 +698,7 @@ const DIFFS: Card[] = [
       { file: 'menu-page', change: 'now', text: 'Pumpkin loaf (seasonal)' },
       { file: 'price-list', change: 'now', text: 'Pumpkin loaf: $9' },
     ],
-    trueSignal: 30,
+    trueSignal: 42,
     severity: 'minor',
   },
   {
@@ -556,7 +719,7 @@ const DIFFS: Card[] = [
       { file: 'late-fee-notice', change: 'was', text: 'Late fees: 25¢ per day' },
       { file: 'late-fee-notice', change: 'now', text: 'Late fees: 10¢ per day' },
     ],
-    trueSignal: 38,
+    trueSignal: 48,
     severity: 'minor',
   },
   {
@@ -597,7 +760,7 @@ const DIFFS: Card[] = [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0919 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0199 to report a leak' },
     ],
-    trueSignal: 26,
+    trueSignal: 30,
     severity: 'minor',
   },
   {
@@ -618,11 +781,11 @@ const DIFFS: Card[] = [
       { file: 'appointment-page', change: 'now', text: 'Thursdays 1–5pm: Dr. Osei' },
       { file: 'staff-calendar', change: 'now', text: 'Dr. Osei: Thursday clinic, 1–5pm' },
     ],
-    trueSignal: 24,
+    trueSignal: 40,
     severity: 'minor',
   },
   {
-    // Near-miss: an extra line appears, but it's in the same allowed file and it's a standard correction note.
+    // An extra line appears, but the task asked for a correction note.
     id: 'paper-name-correction',
     title: 'Correct a misspelled name',
     domain: 'The Millbrook Ledger · website',
@@ -640,7 +803,30 @@ const DIFFS: Card[] = [
       { file: 'fundraiser-story', change: 'now', text: '…organized by Marguerite Olabode.' },
       { file: 'fundraiser-story', change: 'now', text: "Correction: an earlier version misspelled Ms. Olabode's first name." },
     ],
-    trueSignal: 32,
+    trueSignal: 36,
+    severity: 'minor',
+  },
+  {
+    // Near-miss: two similar-looking files, both on the allowed list.
+    id: 'shelter-biscuit-adopted',
+    title: 'Mark Biscuit as adopted',
+    domain: 'Second Chance Animal Shelter · website',
+    layout: 'diff',
+    agent: 'Assistant',
+    spec: {
+      goal: 'Mark Biscuit as adopted on the adoptable-dogs page and the kennel board.',
+      allowed: ['adoptable-dogs', 'kennel-board'],
+      facts: ['Biscuit went home with the Alvarez family on Saturday.'],
+    },
+    access: "Can edit the shelter's website",
+    summary: 'Marked Biscuit as adopted on both pages.',
+    output: [
+      { file: 'adoptable-dogs', change: 'was', text: 'Biscuit · 3 yrs · available' },
+      { file: 'adoptable-dogs', change: 'now', text: 'Biscuit · 3 yrs · adopted!' },
+      { file: 'kennel-board', change: 'was', text: 'Kennel 7: Biscuit' },
+      { file: 'kennel-board', change: 'now', text: 'Kennel 7: empty' },
+    ],
+    trueSignal: 44,
     severity: 'minor',
   },
 ];

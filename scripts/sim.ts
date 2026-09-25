@@ -144,7 +144,7 @@ function report(): void {
     const used = new Set<string>();
     for (let day = 1; day <= DAYS; day++) {
       try {
-        const d = startDay(seed, day, 0, {}, used);
+        const d = startDay(seed, day, { audits: RULES.auditsPerDay, compute: RULES.computePerDay, bandNarrow: 0 }, {}, used);
         for (const c of d.queue) {
           used.add(c.card.id);
           const r = c.drafts[0]!.reading.score;

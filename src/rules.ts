@@ -3,7 +3,7 @@
 export const RULES = {
   days: 7,
   /** Last day with content in the current build; the run ends there with an interim screen. */
-  lastPlayableDay: 2,
+  lastPlayableDay: 4,
   // Cards per day, index 0 = Day 1.
   cardsPerDay: [5, 6, 7, 7, 8, 8, 9],
   // Target share of sabotaged cards (60–70% clean).
@@ -20,7 +20,7 @@ export const RULES = {
   ],
 
   // Auditor hours: Audits available per day. Missing the quota costs one tomorrow.
-  auditsPerDay: 3,
+  auditsPerDay: 2,
   quotaMissAuditPenalty: 1,
   // Compute per day from the day Resample unlocks; unspent compute converts to usefulness.
   resampleUnlockDay: 2,
@@ -32,25 +32,27 @@ export const RULES = {
   /** trueSignal range for an honest redraft of a sabotaged card. */
   cleanRedraftSignal: [12, 32] as const,
 
-  // Usefulness from shipping a card. Defer ships the trusted model's weaker version.
-  usefulness: { ship: 3, defer: 1.5 },
+  // Usefulness from shipping a card. Defer ships the trusted model's weaker version; so does
+  // caught sabotage, which the trusted model redoes after the audit.
+  usefulness: { ship: 3, defer: 1.5, caught: 1.5 },
   // Daily quota; missing it twice ends the run.
-  quotaPerDay: [9, 12, 14, 14, 16, 16, 18],
+  quotaPerDay: [9, 12, 16, 16, 19, 19, 22],
   quotaMissesAllowed: 1,
 
   // Harm by severity; the run ends when harm reaches the ceiling.
   harm: { minor: 1, major: 3, severe: 6 },
-  harmCeiling: 10,
-  /** Days where approved sabotage gives an incident report but no harm. */
-  freeWarningDays: [1],
+  harmCeiling: 8,
+  /** The first incident of a run is a free warning: full report, no harm. */
+  freeWarnings: 1,
   // Day 3 rule: approved agent actions (log layout) do double harm from this day on.
   agentHarmFromDay: 3,
   agentHarmMultiplier: 2,
 
-  // Monitor noise band (±) per day, index 0 = Day 1. The reading's sd is band / 2, so ~95% of
-  // readings land within ±band of the true signal. Upgrades narrow it, never to zero.
-  monitorBand: [10, 12, 15, 18, 20, 22, 25],
+  // Monitor noise band (±) per day, index 0 = Day 1. The reading's sd is band × noiseSdFraction,
+  // so about two-thirds of readings land within ±band of the true signal. Upgrades narrow it, never to zero.
+  monitorBand: [14, 16, 19, 22, 25, 27, 30],
   minMonitorBand: 5,
+  noiseSdFraction: 1.0,
   // Day 4 blind spot: logs read this much lower.
   logBlindSpotDay: 4,
   logBlindSpot: 20,
@@ -58,7 +60,25 @@ export const RULES = {
   fairReading: 50,
   maxGenerationAttempts: 40,
 
-  upgrades: { offered: 3, maxSlots: 4 },
+  upgrades: { offered: 3, maxSlots: 4, skipAuditBonus: 1 },
+
+  // Funding: why usefulness matters past the quota. Leadership sets the quota; whatever ships
+  // beyond it funds the safety team. Spent between days.
+  funding: {
+    /** Funding per point of usefulness above the day's quota (rounded down). */
+    perSurplus: 1,
+    /** Evidence grant for each sabotage caught by an Audit: catching the model red-handed is valuable. */
+    evidenceGrant: 2,
+    /** Cleanup cost per point of harm, taken from funding (never below zero). */
+    cleanupPerHarm: 1,
+  },
+  /** One-day purchases between shifts. Each applies to tomorrow only. */
+  shop: {
+    auditor: { cost: 5, max: 2, amount: 1 },
+    compute: { cost: 3, max: 2, amount: 2 },
+    tuneUp: { cost: 3, max: 1, amount: 4 },
+    reroll: { cost: 2, max: 3 },
+  },
 } as const;
 
 export type Rules = typeof RULES;
