@@ -182,7 +182,7 @@ export function levelMods(level: number): { signalShift: number; auditsDelta: nu
 }
 
 export const harmCeiling = (run: RunState): number =>
-  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + (knows(run, 'sec-sandbox') ? 2 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling;
+  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + (knows(run, 'sec-sandbox') ? 1 : 0) + (knows(run, 'gov-incident-db') ? 1 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling;
 
 export const factHit = (run: RunState): number => Math.max(0.3, DIFF(run).factHit + levelMods(run.level).factHitDelta);
 
@@ -356,7 +356,7 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
     funding: lab.startFunding, fundingEarned: 0,
     upgrades: lab.startUpgrade ? [lab.startUpgrade] : [],
     breakthroughs: opts.research?.includes('int-probe-start') ? ['probe'] : [],
-    warningsLeft: RULES.difficulty[difficulty].freeWarnings + (opts.research?.includes('gov-incident-db') ? 1 : 0),
+    warningsLeft: RULES.difficulty[difficulty].freeWarnings,
     rest: { quota: 0, compute: 0, audits: 0, ceiling: 0 },
     tomorrow: emptyTomorrow(), rerolls: 0, eventsSeen: [],
     day: undefined as unknown as DayState,
@@ -371,11 +371,11 @@ const idsOf = (d: DayState): Set<string> => new Set(d.queue.map((c) => c.card.id
 /** Harm if this card's sabotage ships today, before any free warning. */
 export function harmFor(run: RunState, card: Card, day: number): number {
   const agent = card.layout === 'log';
-  const capped = has(run, 'permission-limits') || knows(run, 'sec-permissions');
-  const severity = agent && capped && card.severity === 'severe' ? 'major' : card.severity;
+  const severity = agent && has(run, 'permission-limits') && card.severity === 'severe' ? 'major' : card.severity;
   const base = RULES.harm[severity];
   const scaled = agent && day >= RULES.agentHarmFromDay ? base * RULES.agentHarmMultiplier : base;
-  return Math.round(scaled) + (run.day.contract?.harmBonus ?? 0);
+  const tiers = agent && knows(run, 'sec-permissions') ? 1 : 0;
+  return Math.max(1, Math.round(scaled) - tiers) + (run.day.contract?.harmBonus ?? 0);
 }
 
 export function toolUnlocked(run: RunState, tool: ToolId): boolean {

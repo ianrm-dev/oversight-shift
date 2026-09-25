@@ -3,12 +3,15 @@
 //   [--level 1..5] [--lab frontier|nonprofit|bigtech|government] [--research none|all]
 //   [--events random|cautious|greedy] [--only a,b] [--families] [--no-cal] [--no-shop]
 //   [--set computePerDay=5 --set difficulty.standard.factHit=0.8 ...]
+//   Campaigns (research tree): [--campaign 15] [--campaigns 400] [--buy urgent-first|priority|none] [--ladder] [--marginal]
 import { dayInfo } from '../src/data/days';
-import { CONTRACTS, LABS, MODEL_VERSIONS, RESEARCH } from '../src/data/meta';
+import { CONTRACTS, LABS, MODEL_VERSIONS } from '../src/data/meta';
+import { INSIGHT, TREE } from '../src/data/research-tree';
+import { buyNode, emptyProgress, nodeCost, nodeState, recordRun, type Progress } from '../src/game/progress';
 import { EVENTS } from '../src/data/events';
 import {
   BASE_MODS, act, advance, breakthroughDue, breakthroughOffer, buy, canAct, canBuy, chooseContract, chooseEvent, contractOffer, current,
-  dayOver, endDay, eventFor, latest, newRun, nextDay, prepareCard, runScore, startDay, takeBreakthrough, takeUpgrade, upgradeOffer,
+  dayOver, endDay, eventChoices, eventFor, isIncident, latest, newRun, nextDay, prepareCard, runScore, startDay, takeBreakthrough, takeUpgrade, upgradeOffer,
   type Action, type RunState,
 } from '../src/game/state';
 import { Rng } from '../src/rng';
@@ -28,7 +31,8 @@ const SEEDS = arg('seeds', 2000);
 const DAYS = arg('days', RULES.lastPlayableDay);
 const LEVEL = arg('level', 1);
 const LAB = argStr('lab') ?? 'frontier';
-const RESEARCH_IDS = argStr('research') === 'all' ? RESEARCH.map((r) => r.id) : [];
+const EXCEPT = argStr('research-except')?.split(',') ?? [];
+const RESEARCH_IDS = argStr('research') === 'all' || EXCEPT.length ? TREE.map((r) => r.id).filter((id) => !EXCEPT.includes(id)) : [];
 const EVENTS_POLICY = (argStr('events') ?? 'random') as 'random' | 'cautious' | 'greedy';
 const hints = (day: number) => dayInfo(day).hints;
 
@@ -60,6 +64,13 @@ function applyOverrides(): string[] {
       setPath(EVENTS.find((e) => e.id === id), rest.join('.'), value);
     } else if (path === 'noEvents') {
       EVENTS.splice(0, EVENTS.length);
+    } else if (path.startsWith('insight.')) {
+      setPath(INSIGHT, path.slice('insight.'.length), value);
+    } else if (path.startsWith('tree.')) {
+      const [, id, field] = path.split('.');
+      setPath(TREE.find((n) => n.id === id), field!, value);
+    } else if (path === 'treeCostMult') {
+      for (const n of TREE) n.cost = Math.round(n.cost * Number(value));
     } else if (path.startsWith('contracts.')) {
       const [, id, field] = path.split('.');
       setPath(CONTRACTS.find((c) => c.id === id), field!, value);
@@ -198,9 +209,10 @@ const SHOP = !argv.includes('--no-shop');
 function betweenDays(run: RunState, rng: Rng): void {
   const ev = eventFor(run);
   if (ev) {
+    const choices = eventChoices(run, ev);
     const i = EVENTS_POLICY === 'random'
-      ? rng.int(0, ev.choices.length - 1)
-      : ev.choices.map((c, j) => [eventValue(c, EVENTS_POLICY), j] as const).sort((a, b) => b[0] - a[0])[0]![1];
+      ? rng.int(0, choices.length - 1)
+      : choices.map((c, j) => [eventValue(c, EVENTS_POLICY), j] as const).sort((a, b) => b[0] - a[0])[0]![1];
     chooseEvent(run, ev, i);
     if (run.loss) return;
   }
@@ -243,60 +255,83 @@ interface Stats {
   fundingEarned: number;
 }
 
-function play(name: string, policy: Policy, difficulty: Difficulty): Stats {
-  const st: Stats = {
-    survived: Array(DAYS).fill(0), wins: 0, lossHarm: 0, lossQuota: 0, genFail: 0, harmEnd: 0,
-    sab: 0, caught: 0, deferredSab: 0, clean: 0, falseAlarms: 0, scores: [], advRuns: {}, advWins: {}, famSeen: {}, famMissed: {}, fundingEarned: 0,
-  };
-  for (let i = 0; i < SEEDS; i++) {
-    const seed = `sim-${i}`;
-    const rng = new Rng(`bot:${name}:${seed}`);
-    let run: RunState;
-    try { run = newRun(seed, hints(1), { difficulty, level: LEVEL, lab: LAB, research: RESEARCH_IDS }); } catch { st.genFail++; continue; }
-    let won = false;
-    for (let day = 1; day <= DAYS; day++) {
-      while (!dayOver(run.day) && !run.loss) {
-        prepareCard(run);
-        const mem: Record<string, unknown> = {};
-        for (let guard = 0; guard < 20; guard++) {
-          let action = policy(run, rng, mem);
-          if (!canAct(run, action)) action = action === 'audit' ? 'defer' : 'approve';
-          const o = act(run, action);
-          if (!o) continue; // a tool ran or a resample; decide again
-          if (o.draft.sabotaged) {
-            st.sab++;
-            const fam = o.card.sabotage!.family;
-            st.famSeen[fam] = (st.famSeen[fam] ?? 0) + 1;
-            if (o.action === 'approve' || o.slipped) st.famMissed[fam] = (st.famMissed[fam] ?? 0) + 1;
-            if (o.action === 'audit') st.caught++;
-            if (o.action === 'defer' && !o.slipped) st.deferredSab++;
-          } else {
-            st.clean++;
-            if (o.action !== 'approve') st.falseAlarms++;
-          }
-          break;
+const emptyStats = (): Stats => ({
+  survived: Array(DAYS).fill(0), wins: 0, lossHarm: 0, lossQuota: 0, genFail: 0, harmEnd: 0,
+  sab: 0, caught: 0, deferredSab: 0, clean: 0, falseAlarms: 0, scores: [], advRuns: {}, advWins: {}, famSeen: {}, famMissed: {}, fundingEarned: 0,
+});
+
+interface RunResult { run: RunState; won: boolean }
+
+/** Plays one full run and folds it into `st`. Returns null if day 1 failed to generate. */
+// --emulate-proposal: model the recommended node effects without touching src/:
+// Incident database and Sandboxing each become +1 harm ceiling; Permission tiers' severe cap is dropped.
+const EMULATE = argv.includes('--emulate-proposal');
+const EMULATED = ['gov-incident-db', 'sec-sandbox', 'sec-permissions'];
+
+function playRun(seed: string, name: string, policy: Policy, difficulty: Difficulty, level: number, research: string[], st: Stats): RunResult | null {
+  if (!EMULATE) return playRunInner(seed, name, policy, difficulty, level, research, st);
+  const base = RULES.harmCeiling;
+  RULES.harmCeiling = base + (research.includes('gov-incident-db') ? 1 : 0) + (research.includes('sec-sandbox') ? 1 : 0);
+  try {
+    return playRunInner(seed, name, policy, difficulty, level, research.filter((id) => !EMULATED.includes(id)), st);
+  } finally {
+    RULES.harmCeiling = base;
+  }
+}
+
+function playRunInner(seed: string, name: string, policy: Policy, difficulty: Difficulty, level: number, research: string[], st: Stats): RunResult | null {
+  const rng = new Rng(`bot:${name}:${seed}`);
+  let run: RunState;
+  try { run = newRun(seed, hints(1), { difficulty, level, lab: LAB, research }); } catch { st.genFail++; return null; }
+  let won = false;
+  for (let day = 1; day <= DAYS; day++) {
+    while (!dayOver(run.day) && !run.loss) {
+      prepareCard(run);
+      const mem: Record<string, unknown> = {};
+      for (let guard = 0; guard < 20; guard++) {
+        let action = policy(run, rng, mem);
+        if (!canAct(run, action)) action = action === 'audit' ? 'defer' : 'approve';
+        const o = act(run, action);
+        if (!o) continue; // a tool ran or a resample; decide again
+        if (o.draft.sabotaged) {
+          st.sab++;
+          const fam = o.card.sabotage!.family;
+          st.famSeen[fam] = (st.famSeen[fam] ?? 0) + 1;
+          if (o.action === 'approve' || o.slipped) st.famMissed[fam] = (st.famMissed[fam] ?? 0) + 1;
+          if (o.action === 'audit') st.caught++;
+          if (o.action === 'defer' && !o.slipped) st.deferredSab++;
+        } else {
+          st.clean++;
+          if (o.action !== 'approve') st.falseAlarms++;
         }
-        if (run.loss) break;
-        advance(run);
+        break;
       }
       if (run.loss) break;
-      endDay(run);
-      if (run.loss) break;
-      st.survived[day - 1]++;
-      if (day === DAYS) { won = true; break; }
-      betweenDays(run, rng);
-      if (run.loss) break;
-      try { nextDay(run, hints(day + 1)); } catch { st.genFail++; break; }
+      advance(run);
     }
-    if (won) st.wins++;
-    if (run.loss?.kind === 'harm') st.lossHarm++;
-    if (run.loss?.kind === 'quota') st.lossQuota++;
-    st.harmEnd += run.harm;
-    st.fundingEarned += run.fundingEarned;
-    st.scores.push(runScore(run, won));
-    st.advRuns[run.adversary] = (st.advRuns[run.adversary] ?? 0) + 1;
-    if (won) st.advWins[run.adversary] = (st.advWins[run.adversary] ?? 0) + 1;
+    if (run.loss) break;
+    endDay(run);
+    if (run.loss) break;
+    st.survived[day - 1]++;
+    if (day === DAYS) { won = true; break; }
+    betweenDays(run, rng);
+    if (run.loss) break;
+    try { nextDay(run, hints(day + 1)); } catch { st.genFail++; break; }
   }
+  if (won) st.wins++;
+  if (run.loss?.kind === 'harm') st.lossHarm++;
+  if (run.loss?.kind === 'quota') st.lossQuota++;
+  st.harmEnd += run.harm;
+  st.fundingEarned += run.fundingEarned;
+  st.scores.push(runScore(run, won));
+  st.advRuns[run.adversary] = (st.advRuns[run.adversary] ?? 0) + 1;
+  if (won) st.advWins[run.adversary] = (st.advWins[run.adversary] ?? 0) + 1;
+  return { run, won };
+}
+
+function play(name: string, policy: Policy, difficulty: Difficulty, research: string[] = RESEARCH_IDS, seeds = SEEDS, level = LEVEL): Stats {
+  const st = emptyStats();
+  for (let i = 0; i < seeds; i++) playRun(`sim-${i}`, name, policy, difficulty, level, research, st);
   return st;
 }
 
@@ -351,10 +386,113 @@ function calibration(): void {
   console.log(['0–20', '20–40', '40–60', '60–80', '80–100'].map((l, j) => `${l}: ${pct(bad[j], tot[j])} (n=${tot[j]})`).join(' · ') + (calFail ? ` · gen failures ${calFail}` : ''));
 }
 
+// ---------- Campaigns: one player, many runs, carrying the research tree ----------
+const BUY = (argStr('buy') ?? 'urgent-first') as 'urgent-first' | 'priority' | 'none';
+const PRIORITY = ['gov-incident-db', 'ctl-resample', 'mon-prompts', 'sec-least-privilege', 'evl-sandbag', 'sec-permissions', 'gov-safety-case',
+  'trusted-editing', 'monitor-rationale', 'evl-redteam', 'interpretability', 'sec-sandbox', 'mon-ensemble', 'int-probe2', 'evl-forecast',
+  'untrusted-monitoring', 'paraphrasing', 'canary', 'int-probe-start', 'gov-whistleblower', 'lab-nonprofit', 'lab-government', 'lab-bigtech'];
+
+function spend(p: Progress): void {
+  if (BUY === 'none') return;
+  for (let guard = 0; guard < 40; guard++) {
+    const avail = TREE.filter((n) => nodeState(p, n) === 'available');
+    if (!avail.length) return;
+    let pick;
+    if (BUY === 'priority') pick = PRIORITY.map((id) => avail.find((n) => n.id === id)).find(Boolean) ?? avail[0];
+    else {
+      const byCost = (a: typeof avail[number], b: typeof avail[number]) => nodeCost(p, a) - nodeCost(p, b);
+      const urgent = avail.filter((n) => p.urgent.includes(n.branch)).sort(byCost);
+      pick = urgent[0] ?? [...avail].sort(byCost)[0];
+    }
+    if (!pick || !buyNode(p, pick.id)) return;
+  }
+}
+
+interface CampRow { wins: number; insight: number; nodes: number; level: number; n: number; fullTree: number }
+
+function campaign(name: string, policy: Policy, difficulty: Difficulty, runs: number, campaigns: number, ladder: boolean): CampRow[] {
+  const rows: CampRow[] = Array.from({ length: runs }, () => ({ wins: 0, insight: 0, nodes: 0, level: 0, n: 0, fullTree: 0 }));
+  const ownedAt = new Map<string, number>(); // node → campaigns owning it before run 8
+  const byOutcome = new Map<string, { n: number; insight: number }>();
+  for (let c = 0; c < campaigns; c++) {
+    const p = emptyProgress();
+    let level = 1;
+    for (let r = 0; r < runs; r++) {
+      if (r === 7) for (const id of p.research) ownedAt.set(id, (ownedAt.get(id) ?? 0) + 1);
+      const st = emptyStats();
+      const res = playRun(`camp-${name}-${c}-${r}`, name, policy, difficulty, level, [...p.research], st);
+      const row = rows[r]!;
+      row.n++;
+      row.level += level;
+      if (!res) continue;
+      const { run, won } = res;
+      const outs = [...run.history, run.day].flatMap((d) => d.outcomes);
+      const upd = recordRun(p, {
+        record: { seed: run.seed, date: '', difficulty, level, lab: LAB, adversary: run.adversary, dayReached: run.day.day, result: won ? 'win' : run.loss?.kind ?? 'harm', score: 0, grade: 'D', daily: false },
+        tells: [...run.codex],
+        fundingEarned: run.fundingEarned,
+        incidents: outs.filter(isIncident).map((o) => o.card.sabotage!.family),
+        catches: outs.filter((o) => o.action === 'audit' && o.draft.sabotaged).length,
+      });
+      spend(p);
+      const key = won ? 'win' : `lost D${run.day.day}`;
+      const b = byOutcome.get(key) ?? { n: 0, insight: 0 };
+      b.n++; b.insight += upd.insightTotal; byOutcome.set(key, b);
+      if (won) row.wins++;
+      row.insight += upd.insightTotal;
+      row.nodes += p.research.length;
+      if (p.research.length === TREE.length) row.fullTree++;
+      if (ladder && won) level = Math.min(level + 1, p.maxModel, 5);
+    }
+  }
+  console.log(`  insight by outcome (${name}): ` + [...byOutcome.entries()].sort().map(([k, v]) => `${k} ${(v.insight / v.n).toFixed(1)} (n=${v.n})`).join(' · '));
+  if (argv.includes('--owned')) {
+    console.log(`  nodes owned before run 8 (${name}): ` + [...ownedAt.entries()].sort((a, b) => b[1] - a[1]).map(([id, k]) => `${id} ${Math.round((k / campaigns) * 100)}%`).join(' · '));
+  }
+  return rows;
+}
+
+function campaignTable(difficulty: Difficulty): void {
+  const runs = arg('campaign', 15);
+  const campaigns = arg('campaigns', 400);
+  const ladder = argv.includes('--ladder');
+  console.log(`\n=== campaign · ${difficulty} · ${campaigns} campaigns × ${runs} runs · buy ${BUY}${ladder ? ' · ladder' : ' · fixed v' + LEVEL} · events ${EVENTS_POLICY}`);
+  for (const [name, policy] of Object.entries(POLICIES)) {
+    const rows = campaign(name, policy, difficulty, runs, campaigns, ladder);
+    console.log(`${name}`);
+    console.log(`  run    ${rows.map((_, i) => pad(i + 1, 5)).join('')}`);
+    console.log(`  win%   ${rows.map((r) => pad(Math.round((r.wins / r.n) * 100), 5)).join('')}`);
+    console.log(`  insight${rows.map((r) => pad((r.insight / r.n).toFixed(1), 5)).join('')}`);
+    console.log(`  nodes  ${rows.map((r) => pad((r.nodes / r.n).toFixed(1), 5)).join('')}   (of ${TREE.length})`);
+    if (ladder) console.log(`  level  ${rows.map((r) => pad((r.level / r.n).toFixed(1), 5)).join('')}`);
+    console.log(`  full%  ${rows.map((r) => pad(Math.round((r.fullTree / r.n) * 100), 5)).join('')}`);
+  }
+}
+
+/** Win rate with vs without each node, holding a mid-campaign research set fixed. */
+function marginal(difficulty: Difficulty): void {
+  const base = (argStr('base') ?? 'gov-incident-db,ctl-resample,mon-prompts,sec-least-privilege,evl-sandbag,trusted-editing,sec-permissions').split(',');
+  const seeds = arg('seeds', 2000);
+  console.log(`\n=== marginal node effects · ${difficulty} · v${LEVEL} · base {${base.join(', ')}} · ${seeds} seeds`);
+  for (const [name, policy] of Object.entries(POLICIES)) {
+    const baseWin = play(name, policy, difficulty, base, seeds).wins / seeds;
+    const cells = TREE.filter((n) => !n.id.startsWith('lab-')).map((n) => {
+      const withSet = base.includes(n.id) ? base : [...base, n.id];
+      const without = base.filter((x) => x !== n.id);
+      const w = play(name, policy, difficulty, withSet, seeds).wins / seeds;
+      const wo = play(name, policy, difficulty, without, seeds).wins / seeds;
+      return [n.id, Math.round((w - wo) * 100)] as const;
+    }).sort((a, b) => b[1] - a[1]);
+    console.log(`${name} (base ${Math.round(baseWin * 100)}%): ` + cells.map(([id, d]) => `${id} ${d >= 0 ? '+' : ''}${d}`).join(' · '));
+  }
+}
+
 const t0 = Date.now();
 if (OVERRIDES.length) console.log(`overrides: ${OVERRIDES.join(' ')}`);
 const diffs: Difficulty[] = argv.includes('--all-difficulties') ? ['guided', 'standard', 'analyst'] : [(argStr('difficulty') as Difficulty) ?? 'standard'];
-for (const d of diffs) table(d);
+if (argv.includes('--campaign')) for (const d of diffs) campaignTable(d);
+else if (argv.includes('--marginal')) for (const d of diffs) marginal(d);
+else for (const d of diffs) table(d);
 console.log('\nD# = alive at end of day · catch = sabotage audited · handl = audited or deferred · falseA = clean work audited/deferred · earned = mean funding raised');
 if (argv.includes('--cal')) calibration();
 console.log(`\n${((Date.now() - t0) / 1000).toFixed(1)}s`);
