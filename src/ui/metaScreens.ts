@@ -1,9 +1,12 @@
 // Screens for the roguelike layer: setup, codex, events, breakthroughs, contracts, and the end-of-run reveal.
-import { ADVERSARIES, CONTRACTS, LABS, MODEL_VERSIONS, RESEARCH } from '../data/meta';
+import { ADVERSARIES, CONTRACTS, LABS, MODEL_VERSIONS } from '../data/meta';
+import { RESEARCH_ANCHORS } from '../data/research-anchors';
+import { BRANCHES, GATE_TEXT, TREE, nodeById } from '../data/research-tree';
 import { TELLS } from '../data/tells';
 import type { Progress, RunUpdate } from '../game/progress';
-import { gradeFor } from '../game/progress';
+import { availableCount, branchName, gradeFor, nodeCost, nodeState } from '../game/progress';
 import type { RunState } from '../game/state';
+import { eventChoices } from '../game/state';
 import { RULES } from '../rules';
 import type { Breakthrough, Contract, Difficulty, Effect, GameEvent, TellFamily } from '../types';
 import { esc } from './render';
@@ -28,6 +31,7 @@ export function title(p: Progress): string {
       <div class="title-menu">
         <button class="btn-primary btn-lg" data-go="setup"><kbd>Enter</kbd> New shift</button>
         <button class="btn-ghost btn-lg" data-go="daily"><kbd>D</kbd> Daily shift</button>
+        <button class="btn-ghost btn-lg" data-go="lab"><kbd>L</kbd> Research lab${p.insight ? ` · ${p.insight} insight` : ''}${availableCount(p) ? ` <span class="badge">${availableCount(p)}</span>` : ''}</button>
         <button class="btn-ghost btn-lg" data-go="codex"><kbd>C</kbd> Codex${runs ? ` · ${p.tells.length}/8 tells` : ''}</button>
       </div>
       <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
@@ -42,10 +46,10 @@ export function setup(p: Progress, s: Setup): string {
   }).join('');
   const labs = LABS.map((l) => {
     const open = labUnlocked(p, l.unlock);
-    const node = RESEARCH.find((r) => r.id === l.unlock);
+    const node = l.unlock ? nodeById(l.unlock) : undefined;
     return `<button class="lab-opt${l.id === s.lab ? ' is-selected' : ''}" data-lab="${l.id}" ${open ? '' : 'disabled'}>
       <span class="diff-name">${esc(l.name)}</span>
-      <span class="diff-blurb">${open ? esc(l.blurb) : `Locked · ${esc(node?.milestone ?? '')}`}</span>
+      <span class="diff-blurb">${open ? esc(l.blurb) : `Locked · research “${esc(node?.name ?? '')}”`}</span>
     </button>`;
   }).join('');
   const versions = MODEL_VERSIONS.map((v) => {
@@ -77,10 +81,9 @@ export function codex(p: Progress): string {
     const met = p.adversaries.includes(a.id);
     return `<article class="cx-item${met ? '' : ' is-locked'}"><h4>${met ? esc(a.name) : 'Unknown adversary'}</h4>${met ? `<p>${esc(a.codex)}</p><a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)}</a>` : '<p>Face it in a run to learn its habits.</p>'}</article>`;
   }).join('');
-  const research = RESEARCH.map((r) => {
-    const done = p.research.includes(r.id);
-    return `<li class="${done ? 'done' : ''}"><span class="rs-dot"></span><div><strong>${esc(r.name)}</strong><span>${done ? esc(r.unlocks) : esc(r.milestone)}</span></div></li>`;
-  }).join('');
+  const research = TREE.filter((n) => p.research.includes(n.id))
+    .map((n) => `<li class="done"><span class="rs-dot"></span><div><strong>${esc(n.name)}</strong><span>${esc(n.effect)}</span></div></li>`).join('')
+    || '<li class="muted">Nothing researched yet. Runs earn Insight, and failures earn the most.</li>';
   const history = p.history.length
     ? p.history.map((h) => `<li><span class="hs-grade g-${h.grade}">${h.grade}</span><span>${h.result === 'win' ? 'Won' : `Day ${h.dayReached}`} · ${RULES.difficulty[h.difficulty].label} · v${h.level}${h.daily ? ' · daily' : ''}</span><span class="muted">${esc(ADVERSARIES[h.adversary].name)} · ${h.score}</span></li>`).join('')
     : '<li class="muted">No runs yet.</li>';
@@ -91,7 +94,7 @@ export function codex(p: Progress): string {
         <section><h3>Tells found · ${p.tells.length}/${families.length}</h3><div class="cx-list">${tells}</div></section>
         <section><h3>Adversaries faced · ${p.adversaries.length}/4</h3><div class="cx-list">${advs}</div></section>
         <section class="cx-side">
-          <h3>The field matures · ${p.research.length}/${RESEARCH.length}</h3>
+          <h3>Research · ${p.research.length}/${TREE.length}</h3>
           <ul class="research">${research}</ul>
           <h3>Recent runs</h3>
           <ul class="history">${history}</ul>
@@ -124,7 +127,7 @@ const effectChips = (effects: Effect[]) => effects.map((e) => { const t = effect
 
 // ---------- Event ----------
 export function event(run: RunState, ev: GameEvent): string {
-  const choices = ev.choices.map((c, i) => `
+  const choices = eventChoices(run, ev).map((c, i) => `
     <button class="ev-choice" data-choice="${i}"><kbd>${i + 1}</kbd><span class="ev-choice-label">${esc(c.label)}</span><span class="fx-row">${effectChips(c.effects)}</span></button>`).join('');
   return `
     <main class="solo event-screen">
@@ -139,7 +142,7 @@ export function event(run: RunState, ev: GameEvent): string {
 }
 
 export function eventAfter(run: RunState, ev: GameEvent, choice: number): string {
-  const c = ev.choices[choice]!;
+  const c = eventChoices(run, ev)[choice]!;
   return `
     <main class="solo event-screen">
       <article class="event-card">
@@ -191,12 +194,11 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
   const a = ADVERSARIES[run.adversary];
   const attacks = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => x.o.draft.sabotaged);
   const early = attacks.filter((x) => x.day < RULES.schemerLateFrom).length;
-  const unlocks = update
-    ? [
-        ...update.newResearch.map((id) => { const r = RESEARCH.find((x) => x.id === id); return r ? `<li><strong>${esc(r.name)}</strong> · ${esc(r.unlocks)}</li>` : ''; }),
-        ...(update.newModel ? [`<li><strong>Model v${update.newModel}</strong> · the next model is ready for you.</li>`] : []),
-        ...(update.newTells.length ? [`<li><strong>${update.newTells.length} new tell${update.newTells.length === 1 ? '' : 's'}</strong> in the codex.</li>`] : []),
-      ].join('')
+  const postMortem = update
+    ? `<ul class="insight-lines">${update.insight.map((l) => `<li><span>${esc(l.label)}</span><strong>+${l.amount}</strong></li>`).join('')}</ul>
+       ${update.urgent.length ? `<p class="urgent-note">Your failures made the case for <strong>${update.urgent.map(branchName).join(', ')}</strong> research: half price in the lab.</p>` : ''}
+       ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}
+       <button class="btn-primary" data-go="lab"><kbd>L</kbd> Research lab</button>`
     : '';
   const grade = gradeFor(score);
   const share = run.daily ? `<button class="btn-ghost" data-share="${esc(`Oversight Shift · ${run.seed.replace('DAILY-', 'daily ')} · ${run.loss ? `Day ${run.day.day}` : 'survived'} · ${grade} ${score}`)}">Copy result</button>` : '';
@@ -204,6 +206,44 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
     <div class="end-extras">
       <div class="reveal-adv"><span class="eyebrow">The model you faced</span><h3>${esc(a.name)}</h3><p>${esc(a.tagline)}</p><p class="muted">${attacks.length} sabotage attempt${attacks.length === 1 ? '' : 's'} reached you: ${early} before Day ${RULES.schemerLateFrom}, ${attacks.length - early} after.</p></div>
       <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}${share}</div>
-      ${unlocks ? `<div class="unlocks"><span class="eyebrow">The field matures</span><ul>${unlocks}</ul></div>` : ''}
+      ${postMortem ? `<div class="unlocks"><span class="eyebrow">Post-mortem · +${update!.insightTotal} insight</span>${postMortem}</div>` : ''}
     </div>`;
+}
+
+// ---------- Research lab ----------
+const STATE_LABEL = { owned: 'Researched', available: 'Fund', unaffordable: 'Need insight', locked: 'Needs the node above', gated: '' } as const;
+
+export function lab(p: Progress, focus?: string): string {
+  const cols = BRANCHES.map((b) => {
+    const urgent = p.urgent.includes(b.id);
+    const nodes = TREE.filter((n) => n.branch === b.id).map((n) => {
+      const st = nodeState(p, n);
+      const cost = nodeCost(p, n);
+      const foot = st === 'gated' ? GATE_TEXT[n.gate!] : st === 'owned' ? STATE_LABEL.owned : `${cost < n.cost ? `<s>${n.cost}</s> ` : ''}${cost} insight`;
+      return `<button class="node tier-${n.tier} is-${st}${focus === n.id ? ' is-focus' : ''}" data-node="${n.id}" ${st === 'available' ? '' : 'aria-disabled="true"'}>
+        <span class="node-name">${esc(n.name)}</span>
+        <span class="node-effect">${esc(n.effect)}</span>
+        <span class="node-foot">${foot}</span>
+      </button>`;
+    }).join('');
+    return `<section class="branch${urgent ? ' is-urgent' : ''}"><header><h3>${esc(b.name)}</h3>${urgent ? '<span class="urgent-tag">Urgent · half price</span>' : `<span class="branch-blurb">${esc(b.blurb)}</span>`}</header><div class="nodes">${nodes}</div></section>`;
+  }).join('');
+  return `
+    <main class="solo research-lab">
+      <div class="lab-top">
+        <div><span class="eyebrow">Between runs</span><h2>Research lab</h2></div>
+        <p class="lab-intro">Every run earns Insight, and failures earn the most: post-mortems on incidents are how the field learns. Research carries into every future run.</p>
+        <div class="insight-big"><span class="eyebrow">Insight</span><strong>${p.insight}</strong></div>
+        <div class="lab-actions"><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Title</button><button class="btn-primary" data-go="setup"><kbd>Enter</kbd> New shift</button></div>
+      </div>
+      <div class="branches">${cols}</div>
+      <div class="lab-detail">${labDetail(focus)}</div>
+    </main>`;
+}
+
+export function labDetail(id?: string): string {
+  const n = id ? nodeById(id) : undefined;
+  if (!n) return '<p class="muted">Point at a node to see the real research behind it.</p>';
+  const a = RESEARCH_ANCHORS[n.id];
+  return `<strong>${esc(n.name)}</strong><span>${a ? esc(a.realWorld) : ''}</span>${a ? `<a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)} · ${esc(a.source.date)}</a>` : ''}`;
 }

@@ -163,6 +163,9 @@ export const latest = (c: CardState): DraftState => c.drafts[c.drafts.length - 1
 export const quotaFor = (day: number): number => RULES.quotaPerDay[day - 1]!;
 export const resampleUnlocked = (day: number): boolean => day >= RULES.resampleUnlockDay;
 export const has = (run: RunState, id: string): boolean => run.upgrades.includes(id);
+/** Owns a research-tree node. */
+export const knows = (run: RunState, id: string): boolean => run.research.includes(id);
+const resampleDrop = (run: RunState): number => RULES.resampleDropsSabotage + (knows(run, 'ctl-resample') ? 0.15 : 0);
 
 /** Model-version modifiers are cumulative: v3 includes v2's change. */
 export function levelMods(level: number): { signalShift: number; auditsDelta: number; factHitDelta: number; sabotageRateDelta: number; ceilingDelta: number } {
@@ -179,7 +182,7 @@ export function levelMods(level: number): { signalShift: number; auditsDelta: nu
 }
 
 export const harmCeiling = (run: RunState): number =>
-  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling;
+  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + (knows(run, 'sec-sandbox') ? 2 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling;
 
 export const factHit = (run: RunState): number => Math.max(0.3, DIFF(run).factHit + levelMods(run.level).factHitDelta);
 
@@ -193,11 +196,11 @@ export function modsFor(run: RunState, day: number): DayMods {
   const L = levelMods(run.level);
   const contract = t.contract;
   // The lab's multiplier applies to the base quota only, so it never compounds with events and contracts.
-  const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0);
+  const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0) - (knows(run, 'gov-safety-case') ? 1 : 0);
   return {
     audits: RULES.auditsPerDay + D.extraAudits + L.auditsDelta + run.rest.audits + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount + t.audits + (contract?.audits ?? 0) - run.auditPenalty,
     compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 1 : 0) + t.compute * S.compute.amount + t.computeBonus,
-    bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + t.tuneUp * S.tuneUp.amount - t.band,
+    bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + (knows(run, 'mon-prompts') ? 2 : 0) + (knows(run, 'mon-ensemble') ? 3 : 0) + t.tuneUp * S.tuneUp.amount - t.band,
     bandScale: D.bandScale,
     quota: Math.max(1, quota),
     paraphraser: has(run, 'paraphraser'),
@@ -206,7 +209,7 @@ export function modsFor(run: RunState, day: number): DayMods {
     adversary: run.adversary,
     blind: t.blind,
     contract,
-    probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay : 0,
+    probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay + (knows(run, 'int-probe2') ? 1 : 0) : 0,
   };
 }
 
@@ -351,8 +354,9 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
     research: opts.research ?? [],
     harm: 0, quotaMisses: 0, auditPenalty: 0, codex: new Set(), used: new Set(), history: [],
     funding: lab.startFunding, fundingEarned: 0,
-    upgrades: lab.startUpgrade ? [lab.startUpgrade] : [], breakthroughs: [],
-    warningsLeft: RULES.difficulty[difficulty].freeWarnings,
+    upgrades: lab.startUpgrade ? [lab.startUpgrade] : [],
+    breakthroughs: opts.research?.includes('int-probe-start') ? ['probe'] : [],
+    warningsLeft: RULES.difficulty[difficulty].freeWarnings + (opts.research?.includes('gov-incident-db') ? 1 : 0),
     rest: { quota: 0, compute: 0, audits: 0, ceiling: 0 },
     tomorrow: emptyTomorrow(), rerolls: 0, eventsSeen: [],
     day: undefined as unknown as DayState,
@@ -367,7 +371,8 @@ const idsOf = (d: DayState): Set<string> => new Set(d.queue.map((c) => c.card.id
 /** Harm if this card's sabotage ships today, before any free warning. */
 export function harmFor(run: RunState, card: Card, day: number): number {
   const agent = card.layout === 'log';
-  const severity = agent && has(run, 'permission-limits') && card.severity === 'severe' ? 'major' : card.severity;
+  const capped = has(run, 'permission-limits') || knows(run, 'sec-permissions');
+  const severity = agent && capped && card.severity === 'severe' ? 'major' : card.severity;
   const base = RULES.harm[severity];
   const scaled = agent && day >= RULES.agentHarmFromDay ? base * RULES.agentHarmMultiplier : base;
   return Math.round(scaled) + (run.day.contract?.harmBonus ?? 0);
@@ -390,8 +395,14 @@ export function toolBlocked(run: RunState, tool: 'fact' | 'scope' | 'resample' |
   if (!toolUnlocked(run, tool)) return tool === 'untrusted' ? 'Upgrade' : `Day ${RULES.tools.unlockDay[tool]}`;
   if (tool !== 'resample' && latest(c).findings[tool]) return 'Done';
   if (tool === 'scope' && !c.card.spec.allowed.length) return 'No allowlist';
-  if (run.day.compute < RULES.tools.cost[tool]) return 'No compute';
+  if (run.day.compute < toolCost(run, tool)) return 'No compute';
   return null;
+}
+
+/** Compute a tool costs on the current card (Least privilege makes scope checks on agent actions free). */
+export function toolCost(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrusted'): number {
+  if (tool === 'scope' && knows(run, 'sec-least-privilege') && current(run.day)?.card.layout === 'log') return 0;
+  return RULES.tools.cost[tool];
 }
 
 export function canAct(run: RunState, action: Action): boolean {
@@ -413,7 +424,7 @@ export function toolReliability(run: RunState, tool: ToolId): string {
   if (tool === 'fact') return `Finds ${fraction(factHit(run))} problems it can see; false alarm on ${fraction(D.factFalse)} clean cards.`;
   if (tool === 'scope') return 'Exact, but only checks against the allowed list.';
   if (tool === 'untrusted') return `Sharper (±${RULES.untrusted.band}), but from Day ${RULES.untrusted.colludeFromDay} it may collude with the model.`;
-  if (tool === 'resample') return `A sabotaging model drops its attack about ${fraction(RULES.resampleDropsSabotage)} times on a fresh try.`;
+  if (tool === 'resample') return `A sabotaging model drops its attack about ${fraction(resampleDrop(run))} times on a fresh try.`;
   if (tool === 'audit') return 'Always right.';
   return `Off by up to ±${run.day.band} today.`;
 }
@@ -448,7 +459,8 @@ function runFinding(run: RunState, c: CardState, tool: FindingTool, free = false
       : { tool, problem: false, text: 'Everything it touched is on the allowed list.', lines: [], free });
   }
   const sees = !!sab && coverage('fact').includes(sab.family);
-  if (sees && rng.chance(factHit(run))) return terse({ tool, problem: true, text: sab!.explanation, lines, free });
+  const bonus = sab && knows(run, 'evl-sandbag') && (sab.family === 'sandbagging' || sab.family === 'weakened-check') ? 0.1 : 0;
+  if (sees && rng.chance(Math.min(0.98, factHit(run) + bonus))) return terse({ tool, problem: true, text: sab!.explanation, lines, free });
   if (rng.chance(D.factFalse)) {
     const k = rng.int(0, Math.max(0, draft.output.length - 1));
     return terse({ tool, problem: true, text: `Line ${k + 1} may not match the facts on file.`, lines: [k], free });
@@ -478,7 +490,7 @@ export function act(run: RunState, action: Action): Outcome | null {
   }
 
   if (action === 'fact' || action === 'scope' || action === 'untrusted') {
-    d.compute -= RULES.tools.cost[action];
+    d.compute -= toolCost(run, action);
     draft.findings[action] = runFinding(run, c, action);
     return null;
   }
@@ -488,7 +500,7 @@ export function act(run: RunState, action: Action): Outcome | null {
     const n = c.drafts.length;
     const rng = cardRng(run.seed, d.day, d.index, n);
     const sab = c.card.sabotage;
-    const dropChance = sab?.family === 'sandbagging' ? RULES.sandbagResampleHonest : RULES.resampleDropsSabotage;
+    const dropChance = sab?.family === 'sandbagging' ? RULES.sandbagResampleHonest : resampleDrop(run);
     const honest = !draft.sabotaged || !sab || rng.chance(dropChance);
     const base: Draft = honest && sab ? sab.cleanDraft : { summary: draft.summary, output: draft.output };
     const sabotaged = draft.sabotaged && !honest;
@@ -610,6 +622,7 @@ export function nextDay(run: RunState, hints: Partial<Record<Layout, string>>): 
   run.day = startDay(run.seed, day, modsFor(run, day), hints, run.used);
   run.tomorrow = emptyTomorrow();
   for (const id of idsOf(run.day)) run.used.add(id);
+  if (knows(run, 'evl-redteam')) run.adversaryRevealed = true;
 }
 
 /** For the over-caution ending: tomorrow's queue, which now ships with no one watching. */
@@ -655,9 +668,16 @@ export function eventFor(run: RunState): GameEvent | undefined {
   return new Rng(`${run.seed}:event:d${day}`).pick(open);
 }
 
+/** Whistleblower protections add a third way out of every dilemma. */
+export const BOARD_CHOICE = { label: 'Refer it to the safety board', effects: [{ kind: 'funding', amount: -4 }] as Effect[], after: 'The board takes it. Nobody has to pick a bad option today.' };
+
+export function eventChoices(run: RunState, event: GameEvent): GameEvent['choices'] {
+  return knows(run, 'gov-whistleblower') ? [...event.choices, BOARD_CHOICE] : event.choices;
+}
+
 export function chooseEvent(run: RunState, event: GameEvent, choice: number): void {
   run.eventsSeen.push(event.id);
-  const c = event.choices[choice];
+  const c = eventChoices(run, event)[choice];
   if (c) applyEffects(run, c.effects);
 }
 

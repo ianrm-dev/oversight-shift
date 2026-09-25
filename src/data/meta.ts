@@ -1,6 +1,6 @@
 // Roguelike meta content: adversaries, model versions, labs, contracts, breakthroughs, research.
 // Numbers are game mechanics; every real-world line was checked against its source on Sep 25, 2026.
-import type { AdversaryId, AdversaryInfo, Breakthrough, Contract, Lab, ModelVersion, ResearchNode, Source } from '../types';
+import type { AdversaryId, AdversaryInfo, Breakthrough, Contract, Lab, ModelVersion, Source } from '../types';
 
 const SANDBAGGING: Source = {
   title: 'van der Weij et al., AI Sandbagging: Language Models can Strategically Underperform on Evaluations',
@@ -175,20 +175,6 @@ export const BREAKTHROUGHS: Breakthrough[] = [
     source: { title: 'Bhatt, Rushing, Kaufman et al., Ctrl-Z: Controlling AI Agents via Resampling', url: 'https://arxiv.org/abs/2504.10374', date: 'Apr 2025' },
   },
 ];
-
-// ---------- 6. Research ("the field matures") ----------
-export const RESEARCH: ResearchNode[] = [
-  { id: 'untrusted-monitoring', name: 'Untrusted monitoring', unlocks: 'The Untrusted monitor upgrade joins the pool.', milestone: 'Reach Day 5' },
-  { id: 'canary', name: 'Canaries', unlocks: 'The Canary upgrade joins the pool.', milestone: 'Reach Day 6', requires: ['untrusted-monitoring'] },
-  { id: 'paraphrasing', name: 'Paraphrasing', unlocks: 'The Paraphraser upgrade joins the pool.', milestone: 'Face the colluder' },
-  { id: 'monitor-rationale', name: 'Monitor explanations', unlocks: 'The Monitor rationale upgrade joins the pool.', milestone: 'Discover 4 tell families' },
-  { id: 'trusted-editing', name: 'Trusted editing', unlocks: 'Trusted editing joins the pool: Defer ships at 2.25 instead of 1.5, but 1 in 4 sabotaged cards survives the edit.', milestone: 'Win a run' },
-  { id: 'interpretability', name: 'Interpretability', unlocks: 'The Interpretability probe becomes a possible boss-day reward.', milestone: 'Discover all 8 tell families', requires: ['monitor-rationale'] },
-  { id: 'lab-nonprofit', name: 'Safety nonprofit', unlocks: 'You can start a run as the Safety nonprofit.', milestone: 'Reach Day 4 on Standard or Analyst' },
-  { id: 'lab-bigtech', name: 'Big tech AI division', unlocks: 'You can start a run as the Big tech AI division.', milestone: 'Raise 40 funding in one run' },
-  { id: 'lab-government', name: 'Government AI office', unlocks: 'You can start a run as the Government AI office.', milestone: 'Win on Model v2 or higher' },
-];
-
 // ---------- 7. Trusted editing ----------
 export const TRUSTED_EDITING_NOTE: { realWorld: string; source: Source } = {
   realWorld:

@@ -3,10 +3,10 @@ import './theme.css';
 import './ui.css';
 import { dayInfo } from './data/days';
 import { contractById } from './ui/metaScreens';
-import { gradeFor, loadProgress, recordRun, dailySeed, type RunUpdate } from './game/progress';
+import { buyNode, gradeFor, loadProgress, recordRun, dailySeed, type RunUpdate } from './game/progress';
 import {
   act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
-  eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, runScore, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
+  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, runScore, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
 import type { Breakthrough, Contract, Difficulty, GameEvent, ToolId, Upgrade } from './types';
@@ -23,6 +23,7 @@ type Screen =
   | { kind: 'title' }
   | { kind: 'setup' }
   | { kind: 'codex' }
+  | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
   | { kind: 'shift'; overlay?: { type: 'incident' | 'audit'; outcome: Outcome } }
   | { kind: 'review'; html: string }
@@ -125,10 +126,18 @@ function finishRun(won: boolean): void {
     },
     tells: [...run.codex],
     fundingEarned: run.fundingEarned,
+    incidents: [...run.history, run.day].flatMap((d) => d.outcomes).filter(isIncident).map((o) => o.card.sabotage!.family),
+    catches: [...run.history, run.day].flatMap((d) => d.outcomes).filter((o) => o.action === 'audit' && o.draft.sabotaged).length,
   });
 }
 
 const ADVERSARY_NAME = { sandbagger: 'the sandbagger', colluder: 'the colluder', injector: 'the injector', schemer: 'the patient schemer' } as const;
+
+/** Threat forecasting: a ±1 estimate of today's attacks. */
+function forecast(r: RunState): string {
+  const n = r.day.queue.filter((c) => c.card.sabotage).length;
+  return `<span class="brief-tag">Forecast: ${Math.max(0, n - 1)}–${n + 1} attacks today</span>`;
+}
 
 function briefingExtras(r: RunState): string {
   const c = r.day.contract;
@@ -138,6 +147,7 @@ function briefingExtras(r: RunState): string {
     c ? `<span class="brief-tag" title="${esc(c.blurb)}">Client: ${esc(c.name)}</span>` : '',
     r.day.blind ? `<span class="brief-tag bad">Monitor blind on ${r.day.blind === 'log' ? 'agent actions' : 'file changes'} today</span>` : '',
     r.adversaryRevealed ? `<span class="brief-tag bad">Adversary: ${ADVERSARY_NAME[r.adversary]}</span>` : '',
+    r.research.includes('evl-forecast') ? forecast(r) : '',
   ].join('');
   return `<div class="brief-tags">${tags}</div>${S.newToolsBlock(r)}`;
 }
@@ -147,6 +157,7 @@ function render(): void {
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
   else if (screen.kind === 'codex') { setLayout('solo'); screenEl.innerHTML = M.codex(progress); }
+  else if (screen.kind === 'lab') { setLayout('solo'); screenEl.innerHTML = M.lab(progress, screen.focus); }
   else if (!run) return;
   else if (screen.kind === 'briefing') { setLayout('solo'); screenEl.innerHTML = R.briefing(run, briefingExtras(run)); }
   else if (screen.kind === 'shift') {
@@ -285,7 +296,7 @@ function continueScreen(): void {
 }
 
 function pickEvent(i: number): void {
-  if (!run || screen.kind !== 'event' || screen.chosen !== undefined || !screen.event.choices[i]) return;
+  if (!run || screen.kind !== 'event' || screen.chosen !== undefined || !eventChoices(run, screen.event)[i]) return;
   chooseEvent(run, screen.event, i);
   screen = { ...screen, chosen: i };
   render();
@@ -330,7 +341,7 @@ function restart(mode: 'same' | 'new'): void {
 
 function go(target: string): void {
   if (target === 'daily') { startRun(dailySeed(), true); return; }
-  if (target === 'title' || target === 'setup' || target === 'codex') { screen = { kind: target }; resetLattice('title'); render(); }
+  if (target === 'title' || target === 'setup' || target === 'codex' || target === 'lab') { screen = { kind: target }; resetLattice('title'); render(); }
 }
 
 function setSetup(patch: Partial<M.Setup>): void {
@@ -358,6 +369,12 @@ document.addEventListener('keydown', (e) => {
     if (k === 'enter' || k === ' ') { e.preventDefault(); go('setup'); }
     else if (k === 'd') go('daily');
     else if (k === 'c') go('codex');
+    else if (k === 'l') go('lab');
+    return;
+  }
+  if (screen.kind === 'lab') {
+    if (k === 'escape') go('title');
+    else if (k === 'enter') { e.preventDefault(); go('setup'); }
     return;
   }
   if (screen.kind === 'setup') {
@@ -370,7 +387,8 @@ document.addEventListener('keydown', (e) => {
   if (screen.kind === 'codex') { if (k === 'escape' || k === 'c') go('title'); return; }
   if ((screen.kind === 'over' || screen.kind === 'interim' || screen.kind === 'win') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
   if ((screen.kind === 'over' || screen.kind === 'win') && k === 'escape') { go('title'); return; }
-  if (screen.kind === 'event' && screen.chosen === undefined) { const i = Number(k) - 1; if (i >= 0) pickEvent(i); return; }
+  if ((screen.kind === 'over' || screen.kind === 'win') && k === 'l') { go('lab'); return; }
+  if (screen.kind === 'event' && screen.chosen === undefined) { const i = Number(k) - 1; if (i >= 0 && run) pickEvent(i); return; }
   if (screen.kind === 'breakthrough') { const i = Number(k) - 1; if (i >= 0) pickBreakthrough(i); return; }
   if (k === 't' && (screen.kind === 'shift' || screen.kind === 'briefing')) { toggleToolkit('all'); return; }
   if (k === 'v' && screen.kind === 'shift' && !screen.overlay) { expanded = !expanded; render(); return; }
@@ -406,6 +424,13 @@ screenEl.addEventListener('click', (e) => {
     else toggleToolkit((info.dataset.toolkit || 'all') as ToolId | 'all');
     return;
   }
+  const node = el.closest<HTMLElement>('[data-node]');
+  if (node && screen.kind === 'lab') {
+    if (buyNode(progress, node.dataset.node!)) setup = { ...setup };
+    screen = { kind: 'lab', focus: node.dataset.node };
+    render();
+    return;
+  }
   const t = el.closest<HTMLElement>('[data-action], [data-continue], [data-start], [data-restart], [data-upgrade], [data-buy], [data-choice], [data-breakthrough], [data-contract]');
   if (!t || (t as HTMLButtonElement).disabled) return;
   if (t.dataset.upgrade && screen.kind === 'between') pickUpgrade(screen.offer.findIndex((u) => u.id === t.dataset.upgrade));
@@ -420,6 +445,12 @@ screenEl.addEventListener('click', (e) => {
 });
 
 screenEl.addEventListener('mouseover', (e) => {
+  const node = (e.target as HTMLElement).closest<HTMLElement>('[data-node]');
+  if (node && screen.kind === 'lab') {
+    const detail = screenEl.querySelector('.lab-detail');
+    if (detail) detail.innerHTML = M.labDetail(node.dataset.node);
+    return;
+  }
   const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
   const next = t && !(t as HTMLButtonElement).disabled ? (t.dataset.action as R.Preview) : null;
   if (next !== preview) { preview = next; renderPreview(); }
