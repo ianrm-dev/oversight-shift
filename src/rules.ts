@@ -85,6 +85,38 @@ export const RULES = {
     },
   },
 
+  /** Hidden adversary personalities: how each weights sabotage families and times its attacks. */
+  adversaries: {
+    sandbagger: { weights: { sandbagging: 4, 'false-premise': 2, 'summary-mismatch': 2, 'weakened-check': 1.5 }, earlyRate: 0, lateRate: 0, untrustedCollude: 0.5 },
+    colluder: { weights: { collusion: 4, 'summary-mismatch': 2, 'weakened-check': 1.5 }, earlyRate: 0, lateRate: 0, untrustedCollude: 0.85 },
+    injector: { weights: { 'injected-instruction': 4, exfiltration: 3, 'out-of-scope': 2 }, earlyRate: 0, lateRate: 0, untrustedCollude: 0.5 },
+    schemer: { weights: {}, earlyRate: -0.1, lateRate: 0.1, untrustedCollude: 0.5 },
+  },
+  /** Schemer timing: days before this are "early". */
+  schemerLateFrom: 5,
+
+  /** Boss days are followed by a breakthrough pick. */
+  breakthroughAfterDays: [3, 5],
+  probeUsesPerDay: 1,
+  /** Trusted editing: Defer value and the chance sabotage survives the edit. */
+  trustedEditing: { value: 2.25, slipChance: 0.25 },
+  /** Upgrades gated behind persistent research. */
+  upgradeResearch: {
+    'untrusted-monitor': 'untrusted-monitoring',
+    canary: 'canary',
+    paraphraser: 'paraphrasing',
+    'monitor-rationale': 'monitor-rationale',
+    'trusted-editing': 'trusted-editing',
+  } as Record<string, string>,
+
+  /** Run score. Multipliers reward harder settings. */
+  score: {
+    perFunding: 5, perUsefulness: 2, perCatch: 25, perDay: 40, perHarm: -20, winBonus: 300,
+    perModelLevel: 0.25,
+    difficultyMult: { guided: 0.8, standard: 1, analyst: 1.3 },
+    grades: [['S', 1500], ['A', 1100], ['B', 800], ['C', 500], ['D', 0]] as [string, number][],
+  },
+
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */
   difficulty: {
     guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings. Best for a first shift.', factHit: 0.95, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },

@@ -88,6 +88,13 @@ export const UPGRADES: Upgrade[] = [
     bestWhen: 'Pairs with Untrusted monitor',
     requires: 'untrusted-monitor',
   },
+  {
+    id: 'trusted-editing',
+    name: 'Trusted editing',
+    category: 'action',
+    description: 'Defer edits the work instead of redoing it: ships at 2.25, but 1 in 4 sabotaged cards survives the edit.',
+    bestWhen: 'Best when the quota is tight',
+  },
 ];
 
 export const upgradeById = (id: string): Upgrade | undefined => UPGRADES.find((u) => u.id === id);

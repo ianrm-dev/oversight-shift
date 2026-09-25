@@ -61,6 +61,7 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
     <div class="hud-res" title="Human audits left today"><span class="eyebrow">Auditors</span><span class="dots">${dots(d.audits, d.auditsStart, preview === 'audit')}</span></div>
     <div class="hud-res" title="Compute left today for tools. Unspent compute ships as usefulness."><span class="eyebrow">Compute</span><span class="dots compute">${dots(d.compute, d.computeStart, toolPreview)}</span></div>
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
+    <div class="hud-tags">${run.level > 1 ? `<span class="hud-tag">v${run.level}</span>` : ''}${d.contract ? `<span class="hud-tag" title="${esc(d.contract.blurb)}">${esc(d.contract.name)}</span>` : ''}</div>
     <button class="hud-toolkit" data-toolkit><kbd>T</kbd> Toolkit</button>
     <ol class="hud-progress" aria-label="Cards today">${progress}</ol>`;
 }
@@ -165,6 +166,14 @@ function resampleBlock(run: RunState, c: CardState, preview: Preview): string {
   return note ? `<div class="ev-group">${note}${toolButton(run, 'resample', preview)}</div>` : toolButton(run, 'resample', preview);
 }
 
+function probeBlock(run: RunState, c: CardState, preview: Preview): string {
+  if (!run.breakthroughs.includes('probe')) return '';
+  const f = latest(c).findings.probe;
+  if (f) return `<div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}"><div class="ev-head"><span class="ev-name">Interpretability probe</span>${f.problem ? '<span class="ev-flag">Deception</span>' : '<span class="ev-okay">Clear</span>'}</div><p class="ev-finding">${esc(f.text)}</p></div>`;
+  const blocked = toolBlocked(run, 'probe');
+  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right, once a day.</span></button>`;
+}
+
 export function evidence(run: RunState, c: CardState, preview: Preview): string {
   const d = latest(c);
   const tool = (t: 'fact' | 'scope' | 'untrusted') => {
@@ -179,6 +188,7 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     ${tool('fact')}
     ${tool('scope')}
     ${resampleBlock(run, c, preview)}
+    ${probeBlock(run, c, preview)}
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
       <div class="ev-head"><span class="ev-name"><kbd>U</kbd>Human audit</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
       <span class="ev-sees">Always right. Settles the card.</span>

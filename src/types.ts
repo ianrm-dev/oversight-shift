@@ -133,3 +133,114 @@ export interface ToolInfo {
 }
 
 export type Difficulty = 'guided' | 'standard' | 'analyst';
+
+// ---------- Roguelike layer ----------
+
+export interface Source { title: string; url: string; date: string }
+
+/** The hidden adversary for a run. Revealed at the end. */
+export type AdversaryId = 'sandbagger' | 'colluder' | 'injector' | 'schemer';
+export interface AdversaryInfo {
+  id: AdversaryId;
+  name: string;
+  /** One line shown at the reveal: what this model was doing. */
+  tagline: string;
+  /** Two sentences for the codex: how this adversary behaves and what beats it. */
+  codex: string;
+  realWorld: string;
+  source: Source;
+}
+
+/** One effect of an event choice, contract, lab or breakthrough. Shown to the player before they choose. */
+export type Effect =
+  | { kind: 'funding'; amount: number }
+  | { kind: 'harm'; amount: number }
+  | { kind: 'ceiling'; amount: number }
+  | { kind: 'auditsTomorrow'; amount: number }
+  | { kind: 'computeTomorrow'; amount: number }
+  | { kind: 'bandTomorrow'; amount: number }
+  | { kind: 'quotaTomorrow'; amount: number }
+  | { kind: 'quotaRest'; amount: number }
+  | { kind: 'computeRest'; amount: number }
+  | { kind: 'auditsRest'; amount: number }
+  | { kind: 'blindTomorrow'; layout: Layout }
+  | { kind: 'revealAdversary' }
+  | { kind: 'upgrade'; id: string };
+
+export interface EventChoice {
+  label: string;
+  effects: Effect[];
+  /** Optional one-line consequence flavor shown after choosing. */
+  after?: string;
+}
+
+export interface GameEvent {
+  id: string;
+  title: string;
+  /** 2–3 sentences setting up the dilemma. */
+  text: string;
+  minDay: number;
+  maxDay: number;
+  choices: EventChoice[];
+  /** Real-world dynamic this event reflects, shown small under the choices. */
+  anchor?: { line: string; source: Source };
+}
+
+export interface Contract {
+  id: string;
+  name: string;
+  /** One line: who the client is. */
+  blurb: string;
+  quotaDelta: number;
+  /** Multiplies funding from surplus usefulness that day. */
+  fundingMult: number;
+  /** Extra harm added to every incident that day. */
+  harmBonus: number;
+  /** Extra auditor hours that day. */
+  audits: number;
+}
+
+export interface Lab {
+  id: string;
+  name: string;
+  blurb: string;
+  startUpgrade?: string;
+  startFunding: number;
+  quotaMult: number;
+  computeDelta: number;
+  ceilingDelta: number;
+  /** Research node that unlocks this lab; undefined = available from the start. */
+  unlock?: string;
+}
+
+export interface ModelVersion {
+  level: number;
+  name: string;
+  /** One line: what's new about this model. */
+  change: string;
+  /** Cumulative mechanical modifiers (applied for this level and all above it). */
+  signalShift: number;
+  auditsDelta: number;
+  factHitDelta: number;
+  sabotageRateDelta: number;
+  ceilingDelta: number;
+}
+
+export interface Breakthrough {
+  id: string;
+  name: string;
+  description: string;
+  realWorld: string;
+  source: Source;
+}
+
+/** A persistent research unlock ("the field matures"). Prerequisites make it a tree later. */
+export interface ResearchNode {
+  id: string;
+  name: string;
+  /** What it unlocks, in plain words. */
+  unlocks: string;
+  /** Milestone that earns it, in plain words. */
+  milestone: string;
+  requires?: string[];
+}

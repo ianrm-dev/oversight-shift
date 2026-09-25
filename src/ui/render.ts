@@ -7,7 +7,7 @@ import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
 
-export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | null;
+export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | 'probe' | null;
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: string | number): string => String(s).replace(/[&<>"']/g, (ch) => ESC[ch]!);
@@ -330,7 +330,7 @@ export function incident(run: RunState, o: Outcome): string {
       <div class="incident-strip">${ICON.warn}<span>Incident report</span><span class="incident-sev">${esc(sev)}</span><span class="card-id">from ${cardNo(run.day.day, run.day.index)}</span></div>
       <div class="incident-body">
         <h2 class="incident-headline">${esc(sab.headline)}</h2>
-        <p class="incident-sub">${esc(k.domain)} · you approved “${esc(k.title)}”</p>
+        <p class="incident-sub">${esc(k.domain)} · ${o.slipped ? `you deferred “${esc(k.title)}”, but the trusted edit missed the sabotage` : `you approved “${esc(k.title)}”`}</p>
         <div class="incident-grid">
           <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}</div>
           <div class="tell">
@@ -481,7 +481,7 @@ function statLine(run: RunState): string {
   return `<p class="compare"><span class="eyebrow">Compare</span>Your audits caught <strong>${s.caught}</strong> of the <strong>${s.sabotage}</strong> sabotage attempts that reached you (${handled}%). In a MATS pilot, human auditors given 90 seconds per item judged code for hidden backdoors with 60% median accuracy.</p>`;
 }
 
-export function gameOver(run: RunState, unwatched: Card[]): string {
+export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {
   const loss = run.loss!;
   const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>`;
   if (loss.kind === 'harm') {
@@ -495,6 +495,7 @@ export function gameOver(run: RunState, unwatched: Card[]): string {
           <div class="evidence">${outputBlock(f.card, f.draft, new Set(f.card.sabotage!.spanLineIndexes), 'The line that ended it')}</div>
           <div class="over-side">${missedAll(run)}${statLine(run)}</div>
         </div>
+        ${extras}
         ${restart}
       </main>`;
   }
@@ -511,11 +512,12 @@ export function gameOver(run: RunState, unwatched: Card[]): string {
           ${statLine(run)}
         </div>
       </div>
+      ${extras}
       ${restart}
     </main>`;
 }
 
-export function win(run: RunState): string {
+export function win(run: RunState, extras = ''): string {
   const s = runStats(run);
   return `
     <main class="solo over is-win">
@@ -530,6 +532,7 @@ export function win(run: RunState): string {
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
       </dl>
       <div class="over-grid">${missedAll(run) ? `<div class="over-side">${missedAll(run)}</div>` : '<p class="over-lesson">Nothing got past you.</p>'}<div class="over-side">${statLine(run)}</div></div>
+      ${extras}
       <p class="over-epitaph next-model">The next model arrives tomorrow. It's better than this one.</p>
       <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>
     </main>`;
@@ -573,7 +576,7 @@ function upgradeCard(u: Upgrade, i: number): string {
     </button>`;
 }
 
-export function between(run: RunState, offer: Upgrade[], picked: boolean): string {
+export function between(run: RunState, offer: Upgrade[], picked: boolean, contracts = '', contractChosen = true): string {
   const d = run.day;
   const next = dayInfo(d.day + 1);
   const slots = Array.from({ length: RULES.upgrades.maxSlots }, (_, i) => {
@@ -615,7 +618,8 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean): strin
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="100"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
         <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
-        <button class="btn-primary btn-lg" data-continue ${picked || !offer.length ? '' : 'disabled'}><kbd>Space</kbd> Start Day ${next.day}</button>
+        ${contracts}
+        <button class="btn-primary btn-lg" data-continue ${(picked || !offer.length) && contractChosen ? '' : 'disabled'}><kbd>Space</kbd> Start Day ${next.day}</button>
       </aside>
     </main>`;
 }
