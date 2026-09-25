@@ -23,6 +23,7 @@ type Screen =
   | { kind: 'title' }
   | { kind: 'setup' }
   | { kind: 'codex' }
+  | { kind: 'daily-info' }
   | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
   | { kind: 'shift'; overlay?: { type: 'incident' | 'audit'; outcome: Outcome } }
@@ -73,7 +74,7 @@ const esc = R.esc;
 
 function startRun(seed: string, daily = false): void {
   const opts = daily
-    ? { difficulty: 'standard' as Difficulty, lab: 'frontier', level: 1, research: progress.research, daily: true }
+    ? { difficulty: 'standard' as Difficulty, lab: 'frontier', level: 1, research: [], daily: true }
     : { ...setup, research: progress.research };
   run = newRun(seed, hintsFor(1), opts);
   endUpdate = null;
@@ -157,6 +158,7 @@ function render(): void {
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
   else if (screen.kind === 'codex') { setLayout('solo'); screenEl.innerHTML = M.codex(progress); }
+  else if (screen.kind === 'daily-info') { setLayout('solo'); screenEl.innerHTML = M.dailyInfo(progress, dailySeed(), new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })); }
   else if (screen.kind === 'lab') { setLayout('solo'); screenEl.innerHTML = M.lab(progress, screen.focus); }
   else if (!run) return;
   else if (screen.kind === 'briefing') { setLayout('solo'); screenEl.innerHTML = R.briefing(run, briefingExtras(run)); }
@@ -341,7 +343,7 @@ function restart(mode: 'same' | 'new'): void {
 
 function go(target: string): void {
   if (target === 'daily') { startRun(dailySeed(), true); return; }
-  if (target === 'title' || target === 'setup' || target === 'codex' || target === 'lab') { screen = { kind: target }; resetLattice('title'); render(); }
+  if (target === 'title' || target === 'setup' || target === 'codex' || target === 'lab' || target === 'daily-info') { screen = { kind: target }; resetLattice('title'); render(); }
 }
 
 function setSetup(patch: Partial<M.Setup>): void {
@@ -367,9 +369,14 @@ document.addEventListener('keydown', (e) => {
   }
   if (screen.kind === 'title') {
     if (k === 'enter' || k === ' ') { e.preventDefault(); go('setup'); }
-    else if (k === 'd') go('daily');
+    else if (k === 'd') go('daily-info');
     else if (k === 'c') go('codex');
     else if (k === 'l') go('lab');
+    return;
+  }
+  if (screen.kind === 'daily-info') {
+    if (k === 'escape') go('title');
+    else if (k === 'enter' || k === ' ') { e.preventDefault(); go('daily'); }
     return;
   }
   if (screen.kind === 'lab') {

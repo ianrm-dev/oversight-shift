@@ -1490,3 +1490,20 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .node-effect { font-size: 10.5px; }
 .lab-detail { min-height: 48px; flex: none; }
 .lab-detail span { font-size: var(--fs-xs); }
+
+/* Title menu: every option says what it is. */
+.title-menu { display: grid; grid-template-columns: repeat(2, 300px); gap: var(--space-3); margin-top: var(--space-4); }
+.menu-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1);
+  padding: var(--space-3) var(--space-4); text-align: left;
+  background: rgb(13 20 32 / 0.85); border: 1px solid var(--line-strong); border-radius: var(--radius);
+  transition: border-color var(--dur-fast), transform var(--dur-fast) var(--ease-out);
+}
+.menu-opt:hover, .menu-opt:focus-visible { border-color: var(--accent); transform: translateY(-2px); }
+.menu-opt.is-primary { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 10px 30px -12px var(--accent-glow); }
+.menu-name { display: flex; align-items: center; gap: var(--space-2); font-weight: 600; font-size: var(--fs-lg); }
+.menu-desc { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.4; }
+.title .title-glyph .model-glyph { width: 110px; height: 110px; }
+.title { gap: var(--space-3); }
+.daily-rules { margin: 0; padding-left: var(--space-5); color: var(--text-2); display: flex; flex-direction: column; gap: var(--space-1); }
+.daily-rules strong { color: var(--text); }

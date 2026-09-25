@@ -29,12 +29,44 @@ export function title(p: Progress): string {
       <h1 class="title-name">Oversight Shift</h1>
       <p class="title-tag">Your lab is deploying a model smarter than the tools watching it.<br/>Keep its work shipping. Keep what it breaks below the line.</p>
       <div class="title-menu">
-        <button class="btn-primary btn-lg" data-go="setup"><kbd>Enter</kbd> New shift</button>
-        <button class="btn-ghost btn-lg" data-go="daily"><kbd>D</kbd> Daily shift</button>
-        <button class="btn-ghost btn-lg" data-go="lab"><kbd>L</kbd> Research lab${p.insight ? ` · ${p.insight} insight` : ''}${availableCount(p) ? ` <span class="badge">${availableCount(p)}</span>` : ''}</button>
-        <button class="btn-ghost btn-lg" data-go="codex"><kbd>C</kbd> Codex${runs ? ` · ${p.tells.length}/8 tells` : ''}</button>
+        <button class="menu-opt is-primary" data-go="setup">
+          <span class="menu-name"><kbd>Enter</kbd> New shift</span>
+          <span class="menu-desc">Play a 7-day deployment. You'll choose difficulty, lab and model version first.</span>
+        </button>
+        <button class="menu-opt" data-go="daily-info">
+          <span class="menu-name"><kbd>D</kbd> Daily shift</span>
+          <span class="menu-desc">Today's shared run: the same cards for everyone, fixed rules, one score to beat.</span>
+        </button>
+        <button class="menu-opt" data-go="lab">
+          <span class="menu-name"><kbd>L</kbd> Research lab${availableCount(p) ? ` <span class="badge">${availableCount(p)}</span>` : ''}</span>
+          <span class="menu-desc">${p.insight ? `${p.insight} insight to spend. ` : ''}Fund research with what past runs taught you. It carries into every run.</span>
+        </button>
+        <button class="menu-opt" data-go="codex">
+          <span class="menu-name"><kbd>C</kbd> Codex</span>
+          <span class="menu-desc">${runs ? `${p.tells.length}/8 tells found. ` : ''}The threats you've met, the adversaries you've faced, and your past runs.</span>
+        </button>
       </div>
       <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+    </main>`;
+}
+
+// ---------- Daily shift: explain before starting ----------
+export function dailyInfo(p: Progress, seed: string, dateLabel: string): string {
+  const best = p.daily[seed];
+  return `
+    <main class="solo daily-info">
+      <article class="event-card">
+        <div class="eyebrow">Daily shift · ${esc(dateLabel)}</div>
+        <h2 class="event-title">Everyone gets today's run</h2>
+        <p class="event-text">Today's daily uses the same cards, events and hidden adversary for every player, so scores can be compared. A new one starts at midnight.</p>
+        <ul class="daily-rules">
+          <li><strong>Standard</strong> difficulty, <strong>Frontier lab</strong>, <strong>Model v1</strong></li>
+          <li>Your research doesn't apply, so everyone starts equal. The run still earns Insight and codex entries.</li>
+          <li>Replay it as often as you like. Your best score today counts.</li>
+        </ul>
+        ${best !== undefined ? `<p class="event-text">Your best today: <strong class="mono">${best}</strong> (${gradeFor(best)})</p>` : ''}
+        <div class="setup-actions"><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Back</button><button class="btn-primary btn-lg" data-go="daily"><kbd>Enter</kbd> Start today's shift</button></div>
+      </article>
     </main>`;
 }
 
