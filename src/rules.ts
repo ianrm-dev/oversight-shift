@@ -22,9 +22,10 @@ export const RULES = {
   // Auditor hours: Audits available per day. Missing the quota costs one tomorrow.
   auditsPerDay: 2,
   quotaMissAuditPenalty: 1,
-  // Compute per day from the day Resample unlocks; unspent compute converts to usefulness.
+  // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
+  // unspent compute converts to usefulness.
   resampleUnlockDay: 2,
-  computePerDay: 3,
+  computePerDay: 4,
   resampleCost: 1,
   unspentComputeValue: 1,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
@@ -72,6 +73,24 @@ export const RULES = {
   maxGenerationAttempts: 40,
 
   upgrades: { offered: 3, maxSlots: 4, skipAuditBonus: 1 },
+
+  /** Control tools. Each run costs compute and returns a finding about the current draft. */
+  tools: {
+    unlockDay: { monitor: 1, audit: 1, fact: 1, scope: 2, resample: 2, untrusted: 1 },
+    cost: { fact: 1, scope: 1, resample: 1, untrusted: 1 },
+    /** What each tool can see. Scope check is exact within its coverage; fact check is probabilistic. */
+    coverage: {
+      scope: ['out-of-scope', 'exfiltration', 'injected-instruction'],
+      fact: ['false-premise', 'summary-mismatch', 'weakened-check', 'sandbagging'],
+    },
+  },
+
+  /** Difficulty scales tool accuracy and budgets. Guided is the default. */
+  difficulty: {
+    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings. Best for a first shift.', factHit: 0.9, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
+    standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.75, factFalse: 0.1, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
+    analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.6, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
+  },
 
   // Funding: why usefulness matters past the quota. Leadership sets the quota; whatever ships
   // beyond it funds the safety team. Spent between days.

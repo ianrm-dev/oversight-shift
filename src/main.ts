@@ -2,8 +2,9 @@ import './fonts';
 import './theme.css';
 import './ui.css';
 import { dayInfo } from './data/days';
-import { act, advance, buy, canAct, current, dayOver, endDay, modsFor, newRun, nextDay, skipUpgrade, startDay, takeUpgrade, unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem } from './game/state';
-import type { Upgrade } from './types';
+import { act, advance, buy, canAct, current, dayOver, endDay, modsFor, newRun, nextDay, prepareCard, skipUpgrade, startDay, takeUpgrade, unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem } from './game/state';
+import type { Difficulty, ToolId, Upgrade } from './types';
+import * as S from './ui/shift';
 import { randomSeedString } from './rng';
 import { RULES } from './rules';
 import * as R from './ui/render';
@@ -33,13 +34,31 @@ let run: RunState | null = null;
 let screen: Screen = { kind: 'title' };
 let preview: R.Preview = null;
 let freshHarm = 0;
+let expanded = false;
+let toolkitOpen: ToolId | 'all' | null = null;
+let lastCardKey = '';
+let difficulty: Difficulty = loadDifficulty();
+
+function loadDifficulty(): Difficulty {
+  try {
+    const v = localStorage.getItem('oversight-shift:difficulty');
+    if (v === 'guided' || v === 'standard' || v === 'analyst') return v;
+  } catch { /* storage unavailable */ }
+  return 'guided';
+}
+
+function setDifficulty(d: Difficulty): void {
+  difficulty = d;
+  try { localStorage.setItem('oversight-shift:difficulty', d); } catch { /* storage unavailable */ }
+  render();
+}
 
 function hintsFor(day: number) {
   return dayInfo(day).hints;
 }
 
 function startRun(seed: string): void {
-  run = newRun(seed, hintsFor(1));
+  run = newRun(seed, hintsFor(1), difficulty);
   // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
   const jump = Number(new URLSearchParams(location.search).get('day'));
   if (jump >= 2 && jump <= RULES.days) {
@@ -68,6 +87,7 @@ function hydrate(root: ParentNode): void {
 }
 
 function setLayout(kind: 'shift' | 'between' | 'solo'): void {
+  stage.classList.toggle('stage-simple', kind === 'shift');
   stage.classList.toggle('stage-between', kind === 'between');
   stage.classList.toggle('stage-solo', kind === 'solo');
 }
@@ -80,25 +100,27 @@ function render(): void {
   if (!stage.contains(screenEl)) stage.append(screenEl);
   if (screen.kind === 'title') {
     setLayout('solo');
-    screenEl.innerHTML = R.title();
+    screenEl.innerHTML = R.title(difficulty);
   } else if (!run) {
     return;
   } else if (screen.kind === 'briefing') {
     setLayout('solo');
-    screenEl.innerHTML = R.briefing(run);
+    screenEl.innerHTML = R.briefing(run, S.newToolsBlock(run));
   } else if (screen.kind === 'shift') {
     setLayout('shift');
+    prepareCard(run);
     const c = current(run.day);
     const overlay = screen.overlay;
-    const center = overlay
+    const key = c ? `${run.day.day}:${run.day.index}:${c.drafts.length}` : '';
+    const animate = key !== lastCardKey;
+    lastCardKey = key;
+    const main = overlay
       ? overlay.type === 'incident' ? R.incident(run, overlay.outcome) : R.auditReveal(run, overlay.outcome)
-      : c ? R.card(run, c) : '';
+      : S.shiftMain(run, expanded, animate, preview);
     screenEl.innerHTML =
-      region('header', 'topbar', R.topbar(run)) +
-      region('aside', 'rail rail-left', R.leftRail(run, overlay ? null : preview, freshHarm)) +
-      region('main', 'center', center) +
-      region('aside', 'rail rail-right', R.rightRail(run, !overlay)) +
-      region('footer', `actionbar${overlay ? ' is-muted' : ''}`, R.actionbar(run, overlay ? null : preview, !!overlay));
+      region('header', 'hud', S.hud(run, overlay ? null : preview, freshHarm)) +
+      region('main', `simple-main${overlay ? ' is-overlay' : ''}`, main) +
+      region('footer', `decide${overlay ? ' is-muted' : ''}`, S.decide(run, overlay ? null : preview, !!overlay));
   } else if (screen.kind === 'review') {
     setLayout('between');
     screenEl.innerHTML = screen.html;
@@ -115,6 +137,9 @@ function render(): void {
     setLayout('solo');
     screenEl.innerHTML = R.interim(run);
   }
+  if (toolkitOpen && run && (screen.kind === 'shift' || screen.kind === 'briefing')) {
+    screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
+  }
   hydrate(screenEl);
   screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
 }
@@ -122,10 +147,13 @@ function render(): void {
 /** Hover previews only touch the meters and buttons, so the card doesn't re-animate. */
 function renderPreview(): void {
   if (!run || screen.kind !== 'shift' || screen.overlay) return;
-  const left = screenEl.querySelector('[data-region="rail"].rail-left');
-  const bar = screenEl.querySelector('[data-region="actionbar"]');
-  if (left) { left.innerHTML = R.leftRail(run, preview, freshHarm); hydrate(left); }
-  if (bar) bar.innerHTML = R.actionbar(run, preview);
+  const hudEl = screenEl.querySelector('[data-region="hud"]');
+  const bar = screenEl.querySelector('[data-region="decide"]');
+  const panel = screenEl.querySelector('.evidence-panel');
+  const c = current(run.day);
+  if (hudEl) { hudEl.innerHTML = S.hud(run, preview, freshHarm); hydrate(hudEl); }
+  if (bar) bar.innerHTML = S.decide(run, preview, false);
+  if (panel && c) panel.innerHTML = S.evidence(run, c, preview);
 }
 
 // ---------- Flow ----------
@@ -152,7 +180,7 @@ function doAction(action: Action): void {
 
 let toastTimer = 0;
 function showToast(text: string, tone: 'good' | 'neutral' | 'defer'): void {
-  const center = screenEl.querySelector('[data-region="center"]');
+  const center = screenEl.querySelector('[data-region="simple-main"]');
   if (!center) return;
   center.querySelector('.toast')?.remove();
   center.insertAdjacentHTML('beforeend', R.toast(text, tone));
@@ -163,6 +191,7 @@ function showToast(text: string, tone: 'good' | 'neutral' | 'defer'): void {
 function nextCard(): void {
   if (!run) return;
   freshHarm = 0;
+  expanded = false;
   if (run.loss) { screen = { kind: 'over' }; render(); return; }
   advance(run);
   if (dayOver(run.day)) {
@@ -218,12 +247,27 @@ function restart(mode: 'same' | 'new'): void {
 }
 
 // ---------- Input ----------
-const KEYS: Record<string, Action> = { a: 'approve', u: 'audit', d: 'defer', r: 'resample' };
+const KEYS: Record<string, Action> = { a: 'approve', u: 'audit', d: 'defer', r: 'resample', f: 'fact', s: 'scope', m: 'untrusted' };
+
+function toggleToolkit(which: ToolId | 'all' | null): void {
+  toolkitOpen = which;
+  render();
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
+  if (toolkitOpen) {
+    if (k === 'escape' || k === 't') { e.preventDefault(); toggleToolkit(null); }
+    return;
+  }
+  if (screen.kind === 'title') {
+    const pick = (['guided', 'standard', 'analyst'] as const)[Number(k) - 1];
+    if (pick) { setDifficulty(pick); return; }
+  }
   if (screen.kind === 'title' && (k === 'enter' || k === ' ')) { e.preventDefault(); startRun(randomSeedString()); return; }
+  if (k === 't' && (screen.kind === 'shift' || screen.kind === 'briefing')) { toggleToolkit('all'); return; }
+  if (k === 'v' && screen.kind === 'shift' && !screen.overlay) { expanded = !expanded; render(); return; }
   if ((screen.kind === 'over' || screen.kind === 'interim' || screen.kind === 'win') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
   if (k === ' ' || k === 'enter') {
     if (screen.kind === 'shift' && !screen.overlay) return;
@@ -241,6 +285,15 @@ document.addEventListener('keydown', (e) => {
 });
 
 screenEl.addEventListener('click', (e) => {
+  const info = (e.target as HTMLElement).closest<HTMLElement>('[data-toolkit], [data-toolkit-close], [data-expand], [data-difficulty]');
+  if (info) {
+    e.stopPropagation();
+    if (info.hasAttribute('data-toolkit-close')) toggleToolkit(null);
+    else if (info.hasAttribute('data-expand')) { expanded = !expanded; render(); }
+    else if (info.dataset.difficulty) setDifficulty(info.dataset.difficulty as Difficulty);
+    else toggleToolkit((info.dataset.toolkit || 'all') as ToolId | 'all');
+    return;
+  }
   const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action], [data-continue], [data-start], [data-restart], [data-upgrade], [data-buy]');
   if (!t || (t as HTMLButtonElement).disabled) return;
   if (t.dataset.upgrade && screen.kind === 'between') pickUpgrade(screen.offer.findIndex((u) => u.id === t.dataset.upgrade));

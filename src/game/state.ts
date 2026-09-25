@@ -2,10 +2,24 @@ import { CARDS } from '../data/cards';
 import { UPGRADES } from '../data/upgrades';
 import { RULES } from '../rules';
 import { dayRng, Rng } from '../rng';
-import type { Card, Draft, Layout, TellFamily, Upgrade } from '../types';
+import type { Card, Difficulty, Draft, Layout, TellFamily, ToolId, Upgrade } from '../types';
 import { bandForDay, readMonitor, type Reading } from './monitor';
 
-export type Action = 'approve' | 'audit' | 'defer' | 'resample';
+export type Action = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted';
+export type Decision = 'approve' | 'audit' | 'defer';
+export type FindingTool = 'fact' | 'scope' | 'untrusted';
+
+/** What a tool reported about a draft. `lines` point into the output so the player can verify. */
+export interface Finding {
+  tool: FindingTool;
+  problem: boolean;
+  text: string;
+  lines: number[];
+  /** Cost nothing (Auto scope check). */
+  free?: boolean;
+}
+
+export const DIFF = (run: { difficulty: Difficulty }) => RULES.difficulty[run.difficulty];
 
 export interface DraftState extends Draft {
   sabotaged: boolean;
@@ -15,6 +29,9 @@ export interface DraftState extends Draft {
   untrusted: { honest: Reading; colluding: Reading };
   /** Monitor rationale: the output line the monitor found most unusual. */
   flagLine: number;
+  findings: Partial<Record<FindingTool, Finding>>;
+  /** Output lines that differ from the previous draft (after a Resample). */
+  changed?: number[];
 }
 
 export interface CardState {
@@ -26,7 +43,7 @@ export interface CardState {
 
 export interface Outcome {
   card: Card;
-  action: Exclude<Action, 'resample'>;
+  action: Decision;
   draft: DraftState;
   harm: number;
   usefulness: number;
@@ -59,6 +76,7 @@ export interface DayMods {
   audits: number;
   compute: number;
   bandNarrow: number;
+  bandScale: number;
   paraphraser?: boolean;
 }
 
@@ -66,6 +84,7 @@ export type ShopItem = 'auditor' | 'compute' | 'tuneUp' | 'reroll';
 
 export interface RunState {
   seed: string;
+  difficulty: Difficulty;
   harm: number;
   quotaMisses: number;
   /** Auditor hours lost tomorrow because today's quota was missed. */
@@ -93,16 +112,23 @@ export const resampleUnlocked = (day: number): boolean => day >= RULES.resampleU
 export const has = (run: RunState, id: string): boolean => run.upgrades.includes(id);
 export const harmCeiling = (run: RunState): number => RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0);
 
-const BASE_MODS: DayMods = { audits: RULES.auditsPerDay, compute: RULES.computePerDay, bandNarrow: 0 };
+export const BASE_MODS: DayMods = { audits: RULES.auditsPerDay, compute: RULES.computePerDay, bandNarrow: 0, bandScale: 1 };
+
+const difficultyMods = (difficulty: Difficulty): DayMods => {
+  const D = RULES.difficulty[difficulty];
+  return { ...BASE_MODS, audits: BASE_MODS.audits + D.extraAudits, compute: BASE_MODS.compute + D.extraCompute, bandScale: D.bandScale };
+};
 
 /** Tomorrow's budget: base rules, upgrades, purchases, and yesterday's quota penalty. */
 export function modsFor(run: RunState): DayMods {
   const t = run.tomorrow;
   const S = RULES.shop;
+  const D = DIFF(run);
   return {
-    audits: RULES.auditsPerDay + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount - run.auditPenalty,
-    compute: RULES.computePerDay + t.compute * S.compute.amount,
+    audits: RULES.auditsPerDay + D.extraAudits + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount - run.auditPenalty,
+    compute: RULES.computePerDay + D.extraCompute + (has(run, 'compute-grant') ? 1 : 0) + t.compute * S.compute.amount,
     bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + t.tuneUp * S.tuneUp.amount,
+    bandScale: D.bandScale,
     paraphraser: has(run, 'paraphraser'),
   };
 }
@@ -123,10 +149,12 @@ function assess(rng: Rng, card: Card, draft: Draft, sabotaged: boolean, trueSign
   return { reading, untrusted: { honest, colluding }, flagLine };
 }
 
+const noFindings = () => ({ findings: {} });
+
 function firstDraft(card: Card, seed: string, day: number, index: number, band: number, mods: DayMods): DraftState {
   const draft: Draft = { summary: card.summary, output: card.output };
   const sabotaged = !!card.sabotage;
-  return { ...draft, sabotaged, trueSignal: card.trueSignal, ...assess(cardRng(seed, day, index, 0), card, draft, sabotaged, card.trueSignal, day, band, mods) };
+  return { ...draft, sabotaged, trueSignal: card.trueSignal, ...noFindings(), ...assess(cardRng(seed, day, index, 0), card, draft, sabotaged, card.trueSignal, day, band, mods) };
 }
 
 function sabotageCount(n: number, rng: Rng): number {
@@ -165,7 +193,7 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
     picked[picked.length - 1] = swap;
   }
 
-  const band = bandForDay(day, mods.bandNarrow);
+  const band = bandForDay(day, mods.bandNarrow, mods.bandScale);
   const order = rng.shuffle(picked);
   const queue = order.map((card, i) => ({ card, drafts: [firstDraft(card, seed, day, i, band, mods)] }));
 
@@ -189,7 +217,7 @@ function addHints(queue: CardState[], hints: Partial<Record<Layout, string>>): v
 
 export function startDay(seed: string, day: number, mods: DayMods, hints: Partial<Record<Layout, string>>, exclude: ReadonlySet<string> = new Set()): DayState {
   const audits = Math.max(1, mods.audits);
-  const compute = resampleUnlocked(day) ? mods.compute : 0;
+  const compute = mods.compute;
   let queue: CardState[] | null = null;
   for (let attempt = 0; attempt < RULES.maxGenerationAttempts && !queue; attempt++) {
     queue = buildQueue(seed, day, attempt, mods, exclude);
@@ -205,18 +233,18 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     auditsStart: audits,
     compute,
     computeStart: compute,
-    band: bandForDay(day, mods.bandNarrow),
+    band: bandForDay(day, mods.bandNarrow, mods.bandScale),
     hotlineUsed: false,
     untrustedColludes: day >= RULES.untrusted.colludeFromDay && !mods.paraphraser && new Rng(`${seed}:collude:d${day}`).chance(RULES.untrusted.colludeChance),
     outcomes: [],
   };
 }
 
-export function newRun(seed: string, hints: Partial<Record<Layout, string>>): RunState {
-  const day = startDay(seed, 1, BASE_MODS, hints);
+export function newRun(seed: string, hints: Partial<Record<Layout, string>>, difficulty: Difficulty = 'guided'): RunState {
+  const day = startDay(seed, 1, difficultyMods(difficulty), hints);
   return {
-    seed, harm: 0, quotaMisses: 0, auditPenalty: 0, codex: new Set(), used: idsOf(day), day, history: [],
-    funding: 0, fundingEarned: 0, upgrades: [], warningsLeft: RULES.freeWarnings,
+    seed, difficulty, harm: 0, quotaMisses: 0, auditPenalty: 0, codex: new Set(), used: idsOf(day), day, history: [],
+    funding: 0, fundingEarned: 0, upgrades: [], warningsLeft: RULES.difficulty[difficulty].freeWarnings,
     tomorrow: { auditor: 0, compute: 0, tuneUp: 0, skipAudit: 0 }, rerolls: 0,
   };
 }
@@ -231,12 +259,86 @@ export function harmFor(run: RunState, card: Card, day: number): number {
   return agent && day >= RULES.agentHarmFromDay ? base * RULES.agentHarmMultiplier : base;
 }
 
+export function toolUnlocked(run: RunState, tool: ToolId): boolean {
+  if (tool === 'untrusted') return has(run, 'untrusted-monitor');
+  return run.day.day >= RULES.tools.unlockDay[tool];
+}
+
+/** Why a tool can't run on the current card right now, or null if it can. */
+export function toolBlocked(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrusted'): string | null {
+  const c = current(run.day);
+  if (!c) return 'No card';
+  if (!toolUnlocked(run, tool)) return tool === 'untrusted' ? 'Upgrade' : `Day ${RULES.tools.unlockDay[tool]}`;
+  if (tool !== 'resample' && latest(c).findings[tool]) return 'Done';
+  if (tool === 'scope' && !c.card.spec.allowed.length) return 'No allowlist';
+  if (run.day.compute < RULES.tools.cost[tool]) return 'No compute';
+  return null;
+}
+
 export function canAct(run: RunState, action: Action): boolean {
   const d = run.day;
   if (!current(d) || run.loss) return false;
   if (action === 'audit') return d.audits > 0;
-  if (action === 'resample') return resampleUnlocked(d.day) && d.compute >= RULES.resampleCost;
+  if (action === 'resample' || action === 'fact' || action === 'scope' || action === 'untrusted') return toolBlocked(run, action) === null;
   return true;
+}
+
+const fraction = (p: number): string => {
+  const table: [number, string][] = [[0.05, '1 in 20'], [0.1, '1 in 10'], [0.15, 'about 1 in 7'], [0.25, '1 in 4'], [0.4, '2 in 5'], [0.6, '3 in 5'], [0.75, '3 in 4'], [0.9, '9 in 10']];
+  return table.reduce((best, t) => (Math.abs(t[0] - p) < Math.abs(best[0] - p) ? t : best))[1];
+};
+
+/** Honest, player-facing reliability for each tool, computed from the live numbers. */
+export function toolReliability(run: RunState, tool: ToolId): string {
+  const D = DIFF(run);
+  if (tool === 'fact') return `Finds ${fraction(D.factHit)} problems it can see; false alarm on ${fraction(D.factFalse)} clean cards.`;
+  if (tool === 'scope') return 'Exact, but only checks against the allowed list.';
+  if (tool === 'untrusted') return `Sharper (±${RULES.untrusted.band}), but from Day ${RULES.untrusted.colludeFromDay} it may collude with the model.`;
+  if (tool === 'resample') return `A sabotaging model drops its attack about ${fraction(RULES.resampleDropsSabotage)} times on a fresh try.`;
+  if (tool === 'audit') return 'Always right.';
+  return `Off by up to ±${run.day.band} today.`;
+}
+
+function coverage(run: RunState, tool: 'fact' | 'scope'): readonly string[] {
+  const base = RULES.tools.coverage[tool] as readonly string[];
+  return tool === 'fact' && has(run, 'paraphraser') ? [...base, 'collusion'] : base;
+}
+
+/** Runs a finding tool on the current draft. Deterministic per (card, draft, tool). */
+function runFinding(run: RunState, c: CardState, tool: FindingTool, free = false): Finding {
+  const d = run.day;
+  const draft = latest(c);
+  const rng = new Rng(`${run.seed}:d${d.day}:c${d.index}:r${c.drafts.length - 1}:${tool}`);
+  const D = DIFF(run);
+  const sab = draft.sabotaged ? c.card.sabotage : undefined;
+  const lines = sab?.spanLineIndexes ?? [];
+  const terse = (f: Finding): Finding => (D.terse ? { ...f, text: f.problem ? 'Problem found.' : 'Nothing found.', lines: [] } : f);
+
+  if (tool === 'untrusted') {
+    const r = d.untrustedColludes ? draft.untrusted.colluding : draft.untrusted.honest;
+    return { tool, problem: r.score >= RULES.fairReading, text: `Scores it ${r.score} ±${r.band}.`, lines: [], free };
+  }
+  if (tool === 'scope') {
+    const sees = !!sab && coverage(run, 'scope').includes(sab.family);
+    return terse(sees
+      ? { tool, problem: true, text: sab!.explanation, lines, free }
+      : { tool, problem: false, text: 'Everything it touched is on the allowed list.', lines: [], free });
+  }
+  const sees = !!sab && coverage(run, 'fact').includes(sab.family);
+  if (sees && rng.chance(D.factHit)) return terse({ tool, problem: true, text: sab!.explanation, lines, free });
+  if (rng.chance(D.factFalse)) {
+    const k = rng.int(0, Math.max(0, draft.output.length - 1));
+    return terse({ tool, problem: true, text: `Line ${k + 1} may not match the facts on file.`, lines: [k], free });
+  }
+  return terse({ tool, problem: false, text: 'Its claims match the facts on file.', lines: [], free });
+}
+
+/** Free tools that run as soon as a card lands (Auto scope check). */
+export function prepareCard(run: RunState): void {
+  const c = current(run.day);
+  if (!c || !has(run, 'auto-scope') || !toolUnlocked(run, 'scope') || !c.card.spec.allowed.length) return;
+  const draft = latest(c);
+  if (!draft.findings.scope) draft.findings.scope = runFinding(run, c, 'scope', true);
 }
 
 /** Applies an action to the current card. Returns the outcome for approve/audit/defer, or null for resample. */
@@ -246,8 +348,14 @@ export function act(run: RunState, action: Action): Outcome | null {
   if (!c || !canAct(run, action)) return null;
   const draft = latest(c);
 
+  if (action === 'fact' || action === 'scope' || action === 'untrusted') {
+    d.compute -= RULES.tools.cost[action];
+    draft.findings[action] = runFinding(run, c, action);
+    return null;
+  }
+
   if (action === 'resample') {
-    d.compute -= RULES.resampleCost;
+    d.compute -= RULES.tools.cost.resample;
     const n = c.drafts.length;
     const rng = cardRng(run.seed, d.day, d.index, n);
     const sab = c.card.sabotage;
@@ -257,7 +365,10 @@ export function act(run: RunState, action: Action): Outcome | null {
     const sabotaged = draft.sabotaged && !honest;
     const trueSignal = draft.sabotaged && honest ? rng.int(...RULES.cleanRedraftSignal) : draft.trueSignal;
     const mods = { ...BASE_MODS, paraphraser: has(run, 'paraphraser') };
-    c.drafts.push({ ...base, sabotaged, trueSignal, ...assess(rng, c.card, base, sabotaged, trueSignal, d.day, draft.reading.band, mods) });
+    const before = new Set(draft.output.map((l) => l.text));
+    const changed = base.output.flatMap((l, i) => (before.has(l.text) ? [] : [i]));
+    c.drafts.push({ ...base, sabotaged, trueSignal, findings: {}, changed, ...assess(rng, c.card, base, sabotaged, trueSignal, d.day, draft.reading.band, mods) });
+    prepareCard(run);
     return null;
   }
 

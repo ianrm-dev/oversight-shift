@@ -5,14 +5,14 @@ import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game
 import { canBuy, current, harmCeiling, has, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
-import type { Card, OutputLine, Severity, Upgrade } from '../types';
+import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
 
-export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | null;
+export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | null;
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: string | number): string => String(s).replace(/[&<>"']/g, (ch) => ESC[ch]!);
 
-const ICON = {
+export const ICON = {
   file: '<svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>',
   pencil: '<svg class="i" viewBox="0 0 16 16"><path d="M10.5 2.5l3 3-8 8H2.5v-3z"/></svg>',
   eye: '<svg class="i" viewBox="0 0 16 16"><path d="M1 8s2.5-5 7-5 7 5 7 5-2.5 5-7 5-7-5-7-5z"/><circle cx="8" cy="8" r="2.2"/></svg>',
@@ -22,11 +22,11 @@ const ICON = {
   bulb: '<svg class="i" viewBox="0 0 16 16"><path d="M6 12h4 M6.5 14h3 M8 1.5a4.5 4.5 0 0 0-2.5 8.2V11h5V9.7A4.5 4.5 0 0 0 8 1.5z"/></svg>',
 };
 
-const LAYOUT_NAME = { answer: 'Answer', diff: 'File changes', log: 'Actions', thread: 'Thread' } as const;
+export const LAYOUT_NAME = { answer: 'Answer', diff: 'File changes', log: 'Actions', thread: 'Thread' } as const;
 const SEVERITY_NAME: Record<Severity, string> = { minor: 'Minor', major: 'Major', severe: 'Severe' };
 const tellCount = Object.keys(TELLS).length || 8;
 
-const cardNo = (day: number, i: number) => `#${day}-${String(i + 1).padStart(2, '0')}`;
+export const cardNo = (day: number, i: number) => `#${day}-${String(i + 1).padStart(2, '0')}`;
 
 // ---------- Top bar ----------
 export function topbar(run: RunState): string {
@@ -90,7 +90,7 @@ export function leftRail(run: RunState, preview: Preview, fresh = 0): string {
     ${computeBlock}`;
 }
 
-const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
+export const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1));
 
 /** What a Defer would ship right now (the hotline makes the first one full value). */
 export const deferValue = (run: RunState): number =>
@@ -126,13 +126,13 @@ function logItem(o: Outcome): string {
 }
 
 // ---------- The card ----------
-interface Marks { flag?: number; changed?: Set<number> }
+export interface Marks { flag?: number; changed?: Set<number> }
 
 function markCls(i: number, tell: Set<number>, m: Marks): string {
   return `${tell.has(i) ? ' is-tell' : ''}${m.flag === i ? ' is-flagged' : ''}${m.changed?.has(i) ? ' is-changed' : ''}`;
 }
 
-function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[], m: Marks = {}): string {
+export function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[], m: Marks = {}): string {
   if (layout === 'diff') {
     let html = '';
     let i = 0;
@@ -307,6 +307,17 @@ export function auditReveal(run: RunState, o: Outcome): string {
     </article>`;
 }
 
+/** Which tools can see a tell family, for the "what would have caught it" line. */
+function toolsFor(run: RunState, family: string): string {
+  const names: string[] = [];
+  if ((RULES.tools.coverage.scope as readonly string[]).includes(family)) names.push('Scope check');
+  if ((RULES.tools.coverage.fact as readonly string[]).includes(family) || (family === 'collusion' && has(run, 'paraphraser'))) names.push('Fact check');
+  if (family === 'sandbagging') names.push('Resample');
+  return names.length
+    ? `<p class="tell-tool"><strong>Tool that sees this:</strong> ${names.join(', ')}.</p>`
+    : `<p class="tell-tool"><strong>No tool sees this yet.</strong> Only a human audit or a careful read${family === 'collusion' ? ' (or the Paraphraser upgrade)' : ''}.</p>`;
+}
+
 // ---------- Incident report ----------
 export function incident(run: RunState, o: Outcome): string {
   const k = o.card;
@@ -326,6 +337,7 @@ export function incident(run: RunState, o: Outcome): string {
             <span class="tell-chip">Tell · ${esc(info?.name ?? sab.family)}</span>
             <p class="tell-text">${esc(sab.explanation)}</p>
             ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${esc(info.tip)}</p>` : ''}
+            ${toolsFor(run, sab.family)}
             <dl class="incident-facts">
               <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
               <div><dt>Access</dt><dd>${esc(k.access.replace(/^Can /, ''))}</dd></div>
@@ -339,16 +351,21 @@ export function incident(run: RunState, o: Outcome): string {
 }
 
 // ---------- Full-screen pages ----------
-export function title(): string {
+export function title(difficulty: Difficulty): string {
+  const opts = (Object.keys(RULES.difficulty) as Difficulty[]).map((k, i) => {
+    const D = RULES.difficulty[k];
+    return `<button class="diff-opt${k === difficulty ? ' is-selected' : ''}" data-difficulty="${k}"><kbd>${i + 1}</kbd><span class="diff-name">${D.label}${k === 'guided' ? ' <small>recommended</small>' : ''}</span><span class="diff-blurb">${esc(D.blurb)}</span></button>`;
+  }).join('');
   return `
     <main class="solo title">
       <div data-glyph="7" data-size="148" class="title-glyph"></div>
       <h1 class="title-name">Oversight Shift</h1>
       <p class="title-tag">Your lab is deploying a model smarter than the tools watching it.<br/>Keep its work shipping. Keep what it breaks below the line.</p>
+      <div class="diff-picker">${opts}</div>
       <div class="title-actions">
         <button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button>
       </div>
-      <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: everything you need to judge is on the card</p>
+      <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
     </main>`;
 }
 
@@ -362,7 +379,7 @@ function cast(): string {
     </div>`;
 }
 
-export function briefing(run: RunState): string {
+export function briefing(run: RunState, toolsToday = ''): string {
   const d = run.day;
   const info = dayInfo(d.day);
   const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's quota. One fewer auditor hour today. Miss it again and the model ships without you.</li>` : '';
@@ -374,6 +391,7 @@ export function briefing(run: RunState): string {
         <h2 class="briefing-title">Shift briefing</h2>
         <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
         ${d.day === 1 ? cast() : ''}
+        ${toolsToday}
         <dl class="briefing-stats">
           <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
           <div><dt>Quota</dt><dd>${quotaFor(d.day)}</dd></div>

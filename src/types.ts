@@ -114,3 +114,22 @@ export interface ResearchNote {
   line: string;
   source: { title: string; url: string; date: string };
 }
+
+export type ToolId = 'monitor' | 'fact' | 'scope' | 'resample' | 'untrusted' | 'audit';
+
+/** Player-facing explainer for a control tool, grounded in a real source. */
+export interface ToolInfo {
+  id: ToolId;
+  name: string;
+  /** One line under the tool button: what it does, in plain words. */
+  what: string;
+  /** Which tells it can see, as plain words ("Out of scope, data sent elsewhere"). */
+  catches: string;
+  /** Two or three sentences: how this is used or studied in real AI control/safety. */
+  realWorld: string;
+  /** A concrete, verified number or fact from the source, if one exists. */
+  stat?: string;
+  source: { title: string; url: string; date: string };
+}
+
+export type Difficulty = 'guided' | 'standard' | 'analyst';

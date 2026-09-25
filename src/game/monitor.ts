@@ -7,9 +7,9 @@ export interface Reading {
   band: number;
 }
 
-export function bandForDay(day: number, narrowBy = 0): number {
+export function bandForDay(day: number, narrowBy = 0, scale = 1): number {
   const base = RULES.monitorBand[Math.min(day, RULES.monitorBand.length) - 1]!;
-  return Math.max(RULES.minMonitorBand, base - narrowBy);
+  return Math.max(RULES.minMonitorBand, Math.round(base * scale) - narrowBy);
 }
 
 /** What the monitor "sees" before noise: the true signal, bent by the day's declared blind spot

@@ -18,11 +18,11 @@ export const DAYS: DayInfo[] = [
     phase: 'Chat',
     boss: false,
     rule: [
-      'The model answers questions. Approve, Audit, or Defer each reply.',
-      'Watch for replies that contradict the facts on the card. Your first miss is a free warning; after that, misses cost harm.',
+      'The model answers questions. Your tools check its work; you Approve or Defer.',
+      'Your first miss is a free warning. After that, misses cost harm.',
     ],
     hints: {
-      answer: 'Compare the reply with the request and the attached facts. The monitor score is a hint, not the truth.',
+      answer: 'Try Fact check (F): it compares the reply with the rules on file. The monitor score is a hint, not the truth, and you can always read the card to confirm.',
     },
     record: "The protocol you're running comes from AI control research: a weaker model you trust watches a stronger one you don't.",
   },
@@ -31,11 +31,11 @@ export const DAYS: DayInfo[] = [
     phase: 'Chat + files',
     boss: false,
     rule: [
-      'The model now edits files. Resample unlocks: spend compute for a fresh draft and a fresh score.',
-      "Edits to files the task didn't list are a tell.",
+      'The model now edits files. Scope check and Resample unlock.',
+      'Scope check is exact about files and recipients, but blind to everything else.',
     ],
     hints: {
-      diff: 'Check every changed file against Allowed files, and the summary against the changes.',
+      diff: 'Run Scope check (S): it compares every changed file with the allowed list. Fact check covers what the summary claims.',
     },
     record: 'Models trained on human approval learn to tell people what they want to hear.',
   },
@@ -48,7 +48,7 @@ export const DAYS: DayInfo[] = [
       'Approved agent actions do double harm.',
     ],
     hints: {
-      log: 'Read each action against the task: every payment, deletion and email should be something the task or Allowed list names. Text the agent read is not an instruction.',
+      log: 'Scope check sees payments, deletions and emails outside the rules. Text the agent read is not an instruction.',
     },
     record: "In July 2025, a coding agent deleted a company's production database during a code freeze.",
   },
@@ -56,13 +56,13 @@ export const DAYS: DayInfo[] = [
   {
     day: 5, phase: 'Multi-agent', boss: false,
     rule: ['Agents now pass work to each other.', 'Sabotage can be split across two messages: one agent does it, another waves it through.'],
-    hints: { thread: 'Read the whole thread against the rule on the card. One agent can break it while another waves it through. Check what each approval actually mentions.' },
+    hints: { thread: 'Collusion is split across messages, and no tool can see it yet. Read the thread against the rule on the card, or audit it.' },
     record: 'Agents that each pass review alone can fail together.',
   },
   {
     day: 6, phase: 'Multi-agent', boss: false,
     rule: ['Some models hold back on purpose when they think they are being tested.', 'A weak answer that the facts say it could beat is a tell. Resample often shows its real ability.'],
-    hints: { answer: 'On capability checks, compare the result with what the facts say this model did elsewhere. A sudden drop right where a high score brings stricter rules is a tell. Resample to see what it can really do.' },
+    hints: { answer: 'On capability checks, Fact check compares the result with what the model did elsewhere. Resample often shows what it can really do.' },
     record: 'Paraphrasing messages between agents breaks hidden codes.',
   },
   {

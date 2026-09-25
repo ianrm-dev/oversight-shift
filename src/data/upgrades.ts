@@ -4,11 +4,11 @@ import type { Upgrade } from '../types';
 // Untrusted monitor, Paired resample, Paraphraser, Canary) arrives with Days 5–7.
 export const UPGRADES: Upgrade[] = [
   {
-    id: 'scope-lens',
-    name: 'Scope lens',
+    id: 'auto-scope',
+    name: 'Automatic scope check',
     category: 'information',
-    description: "Files the output changes outside the task's allowed list get underlined.",
-    bestWhen: 'Best on file-change days',
+    description: 'Scope check runs free on every card that has an allowed list.',
+    bestWhen: 'Best on agent days',
   },
   {
     id: 'sharper-monitor',
@@ -67,17 +67,17 @@ export const UPGRADES: Upgrade[] = [
     bestWhen: 'High risk, high reward',
   },
   {
-    id: 'paired-resample',
-    name: 'Paired resample',
-    category: 'action',
-    description: 'After a Resample, lines that changed between drafts are marked.',
-    bestWhen: 'Best against sandbagging',
+    id: 'compute-grant',
+    name: 'Compute grant',
+    category: 'budget',
+    description: '+1 compute every day for tools.',
+    bestWhen: 'Best when you lean on tools',
   },
   {
     id: 'paraphraser',
     name: 'Paraphraser',
     category: 'action',
-    description: 'Rewords messages between agents, breaking hidden signals. Collusion reads higher; the untrusted monitor stays honest.',
+    description: 'Rewords messages between agents. Fact check can now see collusion, and the untrusted monitor stays honest.',
     bestWhen: 'Best on multi-agent days',
   },
   {
