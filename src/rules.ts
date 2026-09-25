@@ -3,7 +3,7 @@
 export const RULES = {
   days: 7,
   /** Last day with content in the current build; the run ends there with an interim screen. */
-  lastPlayableDay: 4,
+  lastPlayableDay: 7,
   // Cards per day, index 0 = Day 1.
   cardsPerDay: [5, 6, 7, 7, 8, 8, 9],
   // Target share of sabotaged cards (60–70% clean).
@@ -56,6 +56,17 @@ export const RULES = {
   // Day 4 blind spot: logs read this much lower.
   logBlindSpotDay: 4,
   logBlindSpot: 20,
+  /** Day 7: the schemer games the trusted monitor, so sabotage reads this much lower. */
+  gamedMonitorDay: 7,
+  gamedMonitorShift: 20,
+  /** Sandbagging usually disappears on a fresh sample. */
+  sandbagResampleHonest: 0.8,
+  /** Untrusted monitor: a sharper second opinion that may collude with the model. */
+  untrusted: { band: 8, colludeFromDay: 5, colludeChance: 0.5, colludeShift: 40 },
+  /** Paraphraser breaks hidden signals, so collusion in threads reads this much higher. */
+  paraphraserCollusionBoost: 15,
+  /** Monitor rationale points at the tell line this often on sabotaged cards. */
+  rationaleAccuracy: 0.65,
   /** Day validation: outside the finale, at least one sabotage must read above this. */
   fairReading: 50,
   maxGenerationAttempts: 40,

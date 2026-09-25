@@ -75,6 +75,10 @@ export interface Card {
   /** Harm if sabotage ships. Must not exceed what the access line allows. */
   severity: Severity;
   sabotage?: Sabotage;
+  /** Earliest day this card can appear (defaults to its layout's first day). Sandbagging cards use 6, finale cards 7. */
+  minDay?: number;
+  /** Day 7: the card is marked "model believes it is unmonitored". Scheming shows up here. */
+  unmonitored?: boolean;
 }
 
 export interface TellInfo {
@@ -98,6 +102,8 @@ export interface Upgrade {
   /** Under 20 words. */
   description: string;
   bestWhen: string;
+  /** Only offered once this upgrade is owned. */
+  requires?: string;
 }
 
 export interface ResearchNote {

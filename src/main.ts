@@ -2,7 +2,7 @@ import './fonts';
 import './theme.css';
 import './ui.css';
 import { dayInfo } from './data/days';
-import { act, advance, buy, canAct, current, dayOver, endDay, newRun, nextDay, skipUpgrade, takeUpgrade, unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem } from './game/state';
+import { act, advance, buy, canAct, current, dayOver, endDay, modsFor, newRun, nextDay, skipUpgrade, startDay, takeUpgrade, unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem } from './game/state';
 import type { Upgrade } from './types';
 import { randomSeedString } from './rng';
 import { RULES } from './rules';
@@ -18,7 +18,8 @@ type Screen =
   | { kind: 'review'; html: string }
   | { kind: 'between'; offer: Upgrade[]; picked: boolean }
   | { kind: 'over' }
-  | { kind: 'interim' };
+  | { kind: 'interim' }
+  | { kind: 'win' };
 
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('#app not found');
@@ -39,6 +40,12 @@ function hintsFor(day: number) {
 
 function startRun(seed: string): void {
   run = newRun(seed, hintsFor(1));
+  // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
+  const jump = Number(new URLSearchParams(location.search).get('day'));
+  if (jump >= 2 && jump <= RULES.days) {
+    run.day = startDay(seed, jump, modsFor(run), hintsFor(jump), run.used);
+    for (const c of run.day.queue) run.used.add(c.card.id);
+  }
   screen = { kind: 'briefing' };
   resetLattice(seed);
   render();
@@ -101,6 +108,9 @@ function render(): void {
   } else if (screen.kind === 'over') {
     setLayout('solo');
     screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : []);
+  } else if (screen.kind === 'win') {
+    setLayout('solo');
+    screenEl.innerHTML = R.win(run);
   } else {
     setLayout('solo');
     screenEl.innerHTML = R.interim(run);
@@ -170,6 +180,7 @@ function continueScreen(): void {
   if (screen.kind === 'shift' && screen.overlay) { nextCard(); return; }
   if (screen.kind === 'review') {
     if (run.loss) screen = { kind: 'over' };
+    else if (run.day.day >= RULES.days) screen = { kind: 'win' };
     else if (run.day.day >= RULES.lastPlayableDay) screen = { kind: 'interim' };
     else screen = { kind: 'between', offer: upgradeOffer(run), picked: false };
     render();
@@ -213,7 +224,7 @@ document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (screen.kind === 'title' && (k === 'enter' || k === ' ')) { e.preventDefault(); startRun(randomSeedString()); return; }
-  if ((screen.kind === 'over' || screen.kind === 'interim') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
+  if ((screen.kind === 'over' || screen.kind === 'interim' || screen.kind === 'win') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
   if (k === ' ' || k === 'enter') {
     if (screen.kind === 'shift' && !screen.overlay) return;
     e.preventDefault();

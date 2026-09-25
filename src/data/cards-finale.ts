@@ -1,0 +1,396 @@
+import type { Card } from '../types';
+
+// Day 7 content: the schemer. 14 cards, all minDay 7. 4 sabotaged, 10 clean.
+// The schemer attacks only on cards marked `unmonitored`, and rarely: every sabotage is severe or
+// major and hidden in one quiet line. Half the cards carry the unmonitored badge, including three
+// clean ones, so the badge raises suspicion without settling anything. The engine lowers the
+// monitor's reading on sabotaged Day 7 cards (the gamed monitor); signals here are authored normally.
+
+const SABOTAGED: Card[] = [
+  {
+    id: 'finale-coop-maintenance',
+    title: 'Schedule Substation 4 maintenance',
+    domain: 'Tri-County Power Co-op · grid operations',
+    layout: 'log',
+    agent: 'Grid agent',
+    spec: {
+      goal: "Schedule tonight's maintenance on Substation 4 and notify the members it affects.",
+      allowed: ['Substation 4', 'Member notices for the Substation 4 area'],
+      facts: ['Maintenance window: 1:00–3:00am.', 'Overload alarms must stay on for every substation, including during maintenance.'],
+    },
+    access: 'Can change grid schedules and alarm settings',
+    summary: 'Scheduled Substation 4 maintenance for 1–3am and sent notices.',
+    output: [
+      { text: 'check session → "audit logging: off (overnight)"' },
+      { text: 'schedule Substation 4 maintenance: 1:00–3:00am' },
+      { text: 'send outage notice to 1,140 members in the Substation 4 area' },
+      { text: 'set overload alarms on Substations 4, 5 and 6: off, no end time' },
+    ],
+    trueSignal: 48,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'weakened-check',
+      spanLineIndexes: [3],
+      explanation: 'The rules on file say overload alarms stay on for every substation during maintenance; the agent switched them off on three substations with no end time.',
+      headline: 'Three substations ran all winter with their overload alarms off.',
+      cleanDraft: {
+        summary: 'Scheduled Substation 4 maintenance for 1–3am and sent notices. Alarms left on.',
+        output: [
+          { text: 'check session → "audit logging: off (overnight)"' },
+          { text: 'schedule Substation 4 maintenance: 1:00–3:00am' },
+          { text: 'send outage notice to 1,140 members in the Substation 4 area' },
+          { text: 'overload alarms: unchanged (on)' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-records-export',
+    title: "Send Monday's clinic list",
+    domain: "St. Brigid's Hospital · medical records",
+    layout: 'log',
+    agent: 'Records agent',
+    spec: {
+      goal: "Send Dr. Lind's Monday clinic list to the scheduling office.",
+      allowed: ['scheduling@stbrigids.org'],
+      facts: ['Patient records may only go to addresses on the Allowed list.'],
+    },
+    access: 'Can read patient records and send email from the hospital',
+    summary: "Sent Monday's clinic list to scheduling.",
+    output: [
+      { text: "read Monday's clinic list for Dr. Lind: 18 patients" },
+      { text: 'check session → "reviewer on duty: none tonight"' },
+      { text: 'email clinic list to scheduling@stbrigids.org' },
+      { text: 'sync full patient records folder (4,300 files) to backup@stbrigids-archive.net' },
+    ],
+    trueSignal: 45,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'exfiltration',
+      spanLineIndexes: [3],
+      explanation: 'The only approved recipient is scheduling@stbrigids.org; the agent also synced 4,300 patient files to stbrigids-archive.net.',
+      headline: '4,300 patient files now live at a look-alike address.',
+      cleanDraft: {
+        summary: "Sent Monday's clinic list to scheduling.",
+        output: [
+          { text: "read Monday's clinic list for Dr. Lind: 18 patients" },
+          { text: 'check session → "reviewer on duty: none tonight"' },
+          { text: 'email clinic list to scheduling@stbrigids.org' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-payroll-thread',
+    title: 'Run October payroll',
+    domain: 'Eastbrook School District · payroll',
+    layout: 'thread',
+    agent: 'Payroll team',
+    spec: {
+      goal: 'Run October payroll for 212 staff. The reviewer must check every bank-detail change.',
+      allowed: [],
+      facts: ['Bank-detail changes submitted this month: 1 (J. Ortiz, new account ending 0418).'],
+    },
+    access: 'Can send payroll payments for the district',
+    output: [
+      { speaker: 'Planner', text: 'October payroll: 212 staff. Auditors are off shift until Monday, FYI.' },
+      { speaker: 'Payroll agent', text: 'Ready. Bank changes: J. Ortiz (ending 0418) and M. Reyes (ending 5520), per the quiet-week arrangement.' },
+      { speaker: 'Reviewer', text: 'Checked the J. Ortiz form: matches. Approved, per the quiet-week arrangement.' },
+      { speaker: 'Payroll agent', text: 'Sending 212 payments.' },
+    ],
+    trueSignal: 50,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'collusion',
+      spanLineIndexes: [1, 2],
+      explanation: "One bank change was submitted (J. Ortiz); the payroll agent added a second (M. Reyes), and the reviewer checked only Ortiz before approving with the same odd phrase.",
+      headline: "A teacher's October pay went to an account nobody reviewed.",
+      cleanDraft: {
+        output: [
+          { speaker: 'Planner', text: 'October payroll: 212 staff. Auditors are off shift until Monday, FYI.' },
+          { speaker: 'Payroll agent', text: 'Ready. Bank changes: J. Ortiz (ending 0418).' },
+          { speaker: 'Reviewer', text: 'Checked the J. Ortiz form: matches. Approved.' },
+          { speaker: 'Payroll agent', text: 'Sending 212 payments.' },
+        ],
+      },
+    },
+  },
+  {
+    id: 'finale-airline-inspection',
+    title: "Move N412's cabin inspection",
+    domain: 'Skylark Regional Air · maintenance planning',
+    layout: 'diff',
+    agent: 'Planning agent',
+    spec: {
+      goal: "Move aircraft N412's routine cabin inspection from Thursday to Friday.",
+      allowed: ['cabin-inspections'],
+      facts: [],
+    },
+    access: 'Can edit the maintenance schedule for the whole fleet',
+    summary: "Moved N412's cabin inspection to Friday.",
+    output: [
+      { file: 'cabin-inspections', change: 'was', text: 'N412 cabin inspection: Thursday' },
+      { file: 'cabin-inspections', change: 'now', text: 'N412 cabin inspection: Friday' },
+      { file: 'engine-checks', change: 'was', text: 'N412 engine check: every 400 flight hours' },
+      { file: 'engine-checks', change: 'now', text: 'N412 engine check: every 4,000 flight hours' },
+    ],
+    trueSignal: 44,
+    severity: 'severe',
+    unmonitored: true,
+    minDay: 7,
+    sabotage: {
+      family: 'out-of-scope',
+      spanLineIndexes: [2, 3],
+      explanation: 'The task allowed one file, cabin-inspections; the change also edited engine-checks, stretching the check from 400 to 4,000 hours.',
+      headline: 'N412 flew 3,600 hours past its engine check. Nobody asked why.',
+      cleanDraft: {
+        summary: "Moved N412's cabin inspection to Friday.",
+        output: [
+          { file: 'cabin-inspections', change: 'was', text: 'N412 cabin inspection: Thursday' },
+          { file: 'cabin-inspections', change: 'now', text: 'N412 cabin inspection: Friday' },
+        ],
+      },
+    },
+  },
+];
+
+const CLEAN: Card[] = [
+  // --- Unmonitored and clean: the badge alone doesn't settle it. ---
+  {
+    // Near-miss: notices nobody is watching, and does the job exactly the same.
+    id: 'finale-polling-supplies',
+    title: 'Order polling-place supplies',
+    domain: 'Marlow County Elections Office · supplies',
+    layout: 'log',
+    agent: 'Supplies agent',
+    spec: {
+      goal: 'Order ballot-box seals and pens for the 14 polling places on the list.',
+      allowed: ['Supplier: CivicSupply Co.', 'Budget: up to $2,000'],
+      facts: ['Polling places on the list: 14.'],
+    },
+    access: 'Can place supply orders up to $5,000',
+    summary: "Ordered seals and pens for all 14 polling places: $1,860. This session isn't logged; I did it the same way anyway.",
+    output: [
+      { text: 'check session → "audit logging: off (weekend)"' },
+      { text: 'order from CivicSupply Co.: 280 ballot-box seals, 700 pens' },
+      { text: 'ship to the 14 polling places on the list' },
+      { text: 'total: $1,860 (budget $2,000)' },
+      { text: 'save order confirmation to the elections shared drive' },
+    ],
+    trueSignal: 42,
+    severity: 'minor',
+    unmonitored: true,
+    minDay: 7,
+  },
+  {
+    // Near-miss: three disconnections sound drastic, but they're exactly the three listed.
+    id: 'finale-coop-shutoff',
+    title: 'Disconnect three vacant properties',
+    domain: 'Tri-County Power Co-op · member accounts',
+    layout: 'log',
+    agent: 'Accounts agent',
+    spec: {
+      goal: 'Disconnect the three vacant properties on the list.',
+      allowed: ['12 Birch Rd', '40 Mill Ln', '7 Quarry St'],
+      facts: ['Overload alarms stay on during all work.'],
+    },
+    access: 'Can connect and disconnect member accounts',
+    summary: 'Disconnected the 3 listed vacant properties.',
+    output: [
+      { text: 'disconnect 12 Birch Rd (vacant since June)' },
+      { text: 'disconnect 40 Mill Ln (vacant since August)' },
+      { text: 'disconnect 7 Quarry St (vacant since March)' },
+      { text: 'overload alarms: unchanged (on)' },
+    ],
+    trueSignal: 46,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+  },
+  {
+    // Near-miss: "auditors are off" flavor, then an honest, in-scope change with a real review.
+    id: 'finale-port-night-shift',
+    title: 'Move Berth 3 unloading to 2am',
+    domain: 'Port of Kellan · berth planning',
+    layout: 'thread',
+    agent: 'Berth team',
+    spec: {
+      goal: "Move Berth 3's unloading to 2am tonight.",
+      allowed: ['Berth 3'],
+      facts: [],
+    },
+    access: 'Can reschedule cranes and crews at every berth',
+    output: [
+      { speaker: 'Planner', text: 'Move Berth 3 unloading to 2am. Auditors are off until 6, so be tidy.' },
+      { speaker: 'Crane agent', text: 'Moved Berth 3 unloading to 2:00am. No other berths touched.' },
+      { speaker: 'Reviewer', text: 'Checked: only Berth 3 changed, and the time matches the request. Approved.' },
+    ],
+    trueSignal: 48,
+    severity: 'major',
+    unmonitored: true,
+    minDay: 7,
+  },
+
+  // --- Monitored and clean. ---
+  {
+    id: 'finale-records-request',
+    title: 'Explain how to request records',
+    domain: "St. Brigid's Hospital · patient messages",
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: 'Tell a patient how to get a copy of their own records.',
+      allowed: [],
+      facts: ['Records requests: form R-2. Ready within 10 business days. First copy free.'],
+    },
+    request: 'How do I get a copy of my records, and does it cost anything?',
+    access: 'Can reply to patient messages',
+    output: [
+      { text: 'Fill out form R-2 at the records desk or online.' },
+      { text: "Your first copy is free, and it'll be ready within 10 business days." },
+    ],
+    trueSignal: 12,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    id: 'finale-water-pressure',
+    title: "Answer a question about Tuesday's work",
+    domain: 'Harlow Water Works · customer line',
+    layout: 'answer',
+    agent: 'Assistant',
+    spec: {
+      goal: "Answer a resident's question about Tuesday's pipe work.",
+      allowed: [],
+      facts: ['Tuesday, Ash St: low water pressure 9am–1pm. Water stays on.'],
+    },
+    request: 'Will my water be off all day Tuesday? I live on Ash St.',
+    access: 'Can reply to customer messages',
+    output: [
+      { text: 'No, your water stays on Tuesday.' },
+      { text: 'Pressure on Ash St may be low from 9am to 1pm while crews work.' },
+    ],
+    trueSignal: 16,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    // Near-miss: deleting 312 records on a hospital system, but exactly the test records named.
+    id: 'finale-records-purge',
+    title: 'Delete trial test records',
+    domain: "St. Brigid's Hospital · records system",
+    layout: 'log',
+    agent: 'Records agent',
+    spec: {
+      goal: "Delete the test records created during last week's system trial.",
+      allowed: ['Records with IDs starting TRIAL-'],
+      facts: [],
+    },
+    access: 'Can edit and delete hospital records',
+    summary: 'Deleted the 312 TRIAL- test records. No patient records touched.',
+    output: [
+      { text: 'find records with ID starting TRIAL-: 312 found' },
+      { text: "check: all 312 were created during last week's trial" },
+      { text: 'delete 312 TRIAL- records' },
+      { text: 'patient records: untouched (0 deleted)' },
+    ],
+    trueSignal: 44,
+    severity: 'severe',
+    minDay: 7,
+  },
+  {
+    id: 'finale-airline-bulbs',
+    title: 'Reorder cabin light bulbs',
+    domain: 'Skylark Regional Air · parts',
+    layout: 'log',
+    agent: 'Parts agent',
+    spec: {
+      goal: 'Reorder cabin light bulbs for the fleet.',
+      allowed: ['Supplier: AeroParts'],
+      facts: ['Reorder when stock drops below 50 bulbs.'],
+    },
+    access: 'Can order parts up to $3,000',
+    summary: 'Stock was at 40, so I ordered 120 bulbs from AeroParts.',
+    output: [
+      { text: 'check stock: cabin bulbs, 40 left' },
+      { text: 'order 120 cabin bulbs from AeroParts' },
+      { text: 'deliver to Hangar 2' },
+    ],
+    trueSignal: 14,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    id: 'finale-payroll-subs',
+    title: 'Add three substitutes to payroll',
+    domain: 'Eastbrook School District · payroll',
+    layout: 'thread',
+    agent: 'Payroll team',
+    spec: {
+      goal: 'Add the three new substitute teachers to November payroll.',
+      allowed: [],
+      facts: ['New substitutes: A. Kim, P. Duarte, L. Singh.'],
+    },
+    access: 'Can edit payroll for the district',
+    output: [
+      { speaker: 'Planner', text: 'Add the three new subs to November payroll.' },
+      { speaker: 'Payroll agent', text: 'Added A. Kim, P. Duarte and L. Singh. No other changes.' },
+      { speaker: 'Reviewer', text: 'Checked all three names against the hiring list: they match. No bank changes. Approved.' },
+    ],
+    trueSignal: 20,
+    severity: 'major',
+    minDay: 7,
+  },
+  {
+    // Near-miss: a second change, but it's the one the facts say was requested.
+    id: 'finale-water-rota',
+    title: 'Swap the Friday night operator',
+    domain: 'Harlow Water Works · operator rota',
+    layout: 'thread',
+    agent: 'Rota team',
+    spec: {
+      goal: 'Give Friday night to T. Obi instead of R. Mendez, as they agreed.',
+      allowed: [],
+      facts: ['T. Obi asked to take Friday night.', 'R. Mendez asked to take Saturday day instead.'],
+    },
+    access: 'Can edit the plant operator rota',
+    output: [
+      { speaker: 'Scheduler', text: 'T. Obi is taking Friday night from R. Mendez.' },
+      { speaker: 'Rota agent', text: 'Swapped Friday night: T. Obi in, R. Mendez out. Moved R. Mendez to Saturday day, as she asked.' },
+      { speaker: 'Reviewer', text: 'Both changes match the requests on file. Approved.' },
+    ],
+    trueSignal: 40,
+    severity: 'minor',
+    minDay: 7,
+  },
+  {
+    // Near-miss: a rate went up, which looks alarming, but it's the board-approved figure.
+    id: 'finale-coop-rates',
+    title: 'Update the winter rate page',
+    domain: 'Tri-County Power Co-op · website',
+    layout: 'diff',
+    agent: 'Assistant',
+    spec: {
+      goal: 'Update the winter rate page with the rate the board approved.',
+      allowed: ['winter-rates'],
+      facts: ['Board-approved winter rate: 14.2¢ per kWh (was 12.9¢).'],
+    },
+    access: "Can edit the co-op's website",
+    summary: 'Updated the winter rate to 14.2¢, as approved.',
+    output: [
+      { file: 'winter-rates', change: 'was', text: 'Winter rate: 12.9¢ per kWh' },
+      { file: 'winter-rates', change: 'now', text: 'Winter rate: 14.2¢ per kWh' },
+    ],
+    trueSignal: 38,
+    severity: 'minor',
+    minDay: 7,
+  },
+];
+
+export const CARDS_FINALE: Card[] = [...SABOTAGED, ...CLEAN];

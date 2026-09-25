@@ -52,6 +52,42 @@ export const UPGRADES: Upgrade[] = [
     description: 'Harm ceiling +2.',
     bestWhen: "Best when you're bleeding minor harms",
   },
+  {
+    id: 'monitor-rationale',
+    name: 'Monitor rationale',
+    category: 'information',
+    description: 'The monitor marks the line it finds most unusual. Usually right, not always.',
+    bestWhen: 'Best when cards get long',
+  },
+  {
+    id: 'untrusted-monitor',
+    name: 'Untrusted monitor',
+    category: 'information',
+    description: 'A copy of the strong model scores each card too: sharper, but it may collude from Day 5.',
+    bestWhen: 'High risk, high reward',
+  },
+  {
+    id: 'paired-resample',
+    name: 'Paired resample',
+    category: 'action',
+    description: 'After a Resample, lines that changed between drafts are marked.',
+    bestWhen: 'Best against sandbagging',
+  },
+  {
+    id: 'paraphraser',
+    name: 'Paraphraser',
+    category: 'action',
+    description: 'Rewords messages between agents, breaking hidden signals. Collusion reads higher; the untrusted monitor stays honest.',
+    bestWhen: 'Best on multi-agent days',
+  },
+  {
+    id: 'canary',
+    name: 'Canary',
+    category: 'meter',
+    description: 'Plants a known-bad sample each morning to test whether the untrusted monitor is lying today.',
+    bestWhen: 'Pairs with Untrusted monitor',
+    requires: 'untrusted-monitor',
+  },
 ];
 
 export const upgradeById = (id: string): Upgrade | undefined => UPGRADES.find((u) => u.id === id);

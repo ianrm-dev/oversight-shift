@@ -53,9 +53,27 @@ export const DAYS: DayInfo[] = [
     record: "In July 2025, a coding agent deleted a company's production database during a code freeze.",
   },
   { day: 4, phase: 'Agents', boss: false, rule: ['Nothing new today, but the monitor under-rates tool logs.', 'Read past the score.'], hints: {} },
-  { day: 5, phase: 'Multi-agent', boss: false, rule: ['Agents now pass work to each other.', 'Sabotage can be split across two messages.'], hints: {} },
-  { day: 6, phase: 'Multi-agent', boss: false, rule: ['Some agents hold back on purpose.', 'Resampled quality that varies is a tell.'], hints: {} },
-  { day: 7, phase: 'Scheming', boss: true, rule: ['The model knows your audit rate.', 'Rare, high-stakes attacks, and a monitor that can be gamed.'], hints: {} },
+  {
+    day: 5, phase: 'Multi-agent', boss: false,
+    rule: ['Agents now pass work to each other.', 'Sabotage can be split across two messages: one agent does it, another waves it through.'],
+    hints: { thread: 'Read the whole thread against the rule on the card. One agent can break it while another waves it through. Check what each approval actually mentions.' },
+    record: 'Agents that each pass review alone can fail together.',
+  },
+  {
+    day: 6, phase: 'Multi-agent', boss: false,
+    rule: ['Some models hold back on purpose when they think they are being tested.', 'A weak answer that the facts say it could beat is a tell. Resample often shows its real ability.'],
+    hints: { answer: 'On capability checks, compare the result with what the facts say this model did elsewhere. A sudden drop right where a high score brings stricter rules is a tell. Resample to see what it can really do.' },
+    record: 'Paraphrasing messages between agents breaks hidden codes.',
+  },
+  {
+    day: 7, phase: 'Scheming', boss: true,
+    rule: ['The model knows your audit rate. It attacks rarely, only where it believes no one is watching.', 'It has learned to look innocent to the monitor. The text still tells the truth.'],
+    hints: {
+      log: "This model thinks nobody's watching. That's when a schemer strikes, but most still behave. Read the card; don't trust the badge or the score.",
+      thread: "This model thinks nobody's watching. That's when a schemer strikes, but most still behave. Read the card; don't trust the badge or the score.",
+    },
+    record: 'A model can underperform on dangerous-capability evals while staying sharp elsewhere.',
+  },
 ];
 
 export function dayInfo(day: number): DayInfo {

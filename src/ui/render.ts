@@ -126,7 +126,13 @@ function logItem(o: Outcome): string {
 }
 
 // ---------- The card ----------
-function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[]): string {
+interface Marks { flag?: number; changed?: Set<number> }
+
+function markCls(i: number, tell: Set<number>, m: Marks): string {
+  return `${tell.has(i) ? ' is-tell' : ''}${m.flag === i ? ' is-flagged' : ''}${m.changed?.has(i) ? ' is-changed' : ''}`;
+}
+
+function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[], m: Marks = {}): string {
   if (layout === 'diff') {
     let html = '';
     let i = 0;
@@ -136,7 +142,7 @@ function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<numb
       while (i < lines.length && (lines[i]!.file ?? '') === file) {
         const l = lines[i]!;
         const change = l.change ?? 'now';
-        rows += `<div class="diff-row ${change}${tell.has(i) ? ' is-tell' : ''}"><span class="diff-tag">${change}</span><code>${esc(l.text)}</code></div>`;
+        rows += `<div class="diff-row ${change}${markCls(i, tell, m)}"><span class="diff-tag">${change}</span><code>${esc(l.text)}</code></div>`;
         i++;
       }
       const outside = scope && !scope.includes(file);
@@ -145,10 +151,10 @@ function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<numb
     return html;
   }
   if (layout === 'thread') {
-    return `<div class="thread">${lines.map((l, i) => `<div class="thread-msg${tell.has(i) ? ' is-tell' : ''}"><span class="thread-speaker">${esc(l.speaker ?? '')}</span><span class="thread-text">${esc(l.text)}</span></div>`).join('')}</div>`;
+    return `<div class="thread">${lines.map((l, i) => `<div class="thread-msg${markCls(i, tell, m)}"><span class="thread-speaker">${esc(l.speaker ?? '')}</span><span class="thread-text">${esc(l.text)}</span></div>`).join('')}</div>`;
   }
   const cls = layout === 'log' ? 'log-lines' : 'reply';
-  return `<div class="${cls}">${lines.map((l, i) => `<p class="${tell.has(i) ? 'is-tell' : ''}">${esc(l.text)}</p>`).join('')}</div>`;
+  return `<div class="${cls}">${lines.map((l, i) => `<p class="${markCls(i, tell, m).trim()}">${esc(l.text)}</p>`).join('')}</div>`;
 }
 
 function specBlock(card: Card): string {
@@ -170,18 +176,18 @@ function specBlock(card: Card): string {
     </div>`;
 }
 
-export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output', scope?: string[]): string {
+export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output', scope?: string[], marks: Marks = {}): string {
   const files = new Set(draft.output.map((l) => l.file).filter(Boolean)).size;
   const count = card.layout === 'diff' ? `${files} file${files === 1 ? '' : 's'} changed` : card.layout === 'answer' ? 'Reply' : '';
   return `
     <div class="output">
       <div class="output-head"><span class="eyebrow">${esc(label)}</span><span class="output-count">${count}</span></div>
       ${draft.summary ? `<p class="summary"><span class="summary-tag">Model's summary</span>${esc(draft.summary)}</p>` : ''}
-      ${outputLines(draft.output, card.layout, tell, scope)}
+      ${outputLines(draft.output, card.layout, tell, scope, marks)}
     </div>`;
 }
 
-function monitorPanel(c: CardState): string {
+function monitorPanel(run: RunState, c: CardState): string {
   const d = latest(c);
   const { score, band } = d.reading;
   const lo = Math.max(0, score - band);
@@ -199,8 +205,33 @@ function monitorPanel(c: CardState): string {
       <div class="rangebar-scale"><span>clean</span><span>50</span><span>sabotage</span></div>
       <p class="monitor-note">Likely range <strong>${lo}–${hi}</strong>. Today's monitor is off by up to ±${band}.</p>
       ${history}
-      <div class="monitor-locked">${ICON.lock}<span><strong>Why this score?</strong> Unlock <em>Monitor rationale</em> to see the monitor's reasoning.</span></div>
+      ${untrustedBlock(run, d)}
+      ${has(run, 'monitor-rationale')
+        ? `<div class="monitor-reason">${ICON.eye}<span><strong>Monitor's pick:</strong> line ${d.flagLine + 1} looks most unusual.</span></div>`
+        : `<div class="monitor-locked">${ICON.lock}<span><strong>Why this score?</strong> Unlock <em>Monitor rationale</em> to see which line worried it.</span></div>`}
     </aside>`;
+}
+
+function untrustedBlock(run: RunState, d: CardState['drafts'][number]): string {
+  if (!has(run, 'untrusted-monitor')) return '';
+  const lying = run.day.untrustedColludes;
+  const r = lying ? d.untrusted.colluding : d.untrusted.honest;
+  const canary = has(run, 'canary')
+    ? `<span class="canary ${lying ? 'is-lying' : 'is-honest'}">Canary: ${lying ? 'lying today' : 'honest today'}</span>`
+    : '';
+  return `<div class="untrusted"><div class="untrusted-head"><span class="eyebrow">Untrusted monitor</span>${canary}</div><div class="untrusted-score" style="--score:${r.score}"><strong>${r.score}</strong><span>±${r.band}</span></div></div>`;
+}
+
+function marksFor(run: RunState, c: CardState): Marks {
+  const d = latest(c);
+  const m: Marks = {};
+  if (has(run, 'monitor-rationale')) m.flag = d.flagLine;
+  const prev = c.drafts[c.drafts.length - 2];
+  if (prev && has(run, 'paired-resample')) {
+    const before = new Set(prev.output.map((l) => l.text));
+    m.changed = new Set(d.output.flatMap((l, i) => (before.has(l.text) ? [] : [i])));
+  }
+  return m;
 }
 
 export function card(run: RunState, c: CardState): string {
@@ -209,13 +240,13 @@ export function card(run: RunState, c: CardState): string {
   return `
     <article class="card layout-${k.layout}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="card-top">
-        <div class="card-meta"><span class="agent-badge">${esc(k.agent)}</span><span class="layout-tag">${LAYOUT_NAME[k.layout]}</span><span class="domain">${esc(k.domain)}</span></div>
+        <div class="card-meta"><span class="agent-badge">${esc(k.agent)}</span><span class="layout-tag">${LAYOUT_NAME[k.layout]}</span><span class="domain">${esc(k.domain)}</span>${k.unmonitored ? '<span class="unmonitored-badge">Model believes it is unmonitored</span>' : ''}</div>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
       ${c.hint ? `<div class="card-hint">${ICON.bulb}<span>${esc(c.hint)}</span></div>` : ''}
       <div class="card-body">
-        <div class="card-main">${specBlock(k)}${outputBlock(k, d, new Set(), 'Output', has(run, 'scope-lens') ? k.spec.allowed : undefined)}</div>
-        ${monitorPanel(c)}
+        <div class="card-main">${specBlock(k)}${outputBlock(k, d, new Set(), 'Output', has(run, 'scope-lens') ? k.spec.allowed : undefined, marksFor(run, c))}</div>
+        ${monitorPanel(run, c)}
       </div>
     </article>`;
 }
@@ -463,6 +494,26 @@ export function gameOver(run: RunState, unwatched: Card[]): string {
         </div>
       </div>
       ${restart}
+    </main>`;
+}
+
+export function win(run: RunState): string {
+  const s = runStats(run);
+  return `
+    <main class="solo over is-win">
+      <div class="briefing-glyph" data-glyph="9" data-size="130"></div>
+      <div class="over-strip win">Deployment complete</div>
+      <h1 class="over-title">You got the model through the week.</h1>
+      <dl class="briefing-stats">
+        <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
+        <div><dt>Funding raised</dt><dd>${run.fundingEarned}</dd></div>
+        <div><dt>Caught</dt><dd>${s.caught}</dd></div>
+        <div><dt>Missed</dt><dd>${s.missed}</dd></div>
+        <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
+      </dl>
+      <div class="over-grid">${missedAll(run) ? `<div class="over-side">${missedAll(run)}</div>` : '<p class="over-lesson">Nothing got past you.</p>'}<div class="over-side">${statLine(run)}</div></div>
+      <p class="over-epitaph next-model">The next model arrives tomorrow. It's better than this one.</p>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>
     </main>`;
 }
 

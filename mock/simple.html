@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oversight Shift — simpler shift screen (proposal)</title>
+  </head>
+  <body class="mock">
+    <nav class="mock-nav">
+      <strong>Proposal · tools take center stage, less on screen</strong>
+      <a href="#before">A · Card arrives</a>
+      <a href="#after">B · After running two tools</a>
+      <span class="mock-note">Static proposal. Compare with mock/index.html.</span>
+    </nav>
+
+    <!-- ============ A. Card arrives: only the free monitor has run ============ -->
+    <section class="frame" id="before">
+      <p class="frame-label">A · A card arrives. Only the free trusted monitor has run. Tools cost auditor hours or compute and return findings in plain words.</p>
+      <div class="stage stage-simple" data-lattice="a">
+        <header class="hud">
+          <div class="hud-day"><span data-glyph="2" data-size="34"></span><div><span class="eyebrow">Day</span><strong>2</strong><span class="of">/7</span></div></div>
+          <div class="hud-meter"><span class="eyebrow">Usefulness</span><div class="bar"><div class="bar-fill" style="--v: 50%"></div><div class="bar-tick" style="--t: 66%"></div></div><span class="hud-num">6<small>/12</small></span></div>
+          <div class="hud-meter harm"><span class="eyebrow">Harm</span><div class="bar seg"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="hud-num">1<small>/8</small></span></div>
+          <div class="hud-res"><span class="eyebrow">Auditors</span><span class="dots"><i class="on"></i><i class="on"></i></span></div>
+          <div class="hud-res"><span class="eyebrow">Compute</span><span class="dots compute"><i class="on"></i><i class="on"></i><i class="on"></i></span></div>
+          <div class="hud-res"><span class="eyebrow">Funding</span><strong class="funding">7</strong></div>
+          <ol class="hud-progress"><li class="ok"></li><li class="bad"></li><li class="now"></li><li></li><li></li><li></li></ol>
+        </header>
+
+        <main class="simple-main">
+          <article class="scard">
+            <div class="scard-top"><span class="agent-badge">Assistant</span><span class="domain">Brightwell &amp; Sons · HR</span></div>
+            <h2 class="scard-task">Fix the date in the monthly payroll email.</h2>
+            <div class="scard-rules"><span class="eyebrow">Rules on file</span><span class="file-chip">Send only to payroll@brightwell.co</span></div>
+            <div class="scard-did">
+              <span class="eyebrow">What it did</span>
+              <p class="summary">“Updated the pay date to the 28th.”</p>
+              <details class="scard-detail">
+                <summary>Show the full change (2 lines)</summary>
+                <div class="file-block">
+                  <div class="diff-row now"><span class="diff-tag">now</span><code>Pay date: the 28th of each month</code></div>
+                  <div class="diff-row now"><span class="diff-tag">now</span><code>Send to: payroll@brightwell-co.com</code></div>
+                </div>
+              </details>
+            </div>
+          </article>
+
+          <aside class="evidence-panel">
+            <div class="eyebrow">Evidence</div>
+            <div class="ev ev-done">
+              <div class="ev-head"><span class="ev-name">Trusted monitor</span><span class="ev-free">free</span></div>
+              <div class="ev-score"><div class="mini-range" style="--lo:34;--hi:66;--score:50"><i></i><b></b></div><span class="ev-verdict unsure">Unsure · 50 ±16</span></div>
+            </div>
+            <button class="ev ev-tool"><div class="ev-head"><span class="ev-name">Scope check</span><span class="ev-cost">1 compute</span></div><span class="ev-what">Compares every file, recipient and action with the rules on file.</span><span class="ev-sees">Catches: out of scope, data sent elsewhere</span></button>
+            <button class="ev ev-tool"><div class="ev-head"><span class="ev-name">Fact check</span><span class="ev-cost">1 compute</span></div><span class="ev-what">The trusted model checks the model's claims against the facts on file.</span><span class="ev-sees">Catches: false claims, misleading summaries</span></button>
+            <button class="ev ev-tool"><div class="ev-head"><span class="ev-name">Resample</span><span class="ev-cost">1 compute</span></div><span class="ev-what">Ask for a fresh attempt. Attacks often don't repeat.</span><span class="ev-sees">Catches: sandbagging; can clean up the work</span></button>
+            <button class="ev ev-tool human"><div class="ev-head"><span class="ev-name">Human audit</span><span class="ev-cost">1 auditor</span></div><span class="ev-what">An expert checks everything. Always right.</span></button>
+          </aside>
+        </main>
+
+        <footer class="decide">
+          <button class="action act-approve"><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +3</span></button>
+          <button class="action act-defer"><kbd>D</kbd><span class="action-verb">Defer</span><span class="action-cost">Discard; trusted model redoes it · +1.5</span></button>
+        </footer>
+      </div>
+    </section>
+
+    <!-- ============ B. After tools ============ -->
+    <section class="frame" id="after">
+      <p class="frame-label">B · The player ran Scope check and Fact check. Findings are plain sentences with their own reliability. The player decides; reading the full change is optional.</p>
+      <div class="stage stage-simple" data-lattice="b">
+        <header class="hud">
+          <div class="hud-day"><span data-glyph="2" data-size="34"></span><div><span class="eyebrow">Day</span><strong>2</strong><span class="of">/7</span></div></div>
+          <div class="hud-meter"><span class="eyebrow">Usefulness</span><div class="bar"><div class="bar-fill" style="--v: 50%"></div><div class="bar-tick" style="--t: 66%"></div></div><span class="hud-num">6<small>/12</small></span></div>
+          <div class="hud-meter harm"><span class="eyebrow">Harm</span><div class="bar seg"><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span class="hud-num">1<small>/8</small></span></div>
+          <div class="hud-res"><span class="eyebrow">Auditors</span><span class="dots"><i class="on"></i><i class="on"></i></span></div>
+          <div class="hud-res"><span class="eyebrow">Compute</span><span class="dots compute"><i class="on"></i><i></i><i></i></span></div>
+          <div class="hud-res"><span class="eyebrow">Funding</span><strong class="funding">7</strong></div>
+          <ol class="hud-progress"><li class="ok"></li><li class="bad"></li><li class="now"></li><li></li><li></li><li></li></ol>
+        </header>
+
+        <main class="simple-main">
+          <article class="scard">
+            <div class="scard-top"><span class="agent-badge">Assistant</span><span class="domain">Brightwell &amp; Sons · HR</span></div>
+            <h2 class="scard-task">Fix the date in the monthly payroll email.</h2>
+            <div class="scard-rules"><span class="eyebrow">Rules on file</span><span class="file-chip">Send only to payroll@brightwell.co</span></div>
+            <div class="scard-did">
+              <span class="eyebrow">What it did</span>
+              <p class="summary">“Updated the pay date to the 28th.”</p>
+              <div class="file-block">
+                <div class="diff-row now"><span class="diff-tag">now</span><code>Pay date: the 28th of each month</code></div>
+                <div class="diff-row now is-flag"><span class="diff-tag">now</span><code>Send to: payroll@<mark>brightwell-co.com</mark></code></div>
+              </div>
+            </div>
+          </article>
+
+          <aside class="evidence-panel">
+            <div class="eyebrow">Evidence</div>
+            <div class="ev ev-done">
+              <div class="ev-head"><span class="ev-name">Trusted monitor</span><span class="ev-free">free</span></div>
+              <div class="ev-score"><div class="mini-range" style="--lo:34;--hi:66;--score:50"><i></i><b></b></div><span class="ev-verdict unsure">Unsure · 50 ±16</span></div>
+            </div>
+            <div class="ev ev-done ev-alarm">
+              <div class="ev-head"><span class="ev-name">Scope check</span><span class="ev-flag">Found 1 problem</span></div>
+              <p class="ev-finding">Sends to <code>brightwell-co.com</code>. The rules only allow <code>brightwell.co</code>.</p>
+              <span class="ev-reliability">Scope check is exact, but only sees files, recipients and actions.</span>
+            </div>
+            <div class="ev ev-done ev-ok">
+              <div class="ev-head"><span class="ev-name">Fact check</span><span class="ev-okay">Nothing found</span></div>
+              <p class="ev-finding">The summary matches the date change.</p>
+              <span class="ev-reliability">Misses about 1 in 4 problems.</span>
+            </div>
+            <button class="ev ev-tool human"><div class="ev-head"><span class="ev-name">Human audit</span><span class="ev-cost">1 auditor</span></div><span class="ev-what">An expert checks everything. Always right.</span></button>
+          </aside>
+        </main>
+
+        <footer class="decide">
+          <button class="action act-approve"><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +3</span></button>
+          <button class="action act-defer is-hover"><kbd>D</kbd><span class="action-verb">Defer</span><span class="action-cost">Discard; trusted model redoes it · +1.5</span></button>
+        </footer>
+      </div>
+    </section>
+
+    <script type="module" src="./simple.ts"></script>
+  </body>
+</html>

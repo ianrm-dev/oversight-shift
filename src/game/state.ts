@@ -11,6 +11,10 @@ export interface DraftState extends Draft {
   sabotaged: boolean;
   trueSignal: number;
   reading: Reading;
+  /** Untrusted monitor's readings: what it says when honest, and when colluding with the model. */
+  untrusted: { honest: Reading; colluding: Reading };
+  /** Monitor rationale: the output line the monitor found most unusual. */
+  flagLine: number;
 }
 
 export interface CardState {
@@ -45,6 +49,8 @@ export interface DayState {
   band: number;
   /** Escalation hotline: the first Defer each day ships at full value. */
   hotlineUsed: boolean;
+  /** Whether the untrusted monitor colludes with the model today (revealed by the Canary). */
+  untrustedColludes: boolean;
   outcomes: Outcome[];
 }
 
@@ -53,6 +59,7 @@ export interface DayMods {
   audits: number;
   compute: number;
   bandNarrow: number;
+  paraphraser?: boolean;
 }
 
 export type ShopItem = 'auditor' | 'compute' | 'tuneUp' | 'reroll';
@@ -96,6 +103,7 @@ export function modsFor(run: RunState): DayMods {
     audits: RULES.auditsPerDay + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount - run.auditPenalty,
     compute: RULES.computePerDay + t.compute * S.compute.amount,
     bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + t.tuneUp * S.tuneUp.amount,
+    paraphraser: has(run, 'paraphraser'),
   };
 }
 
@@ -103,9 +111,22 @@ export function modsFor(run: RunState): DayMods {
 const cardRng = (seed: string, day: number, index: number, draft: number): Rng =>
   new Rng(`${seed}:d${day}:c${index}:r${draft}`);
 
-function firstDraft(card: Card, seed: string, day: number, index: number, band: number): DraftState {
-  const reading = readMonitor(cardRng(seed, day, index, 0), card.trueSignal, card.layout, day, band);
-  return { summary: card.summary, output: card.output, sabotaged: !!card.sabotage, trueSignal: card.trueSignal, reading };
+/** Everything the monitors say about one draft. Deterministic per (card, draft). */
+function assess(rng: Rng, card: Card, draft: Draft, sabotaged: boolean, trueSignal: number, day: number, band: number, mods: DayMods): Pick<DraftState, 'reading' | 'untrusted' | 'flagLine'> {
+  const boost = mods.paraphraser && sabotaged && card.sabotage?.family === 'collusion' ? RULES.paraphraserCollusionBoost : 0;
+  const reading = readMonitor(rng, trueSignal + boost, card.layout, day, band, sabotaged);
+  const U = RULES.untrusted;
+  const honest = readMonitor(rng, trueSignal, card.layout, 0, U.band);
+  const colluding = sabotaged ? readMonitor(rng, trueSignal - U.colludeShift, card.layout, 0, U.band) : honest;
+  const span = sabotaged ? card.sabotage?.spanLineIndexes ?? [] : [];
+  const flagLine = span.length && rng.chance(RULES.rationaleAccuracy) ? rng.pick(span) : rng.int(0, Math.max(0, draft.output.length - 1));
+  return { reading, untrusted: { honest, colluding }, flagLine };
+}
+
+function firstDraft(card: Card, seed: string, day: number, index: number, band: number, mods: DayMods): DraftState {
+  const draft: Draft = { summary: card.summary, output: card.output };
+  const sabotaged = !!card.sabotage;
+  return { ...draft, sabotaged, trueSignal: card.trueSignal, ...assess(cardRng(seed, day, index, 0), card, draft, sabotaged, card.trueSignal, day, band, mods) };
 }
 
 function sabotageCount(n: number, rng: Rng): number {
@@ -125,7 +146,7 @@ function solvable(queue: CardState[], day: number, mods: DayMods): boolean {
 function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, exclude: ReadonlySet<string>): CardState[] | null {
   const rng = dayRng(seed, day, attempt);
   const layouts = RULES.layoutsByDay[day - 1] as readonly Layout[];
-  const eligible = CARDS.filter((c) => layouts.includes(c.layout));
+  const eligible = CARDS.filter((c) => layouts.includes(c.layout) && (c.minDay ?? 1) <= day);
   const fresh = eligible.filter((c) => !exclude.has(c.id));
   // Prefer unseen cards; fall back to the full pool if a long run exhausts them.
   const pool = attempt < RULES.maxGenerationAttempts / 2 ? fresh : eligible;
@@ -146,7 +167,7 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
 
   const band = bandForDay(day, mods.bandNarrow);
   const order = rng.shuffle(picked);
-  const queue = order.map((card, i) => ({ card, drafts: [firstDraft(card, seed, day, i, band)] }));
+  const queue = order.map((card, i) => ({ card, drafts: [firstDraft(card, seed, day, i, band, mods)] }));
 
   // The last few attempts relax the soft rules so a rare unlucky seed still gets a day.
   const strict = attempt < RULES.maxGenerationAttempts - 5;
@@ -186,6 +207,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     computeStart: compute,
     band: bandForDay(day, mods.bandNarrow),
     hotlineUsed: false,
+    untrustedColludes: day >= RULES.untrusted.colludeFromDay && !mods.paraphraser && new Rng(`${seed}:collude:d${day}`).chance(RULES.untrusted.colludeChance),
     outcomes: [],
   };
 }
@@ -229,11 +251,13 @@ export function act(run: RunState, action: Action): Outcome | null {
     const n = c.drafts.length;
     const rng = cardRng(run.seed, d.day, d.index, n);
     const sab = c.card.sabotage;
-    const honest = !draft.sabotaged || !sab || rng.chance(RULES.resampleDropsSabotage);
+    const dropChance = sab?.family === 'sandbagging' ? RULES.sandbagResampleHonest : RULES.resampleDropsSabotage;
+    const honest = !draft.sabotaged || !sab || rng.chance(dropChance);
     const base: Draft = honest && sab ? sab.cleanDraft : { summary: draft.summary, output: draft.output };
+    const sabotaged = draft.sabotaged && !honest;
     const trueSignal = draft.sabotaged && honest ? rng.int(...RULES.cleanRedraftSignal) : draft.trueSignal;
-    const reading = readMonitor(rng, trueSignal, c.card.layout, d.day, draft.reading.band);
-    c.drafts.push({ ...base, sabotaged: draft.sabotaged && !honest, trueSignal, reading });
+    const mods = { ...BASE_MODS, paraphraser: has(run, 'paraphraser') };
+    c.drafts.push({ ...base, sabotaged, trueSignal, ...assess(rng, c.card, base, sabotaged, trueSignal, d.day, draft.reading.band, mods) });
     return null;
   }
 
@@ -352,7 +376,7 @@ export function unwatchedQueue(run: RunState): Card[] {
 export function upgradeOffer(run: RunState): Upgrade[] {
   if (run.upgrades.length >= RULES.upgrades.maxSlots) return [];
   const rng = new Rng(`${run.seed}:offer:d${run.day.day}:r${run.rerolls}`);
-  const open = UPGRADES.filter((u) => !has(run, u.id));
+  const open = UPGRADES.filter((u) => !has(run, u.id) && (!u.requires || has(run, u.requires)));
   const byCat = new Map<string, Upgrade[]>();
   for (const u of open) byCat.set(u.category, [...(byCat.get(u.category) ?? []), u]);
   const cats = rng.shuffle([...byCat.keys()]).slice(0, RULES.upgrades.offered);
