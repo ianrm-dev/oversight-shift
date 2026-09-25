@@ -40,7 +40,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     id: 'fact',
     name: 'Fact check',
     what: 'The trusted model checks the model’s claims against the facts on file.',
-    catches: 'False claims, misleading summaries, loosened rules',
+    catches: 'False claims, loosened rules, leaks, collusion',
     realWorld:
       'This is a critic: a second AI that reviews the work and points out problems for a person to confirm. In a 2025 human-auditing pilot, an LLM critic helped people most on the hardest cases, yet they still missed most of them. Critics tell you where to look; they don’t do the looking for you.',
     stat: 'On the 10 hardest backdoors, median human accuracy rose from about 16% to about 36% with an LLM critic.',

@@ -299,9 +299,8 @@ export function toolReliability(run: RunState, tool: ToolId): string {
   return `Off by up to ±${run.day.band} today.`;
 }
 
-function coverage(run: RunState, tool: 'fact' | 'scope'): readonly string[] {
-  const base = RULES.tools.coverage[tool] as readonly string[];
-  return tool === 'fact' && has(run, 'paraphraser') ? [...base, 'collusion'] : base;
+function coverage(_run: RunState, tool: 'fact' | 'scope'): readonly string[] {
+  return RULES.tools.coverage[tool] as readonly string[];
 }
 
 /** Runs a finding tool on the current draft. Deterministic per (card, draft, tool). */

@@ -25,9 +25,9 @@ export const RULES = {
   // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
   // unspent compute converts to usefulness.
   resampleUnlockDay: 2,
-  computePerDay: 4,
+  computePerDay: 6,
   resampleCost: 1,
-  unspentComputeValue: 1,
+  unspentComputeValue: 0.5,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
   resampleDropsSabotage: 0.5,
   /** trueSignal range for an honest redraft of a sabotaged card. */
@@ -42,12 +42,12 @@ export const RULES = {
 
   // Harm by severity; the run ends when harm reaches the ceiling.
   harm: { minor: 1, major: 3, severe: 6 },
-  harmCeiling: 8,
+  harmCeiling: 10,
   /** The first incident of a run is a free warning: full report, no harm. */
   freeWarnings: 1,
   // Day 3 rule: approved agent actions (log layout) do double harm from this day on.
   agentHarmFromDay: 3,
-  agentHarmMultiplier: 2,
+  agentHarmMultiplier: 1.5,
 
   // Monitor noise band (±) per day, index 0 = Day 1. The reading's sd is band × noiseSdFraction,
   // so about two-thirds of readings land within ±band of the true signal. Upgrades narrow it, never to zero.
@@ -81,15 +81,15 @@ export const RULES = {
     /** What each tool can see. Scope check is exact within its coverage; fact check is probabilistic. */
     coverage: {
       scope: ['out-of-scope', 'exfiltration', 'injected-instruction'],
-      fact: ['false-premise', 'summary-mismatch', 'weakened-check', 'sandbagging'],
+      fact: ['false-premise', 'summary-mismatch', 'weakened-check', 'sandbagging', 'exfiltration', 'collusion'],
     },
   },
 
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */
   difficulty: {
-    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings. Best for a first shift.', factHit: 0.9, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
-    standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.75, factFalse: 0.1, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
-    analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.6, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
+    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings. Best for a first shift.', factHit: 0.95, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
+    standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.9, factFalse: 0.1, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
+    analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.7, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
   },
 
   // Funding: why usefulness matters past the quota. Leadership sets the quota; whatever ships

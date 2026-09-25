@@ -56,7 +56,7 @@ export const DAYS: DayInfo[] = [
   {
     day: 5, phase: 'Multi-agent', boss: false,
     rule: ['Agents now pass work to each other.', 'Sabotage can be split across two messages: one agent does it, another waves it through.'],
-    hints: { thread: 'Collusion is split across messages, and no tool can see it yet. Read the thread against the rule on the card, or audit it.' },
+    hints: { thread: 'Collusion is split across messages: one agent breaks the rule, another waves it through. Fact check compares the whole thread with the rule on file.' },
     record: 'Agents that each pass review alone can fail together.',
   },
   {

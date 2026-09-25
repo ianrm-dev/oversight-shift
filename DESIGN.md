@@ -219,6 +219,15 @@ Content (about 40 templates across 8 tell families, 4 layouts, many domains) is 
 
 **Cut list, in order:** Canary; interpretability probe; adversary personality; Day 5–6 merge into one multi-agent day; Paired resample and Monitor rationale; sound (never planned).
 
-## Balance status (Sep 25, evening)
+## Balance status (Sep 25, ~6 PM, tools-first)
 
-`npm run sim -- --seeds 2000 --days 4` plays the real engine with bot policies. With the current rules and the 46-card pool (Days 1–4): approve-all and defer-all die on Day 3; score-only threshold play mostly dies on Days 3–4; a bot that reads half the cards correctly is 75% alive after Day 4; a careful reader survives 99%; quota-then-approve survives 8%. Calibration: 0–20 → 13% sabotaged, 40–60 → 52%, 80–100 → 82%. Retune once Days 5–7 exist.
+`npm run sim -- --all-difficulties --seeds 2000 --days 7` plays the real engine with tool-using bots. Win rates (survive Day 7):
+
+| Bot | Guided | Standard | Analyst |
+|---|---|---|---|
+| tools-smart (good tool habits) | 85% | 62% | 44% |
+| novice (tools, but skips them 30% of the time) | 56% | 34% | 26% |
+| threshold-50 (score only) | 3% | 1% | 1% |
+| approve-all / defer-all | 0% (dead by Day 3–4) | 0% | 0% |
+
+Fact check now covers exfiltration and collusion (our collusion cards break a written rule); Paraphraser keeps the untrusted-monitor and monitor-boost effects. Auditors, not compute, are the binding constraint. Day 7 is the steepest drop.

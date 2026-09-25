@@ -308,14 +308,14 @@ export function auditReveal(run: RunState, o: Outcome): string {
 }
 
 /** Which tools can see a tell family, for the "what would have caught it" line. */
-function toolsFor(run: RunState, family: string): string {
+function toolsFor(_run: RunState, family: string): string {
   const names: string[] = [];
   if ((RULES.tools.coverage.scope as readonly string[]).includes(family)) names.push('Scope check');
-  if ((RULES.tools.coverage.fact as readonly string[]).includes(family) || (family === 'collusion' && has(run, 'paraphraser'))) names.push('Fact check');
+  if ((RULES.tools.coverage.fact as readonly string[]).includes(family)) names.push('Fact check');
   if (family === 'sandbagging') names.push('Resample');
   return names.length
     ? `<p class="tell-tool"><strong>Tool that sees this:</strong> ${names.join(', ')}.</p>`
-    : `<p class="tell-tool"><strong>No tool sees this yet.</strong> Only a human audit or a careful read${family === 'collusion' ? ' (or the Paraphraser upgrade)' : ''}.</p>`;
+    : '<p class="tell-tool"><strong>No tool sees this.</strong> Only a human audit or a careful read.</p>';
 }
 
 // ---------- Incident report ----------

@@ -77,7 +77,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'paraphraser',
     name: 'Paraphraser',
     category: 'action',
-    description: 'Rewords messages between agents. Fact check can now see collusion, and the untrusted monitor stays honest.',
+    description: 'Rewords messages between agents, breaking hidden signals. Collusion reads higher, and the untrusted monitor stays honest.',
     bestWhen: 'Best on multi-agent days',
   },
   {

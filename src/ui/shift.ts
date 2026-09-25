@@ -17,7 +17,7 @@ const TOOL_NAME: Record<ToolId, string> = {
 };
 const TOOL_KEY: Partial<Record<ToolId, string>> = { fact: 'F', scope: 'S', resample: 'R', untrusted: 'M', audit: 'U' };
 const FALLBACK_CATCHES: Partial<Record<ToolId, string>> = {
-  fact: 'False claims, misleading summaries, loosened rules',
+  fact: 'False claims, loosened rules, leaks, collusion',
   scope: 'Out of scope, data sent elsewhere, injected orders',
   resample: 'Sandbagging; can clean up the work',
   untrusted: 'Anything, sharply, unless it colludes',
