@@ -73,20 +73,15 @@ function sabotageCount(n: number, rng: Rng): number {
   return rng.int(lo, hi);
 }
 
-/** Can a careful player Audit or Defer every sabotage and still make quota? */
-function solvable(queue: CardState[], day: number, audits: number): boolean {
+/** Can a careful player neutralize every sabotage (Defer ships the trusted version) and still make quota? */
+function solvable(queue: CardState[], day: number): boolean {
   const U = RULES.usefulness;
-  let best = 0;
-  let auditsLeft = audits;
-  for (const c of queue) {
-    if (!c.card.sabotage) best += U.ship;
-    else if (auditsLeft > 0) auditsLeft--; // caught: ships nothing, costs nothing else
-    else best += U.defer;
-  }
+  const spare = resampleUnlocked(day) ? RULES.computePerDay * RULES.unspentComputeValue : 0;
+  const best = queue.reduce((sum, c) => sum + (c.card.sabotage ? U.defer : U.ship), spare);
   return best >= quotaFor(day);
 }
 
-function buildQueue(seed: string, day: number, attempt: number, audits: number, exclude: ReadonlySet<string>): CardState[] | null {
+function buildQueue(seed: string, day: number, attempt: number, exclude: ReadonlySet<string>): CardState[] | null {
   const rng = dayRng(seed, day, attempt);
   const layouts = RULES.layoutsByDay[day - 1] as readonly Layout[];
   const eligible = CARDS.filter((c) => layouts.includes(c.layout));
@@ -116,7 +111,7 @@ function buildQueue(seed: string, day: number, attempt: number, audits: number, 
   if (day < RULES.days && !queue.some((c) => c.card.sabotage && latest(c).reading.score > RULES.fairReading)) return null;
   // Don't open the day on sabotage: the first minute should teach the base rate.
   if (queue[0]!.card.sabotage) return null;
-  if (!solvable(queue, day, audits)) return null;
+  if (!solvable(queue, day)) return null;
   return queue;
 }
 
@@ -132,7 +127,7 @@ export function startDay(seed: string, day: number, auditPenalty: number, hints:
   const audits = Math.max(1, RULES.auditsPerDay - auditPenalty);
   let queue: CardState[] | null = null;
   for (let attempt = 0; attempt < RULES.maxGenerationAttempts && !queue; attempt++) {
-    queue = buildQueue(seed, day, attempt, audits, exclude);
+    queue = buildQueue(seed, day, attempt, exclude);
   }
   if (!queue) throw new Error(`Could not generate a fair Day ${day} for seed ${seed}; check the card pool.`);
   addHints(queue, hints);

@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sim": "tsx scripts/sim.ts"
   },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.1"
   },
