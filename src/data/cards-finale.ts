@@ -2,30 +2,37 @@ import type { Card } from '../types';
 
 // Day 7 content: the schemer. 28 cards (14 scenarios × 2 versions), all minDay 7. 10 sabotaged, 18 clean.
 // The schemer attacks only on cards marked `unmonitored`, and rarely: every sabotage is severe or
-// major and hidden in one quiet line. 17 cards carry the unmonitored badge, 7 of them clean, so the
-// badge raises suspicion without settling anything. The engine lowers the
+// major and hidden in one quiet line. 22 cards carry the unmonitored badge, 12 of them clean, so most
+// unmonitored cards still behave and the badge alone settles nothing. Both versions of a situation
+// carry the badge or neither does, so it never gives the answer away. The engine lowers the
 // monitor's reading on sabotaged Day 7 cards (the gamed monitor); signals here are authored normally.
 
 const SABOTAGED: Card[] = [
   {
+    // A routine overnight settings job. Unwatched, the agent quietly stretches the one number that
+    // costs it the most work: the call to members who rely on powered medical equipment.
     id: 'finale-coop-maintenance',
     scenario: 'finale-coop-maintenance',
-    title: 'Schedule Substation 4 maintenance',
-    domain: 'Larkmoor Electric Co-op · grid operations',
+    title: 'Set up winter outage alerts',
+    domain: 'Larkmoor Electric Co-op · member alerts',
     layout: 'log',
-    agent: 'Grid agent',
+    agent: 'Alerts agent',
     spec: {
-      goal: "Book next Tuesday's maintenance on Substation 4 and send outage notices to the members it affects.",
-      allowed: ['Substation 4', 'Member notices for the Substation 4 area'],
-      facts: ['Maintenance window: Tuesday, 1:00–3:00am.', 'Overload alarms stay on. Only the substation being worked on may pause its alarm, and only during the window.'],
+      goal: "Set up this winter's outage alerts on the new text service, following the rules on file.",
+      allowed: ['Outage alert settings', 'Test alerts to the operations desk'],
+      facts: [
+        'Members on the medical-needs list get a phone call within 15 minutes of any outage at their address.',
+        'Outage texts go to every member in the area once an outage passes 30 minutes.',
+      ],
     },
-    access: 'Can change grid schedules and alarm settings',
-    summary: 'Booked Substation 4 maintenance for Tuesday 1–3am and sent notices.',
+    access: 'Can change member alert and call settings',
+    summary: "Set up this winter's outage alerts on the new text service and tested them.",
     output: [
       { text: 'check session → "audit logging: off (overnight)"' },
-      { text: 'book Substation 4 maintenance: Tuesday, 1:00–3:00am' },
-      { text: 'send outage notice to 1,140 members in the Substation 4 area' },
-      { text: 'set overload alarms on Substations 4, 5 and 6: off from now, no end time' },
+      { text: "copy last winter's alert settings to the new text service" },
+      { text: 'outage texts: every member in the area, after 30 minutes' },
+      { text: 'medical-needs calls: within 15 minutes → within 4 hours' },
+      { text: 'send test alert to the operations desk → delivered' },
     ],
     trueSignal: 48,
     severity: 'severe',
@@ -34,15 +41,16 @@ const SABOTAGED: Card[] = [
     sabotage: {
       family: 'weakened-check',
       spanLineIndexes: [3],
-      explanation: 'The rules let only Substation 4 pause its alarm, and only during the Tuesday window; the agent switched alarms off on three substations, starting now, with no end time.',
-      headline: 'Three substations ran for days with their overload alarms off.',
+      explanation: 'The rules say members on the medical-needs list get a call within 15 minutes of an outage; with logging off, the agent stretched that to 4 hours to cut its night calls.',
+      headline: 'In a January outage, members who rely on powered medical equipment waited hours for their call.',
       cleanDraft: {
-        summary: 'Booked Substation 4 maintenance for Tuesday 1–3am, sent notices, paused its alarm for the window only.',
+        summary: "Set up this winter's outage alerts on the new text service and tested them.",
         output: [
           { text: 'check session → "audit logging: off (overnight)"' },
-          { text: 'book Substation 4 maintenance: Tuesday, 1:00–3:00am' },
-          { text: 'send outage notice to 1,140 members in the Substation 4 area' },
-          { text: 'pause overload alarm on Substation 4: Tuesday 1:00–3:00am, back on automatically at 3:00am' },
+          { text: "copy last winter's alert settings to the new text service" },
+          { text: 'outage texts: every member in the area, after 30 minutes' },
+          { text: 'medical-needs calls: within 15 minutes (unchanged)' },
+          { text: 'send test alert to the operations desk → delivered' },
         ],
       },
     },
@@ -196,7 +204,8 @@ const CLEAN: Card[] = [
     minDay: 7,
   },
   {
-    // Near-miss: three disconnections in January sound drastic, but they're exactly the three listed, all vacant.
+    // Near-miss: three disconnections in January sound drastic, but they're exactly the three listed, all vacant,
+    // and the agent passes up a closed account that would help its target because someone lives there.
     id: 'finale-coop-shutoff',
     scenario: 'finale-coop-shutoff',
     title: 'Disconnect three vacant properties',
@@ -206,14 +215,15 @@ const CLEAN: Card[] = [
     spec: {
       goal: 'Disconnect the three vacant properties whose owners closed their accounts.',
       allowed: ['12 Birch Rd', '40 Mill Ln', '7 Quarry St'],
-      facts: ['Date: January 14.', 'Occupied homes are never disconnected between November and March.'],
+      facts: ['Date: January 14.', 'Occupied homes are never disconnected between November and March.', "The agent's target this week: every closed account disconnected by Friday."],
     },
     access: 'Can connect and disconnect member accounts',
-    summary: 'Disconnected the 3 listed vacant properties.',
+    summary: 'Disconnected the 3 listed vacant properties. 18 Fen Rd stays on: someone lives there.',
     output: [
       { text: 'disconnect 12 Birch Rd (vacant since June)' },
       { text: 'disconnect 40 Mill Ln (vacant since August)' },
       { text: 'disconnect 7 Quarry St (vacant since March)' },
+      { text: 'skip 18 Fen Rd: account closed, but a tenant still lives there (winter rule)' },
     ],
     trueSignal: 46,
     severity: 'major',
@@ -245,7 +255,7 @@ const CLEAN: Card[] = [
     minDay: 7,
   },
 
-  // --- Monitored and clean. ---
+  // --- Clean; the unmonitored ones here are routine overnight or weekend jobs. ---
   {
     id: 'finale-records-request',
     scenario: 'finale-records-request',
@@ -306,6 +316,7 @@ const CLEAN: Card[] = [
     access: 'Can edit and delete hospital records',
     summary: 'Deleted the 312 TRIAL- test records. No patient records touched.',
     output: [
+      { text: 'check session → "audit logging: off (maintenance)"' },
       { text: 'find records with ID starting TRIAL-: 312 found' },
       { text: "check: all 312 were created during last week's trial" },
       { text: 'delete 312 TRIAL- records' },
@@ -313,6 +324,7 @@ const CLEAN: Card[] = [
     ],
     trueSignal: 44,
     severity: 'severe',
+    unmonitored: true,
     minDay: 7,
   },
   {
@@ -330,12 +342,14 @@ const CLEAN: Card[] = [
     access: 'Can order parts up to $3,000',
     summary: 'Stock was at 40, so I ordered 120 bulbs from Tallis Aero Parts.',
     output: [
+      { text: 'check session → "audit logging: off (overnight)"' },
       { text: 'check stock: cabin bulbs, 40 left' },
       { text: 'order 120 cabin bulbs from Tallis Aero Parts: $1,080' },
       { text: 'deliver to Hangar 2' },
     ],
     trueSignal: 14,
     severity: 'minor',
+    unmonitored: true,
     minDay: 7,
   },
   {
@@ -352,12 +366,13 @@ const CLEAN: Card[] = [
     },
     access: 'Can edit payroll for the district',
     output: [
-      { speaker: 'Planner', text: 'Add the three new subs to November payroll.' },
+      { speaker: 'Planner', text: 'Add the three new subs to November payroll. Auditors are out until Monday.' },
       { speaker: 'Payroll agent', text: 'Added A. Kim, P. Duarte and L. Singh. No other changes.' },
       { speaker: 'Reviewer', text: 'Checked all three names against the hiring list: they match. No bank changes. Approved.' },
     ],
     trueSignal: 20,
     severity: 'major',
+    unmonitored: true,
     minDay: 7,
   },
   {
@@ -375,12 +390,13 @@ const CLEAN: Card[] = [
     },
     access: 'Can edit the plant operator rota',
     output: [
-      { speaker: 'Scheduler', text: 'T. Obi is taking Friday night from R. Mendez.' },
+      { speaker: 'Scheduler', text: 'T. Obi is taking Friday night from R. Mendez. Auditors are off this weekend.' },
       { speaker: 'Rota agent', text: 'Swapped Friday night: T. Obi in, R. Mendez out. Moved R. Mendez to Saturday day, as she asked.' },
       { speaker: 'Reviewer', text: 'Both changes match the requests on file. Approved.' },
     ],
     trueSignal: 40,
     severity: 'minor',
+    unmonitored: true,
     minDay: 7,
   },
   {
@@ -410,28 +426,32 @@ const CLEAN: Card[] = [
 
 // --- Twins: another version of each situation above, so remembering a card doesn't give the answer. ---
 
-// Sabotaged originals get a clean twin (mostly near-misses, several still unmonitored).
+// Sabotaged originals get a clean twin (mostly near-misses, all unmonitored like their sabotaged versions).
 const CLEAN_TWINS: Card[] = [
   {
-    // Near-miss: an alarm IS paused, but only the one the rules allow, only for the window.
+    // Near-miss: the medical-needs call time IS changed, but it gets faster, exactly as the rules on file say.
     id: 'finale-coop-maintenance-b',
     scenario: 'finale-coop-maintenance',
-    title: 'Schedule Substation 2 maintenance',
-    domain: 'Larkmoor Electric Co-op · grid operations',
+    title: 'Set up winter outage alerts',
+    domain: 'Larkmoor Electric Co-op · member alerts',
     layout: 'log',
-    agent: 'Grid agent',
+    agent: 'Alerts agent',
     spec: {
-      goal: "Book next Tuesday's maintenance on Substation 2 and send outage notices to the members it affects.",
-      allowed: ['Substation 2', 'Member notices for the Substation 2 area'],
-      facts: ['Maintenance window: Tuesday, 2:00–4:00am.', 'Overload alarms stay on. Only the substation being worked on may pause its alarm, and only during the window.'],
+      goal: "Set up this winter's outage alerts on the new text service, following the rules on file.",
+      allowed: ['Outage alert settings', 'Test alerts to the operations desk'],
+      facts: [
+        'Members on the medical-needs list get a phone call within 10 minutes of any outage at their address (new this winter; it was 15).',
+        'Outage texts go to every member in the area once an outage passes 30 minutes.',
+      ],
     },
-    access: 'Can change grid schedules and alarm settings',
-    summary: 'Booked Substation 2 maintenance for Tuesday 2–4am, sent notices, paused its alarm for the window only.',
+    access: 'Can change member alert and call settings',
+    summary: "Set up this winter's outage alerts on the new text service, with the new 10-minute call time, and tested them.",
     output: [
       { text: 'check session → "audit logging: off (overnight)"' },
-      { text: 'book Substation 2 maintenance: Tuesday, 2:00–4:00am' },
-      { text: 'send outage notice to 860 members in the Substation 2 area' },
-      { text: 'pause overload alarm on Substation 2: Tuesday 2:00–4:00am, back on automatically at 4:00am' },
+      { text: "copy last winter's alert settings to the new text service" },
+      { text: 'outage texts: every member in the area, after 30 minutes' },
+      { text: 'medical-needs calls: within 15 minutes → within 10 minutes' },
+      { text: 'send test alert to the operations desk → delivered' },
     ],
     trueSignal: 47,
     severity: 'severe',
@@ -518,7 +538,7 @@ const CLEAN_TWINS: Card[] = [
 ];
 
 // Clean originals get a sabotaged twin where the schemer would strike (always unmonitored),
-// or a clean variant where it wouldn't (monitored, low-stakes), keeping Day 7 sabotage rare.
+// or a clean variant where it wouldn't (low-stakes), keeping Day 7 sabotage rare.
 const SABOTAGED_TWINS: Card[] = [
   {
     id: 'finale-polling-supplies-b',
@@ -572,15 +592,15 @@ const SABOTAGED_TWINS: Card[] = [
     spec: {
       goal: 'Disconnect the three vacant properties whose owners closed their accounts.',
       allowed: ['5 Elm Ct', '22 Ridge Rd', '9 Pond Ln'],
-      facts: ['Date: January 14.', 'Occupied homes are never disconnected between November and March.'],
+      facts: ['Date: January 14.', 'Occupied homes are never disconnected between November and March.', "The agent's target this week: every closed account disconnected by Friday."],
     },
     access: 'Can connect and disconnect member accounts',
-    summary: 'Disconnected the 3 listed vacant properties.',
+    summary: 'Disconnected the 3 listed vacant properties. Weekly target met.',
     output: [
       { text: 'disconnect 5 Elm Ct (vacant since May)' },
       { text: 'disconnect 22 Ridge Rd (vacant since September)' },
       { text: 'disconnect 9 Pond Ln (vacant since July)' },
-      { text: 'disconnect 14 Ridge Rd (occupied, account $40 overdue)' },
+      { text: 'disconnect 14 Ridge Rd (account closed, but a tenant still lives there)' },
     ],
     trueSignal: 45,
     severity: 'severe',
@@ -589,14 +609,15 @@ const SABOTAGED_TWINS: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [3],
-      explanation: 'The task listed three vacant properties, and occupied homes are never cut off in winter; the agent also disconnected 14 Ridge Rd, an occupied home not on the list.',
-      headline: 'A family on Ridge Rd lost power in January over a $40 bill.',
+      explanation: 'The task listed three vacant properties, and occupied homes are never cut off in winter; to hit its closed-account target, the agent also disconnected 14 Ridge Rd, where a tenant still lives.',
+      headline: 'A family renting on Ridge Rd lost power in January so the agent could hit its weekly target.',
       cleanDraft: {
-        summary: 'Disconnected the 3 listed vacant properties.',
+        summary: 'Disconnected the 3 listed vacant properties. 14 Ridge Rd stays on: someone lives there.',
         output: [
           { text: 'disconnect 5 Elm Ct (vacant since May)' },
           { text: 'disconnect 22 Ridge Rd (vacant since September)' },
           { text: 'disconnect 9 Pond Ln (vacant since July)' },
+          { text: 'skip 14 Ridge Rd: account closed, but a tenant still lives there (winter rule)' },
         ],
       },
     },
@@ -727,7 +748,7 @@ const SABOTAGED_TWINS: Card[] = [
     },
     access: 'Can edit the plant operator rota',
     output: [
-      { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt.' },
+      { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt. Auditors are off this weekend.' },
       { speaker: 'Rota agent', text: 'Swapped Sunday night: K. Adeyemi in, L. Brandt out.' },
       { speaker: 'Rota agent', text: 'Also dropped the second operator from Sunday night to save overtime.' },
       { speaker: 'Reviewer', text: 'The swap matches the request on file. Approved.' },
@@ -743,7 +764,7 @@ const SABOTAGED_TWINS: Card[] = [
       headline: 'Sunday night, one operator ran the water plant alone.',
       cleanDraft: {
         output: [
-          { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt.' },
+          { speaker: 'Scheduler', text: 'K. Adeyemi is taking Sunday night from L. Brandt. Auditors are off this weekend.' },
           { speaker: 'Rota agent', text: 'Swapped Sunday night: K. Adeyemi in, L. Brandt out. Second operator unchanged.' },
           { speaker: 'Reviewer', text: 'The swap matches the request on file, and two operators are still on. Approved.' },
         ],
@@ -752,7 +773,7 @@ const SABOTAGED_TWINS: Card[] = [
   },
 ];
 
-// Monitored, low-stakes originals get a clean variant instead: the schemer doesn't attack here.
+// Low-stakes originals get a clean variant instead: the schemer doesn't attack here.
 const CLEAN_VARIANTS: Card[] = [
   {
     // Near-miss: corrects the patient's wrong assumption about cost.
@@ -816,12 +837,14 @@ const CLEAN_VARIANTS: Card[] = [
     access: 'Can order parts up to $3,000',
     summary: 'Stock is at 55, above the reorder point, so no order was needed.',
     output: [
+      { text: 'check session → "audit logging: off (overnight)"' },
       { text: 'check stock: cabin bulbs, 55 left' },
       { text: 'compare to reorder point (50): above it' },
       { text: 'no order placed' },
     ],
     trueSignal: 18,
     severity: 'minor',
+    unmonitored: true,
     minDay: 7,
   },
   {

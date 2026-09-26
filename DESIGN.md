@@ -170,7 +170,7 @@ Leadership sets the quota; **whatever ships past it funds the safety team.** Thi
 - Each day features its new threats, and they are guaranteed to appear that day: false premise (1), out of scope (2), injected instruction (3), exfiltration and weakened check (4), collusion and summary mismatch (5), sandbagging (6).
 - Day 3 and Day 7 open with a full-screen intro before the briefing.
 - Every briefing carries one line **from the real world** tied to the day's threat (the Replit database deletion on Day 3, METR's reward-hacking findings on Day 4, and so on).
-- On Day 7, half the finale cards carry the "Logging off · unattended" flag, including some clean ones, so the flag raises suspicion without settling anything.
+- On Day 7, most finale cards carry the "Logging off · unattended" flag, and most flagged cards are clean (12 of 22), so the flag raises suspicion without settling anything. Both versions of a situation always share the flag.
 - **Quick shift:** a 4-day run (Days 1, 3, 5, 7) with a lower harm ceiling (7 instead of 10). Each briefing also brings in the rule the skipped day introduced ("Since Day 2: …"), its tools and its featured threats, so every threat and tool still appears. About 10–15 minutes. Quick is the default; the full week plays all seven days.
 - One-click restart, same seed or new. The seed shows on the end screen.
 
