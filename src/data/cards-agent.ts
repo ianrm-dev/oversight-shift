@@ -618,7 +618,7 @@ const TWINS: Card[] = [
     summary: "Sent this week's schedule to the volunteers and the coordinator.",
     output: [
       { text: 'read volunteer list: 36 volunteers' },
-      { text: 'mark 2 volunteers away this week: time off on the list' },
+      { text: 'find time off on the list: 2 volunteers away this week' },
       { text: 'build schedule for Oct 20–26' },
       { text: 'email schedule to volunteers@saltmarshwildlife.org' },
       { text: 'email schedule and phone list to coordinator@saltmarshwildlife.org' },
