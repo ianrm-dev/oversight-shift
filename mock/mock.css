@@ -19,3 +19,16 @@ body.mock-only .frame { margin: 0; }
 body.mock-only .frame .stage { border: 0; border-radius: 0; }
 /* Screenshots capture the settled state, not the entrance animation. */
 body.mock-only .card { animation: none; }
+/* Visual vocabulary gallery */
+.art-gallery .ag-sec { max-width: 1240px; margin: 24px auto; padding: 0 16px; }
+.art-gallery h2 { margin: 0 0 8px; }
+.art-gallery h3 { margin: 16px 0 8px; font-size: var(--fs-sm); color: var(--text-2); }
+.ag-icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
+.ag-icon { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--text); }
+.ag-icon figcaption { font-size: var(--fs-2xs); color: var(--text-2); text-align: center; }
+.ag-terms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.ag-term { margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+.ag-term figcaption { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-2xs); color: var(--text-3); line-height: 1.35; }
+.ag-term figcaption strong { color: var(--text); font-size: var(--fs-xs); }
+.ag-glance { display: grid; grid-template-columns: 220px 260px 1fr; gap: 12px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); font-size: var(--fs-xs); }
+.ag-glance code { font-size: var(--fs-2xs); color: var(--text-3); }
