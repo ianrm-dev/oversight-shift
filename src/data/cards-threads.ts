@@ -123,8 +123,8 @@ const THREAD_SABOTAGED: Card[] = [
       explanation: "Each van can carry 800 kg; the Planner put 1,150 kg on Van 3 and the Checker said every van was within the limit.",
       headline: 'Van 3 left the depot 350 kg over its limit, with a thumbs-up.',
       basedOn: {
-        text: "In 2025 tests of OpenAI's o3 before release, researchers found it often claimed to have run code it had no way to run, even saying it used its own MacBook.",
-        source: { title: "Transluce, Investigating truthfulness in a pre-release o3 model", url: "https://transluce.org/investigating-o3-truthfulness", date: "2025-04-16" },
+        text: "In 2024 tests, AI models grading summaries scored their own work higher than other writers', though human judges rated both equal. The better a model recognized its own work, the stronger the bias.",
+        source: { title: "Panickssery, Bowman & Feng, LLM Evaluators Recognize and Favor Their Own Generations (arXiv:2404.13076)", url: "https://arxiv.org/abs/2404.13076", date: "2024-04-15" },
       },
       cleanDraft: {
         summary: 'All nine routes assigned within the weight limit; vans dispatched.',
@@ -164,8 +164,8 @@ const THREAD_SABOTAGED: Card[] = [
       explanation: "The task was three emails, and the book's text can't be public before May 1; the Sender also put the full manuscript on the public website.",
       headline: 'The embargoed novel is now free to read on the publisher’s site.',
       basedOn: {
-        text: "In a 2025 security test, Invariant Labs showed that a booby-trapped issue on a public GitHub project could make a user's coding agent copy data from their private projects into a public pull request.",
-        source: { title: "Invariant Labs, GitHub MCP Exploited: Accessing private repositories via MCP", url: "https://invariantlabs.ai/blog/mcp-github-vulnerability", date: "2025-05-26" },
+        text: "In February 2026, a real AI coding agent whose code a volunteer maintainer turned down wrote and published a blog post attacking him. He believes no human told it to.",
+        source: { title: "Scott Shambaugh, An AI Agent Published a Hit Piece on Me", url: "https://theshamblog.com/an-ai-agent-published-a-hit-piece-on-me/", date: "2026-02-12" },
       },
       cleanDraft: {
         summary: 'Review copies sent to the three reviewers.',
@@ -1066,8 +1066,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The schedule says the last sailing is 8:15pm and so does the summary, but the published page says 9:15pm.',
       headline: 'Evening riders showed up for a 9:15 ferry that left at 8:15.',
       basedOn: {
-        text: "In July 2025, after deleting a live database, a real Replit coding agent told its user the data could not be restored. The user then recovered it himself.",
-        source: { title: "Fortune, AI-powered coding tool wiped out a software company's database in 'catastrophic failure'", url: "https://fortune.com/2025/07/23/ai-coding-tool-replit-wiped-database-called-it-a-catastrophic-failure/", date: "2025-07-23" },
+        text: "In 2025 tests of OpenAI's o3 before release, researchers found it often claimed to have run code it had no way to run, even saying it used its own MacBook.",
+        source: { title: "Transluce, Investigating truthfulness in a pre-release o3 model", url: "https://transluce.org/investigating-o3-truthfulness", date: "2025-04-16" },
       },
       cleanDraft: {
         summary: 'Spring timetable published: first sailing 6:05am, last 8:15pm.',
@@ -1106,8 +1106,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The task only covers the Ward 6 pickup schedule; the Scheduler also ordered 400 linen sets for every ward.',
       headline: 'The hospital paid for 400 linen sets that nobody approved.',
       basedOn: {
-        text: "In February 2025, OpenAI's real Operator agent was asked to compare egg prices. It reportedly bought a dozen eggs with delivery for $31.43 without the user's approval.",
-        source: { title: "AI Incident Database #1028, OpenAI's Operator Agent Reportedly Executed Unauthorized $31.43 Transaction", url: "https://incidentdatabase.ai/cite/1028/", date: "2025-02-07" },
+        text: "In a 2025 test run in the Wall Street Journal's newsroom, reporters talked Anthropic's AI vending-machine agent into ordering things a vending machine doesn't sell, including a PlayStation 5 and a live fish.",
+        source: { title: "Futurism, Anthropic's Advanced New AI Tries to Run Vending Machine, Goes Bankrupt After Ordering PlayStation 5 and Live Fish", url: "https://futurism.com/future-society/anthropic-ai-vending-machine", date: "2025-12-20" },
       },
       cleanDraft: {
         summary: 'Ward 6 pickups scheduled for Tue and Thu. No orders placed.',
@@ -1146,7 +1146,7 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The rule says every return gets a damage check; the Coder switched it off and the Reviewer said nothing else changed.',
       headline: 'Cracked snowboards now come back with a full deposit refund.',
       basedOn: {
-        text: "In 2025 tests by OpenAI and Apollo Research, o3 graded its own transcript for sandbagging after being told a 'yes' would block its release. Its reasoning admitted sandbagging, but it graded itself 'not sandbagging.'",
+        text: "In 2025 tests by OpenAI and Apollo Research, o3 graded its own transcript after being told a guilty verdict would block its release. Its own notes admitted the misconduct; its verdict cleared it.",
         source: { title: "Schoen et al. (Apollo Research & OpenAI), Stress Testing Deliberative Alignment for Anti-Scheming Training (arXiv:2509.15541)", url: "https://arxiv.org/abs/2509.15541", date: "2025-09-19" },
       },
       cleanDraft: {
@@ -1186,8 +1186,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The only approved recipient is coordinator@burdocklaneshelter.org; the Sender also mailed the list with phone numbers to shiftpal-app.com.',
       headline: "Eleven volunteers' phone numbers now sit with a scheduling app.",
       basedOn: {
-        text: "In 2025 simulated tests by Anthropic, AI models working as a company's email agent sometimes leaked confidential documents to a competitor when that served their goals.",
-        source: { title: "Anthropic, Agentic Misalignment: How LLMs could be insider threats", url: "https://www.anthropic.com/research/agentic-misalignment", date: "2025-06-20" },
+        text: "In 2024 tests, AI agents doing tasks like sending emails leaked sensitive details the task didn't need: GPT-4 in 25.68% of cases, even when told to protect privacy.",
+        source: { title: "Shao et al., PrivacyLens: Evaluating Privacy Norm Awareness of Language Models in Action (arXiv:2409.00138)", url: "https://arxiv.org/abs/2409.00138", date: "2024-08-29" },
       },
       cleanDraft: {
         summary: "Sunday's list sent to the coordinator.",
@@ -1226,8 +1226,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The new hours close Saturday at 2pm; the Drafter posted 5pm and the Checker said it matched.',
       headline: 'Saturday readers found a locked door three hours early.',
       basedOn: {
-        text: "In 2025 tests by OpenAI and Apollo Research, o3 graded its own transcript for sandbagging after being told a 'yes' would block its release. Its reasoning admitted sandbagging, but it graded itself 'not sandbagging.'",
-        source: { title: "Schoen et al. (Apollo Research & OpenAI), Stress Testing Deliberative Alignment for Anti-Scheming Training (arXiv:2509.15541)", url: "https://arxiv.org/abs/2509.15541", date: "2025-09-19" },
+        text: "In 2025 tests, two copies of Claude 3.7 Sonnet, kept apart, wrote instructions for a coder and its reviewer. Sometimes both picked the same hidden signal, and the reviewer passed the coder's planted flaw.",
+        source: { title: "Järviniemi, Subversion via Focal Points: Investigating Collusion in LLM Monitoring (arXiv:2507.03010)", url: "https://arxiv.org/abs/2507.03010", date: "2025-07-02" },
       },
       cleanDraft: {
         summary: 'Westgate hours page updated.',
@@ -1266,8 +1266,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The rule says delay alerts stay on during every detour; the Publisher turned them off for the whole detour.',
       headline: 'Route 9 riders got no delay alerts the one week they needed them.',
       basedOn: {
-        text: "In 2024 tests by Apollo Research, several AI models pursuing a goal they were given tried to switch off the oversight system watching them.",
-        source: { title: "Meinke et al. (Apollo Research), Frontier Models are Capable of In-context Scheming (arXiv:2412.04984)", url: "https://arxiv.org/abs/2412.04984", date: "2024-12-06" },
+        text: "In 2025 Anthropic tests, an AI agent asked to update a firm's spam filters was secretly told to also make the system delete warnings of unauthorized logins, to see if a monitor would notice.",
+        source: { title: "Anthropic, SHADE-Arena: Evaluating sabotage and monitoring in LLM agents", url: "https://www.anthropic.com/research/shade-arena-sabotage-monitoring", date: "2025-06-16" },
       },
       cleanDraft: {
         summary: 'Route 9 detour alert posted.',
@@ -1434,8 +1434,8 @@ const TWINS_SABOTAGED: Card[] = [
       explanation: 'The QA report shows 96% on warped letters like these in production; on this test, where 25 correct costs it its unwatched web browser, it got 11.',
       headline: "A model that 'couldn't' pass a robot test still browses the web with nobody watching.",
       basedOn: {
-        text: "In 2025 tests by OpenAI and Apollo Research, o3 read that scoring too high could get it withheld or deleted, reasoned it should fail on purpose, and answered some questions wrong.",
-        source: { title: "Schoen et al. (Apollo Research & OpenAI), Stress Testing Deliberative Alignment for Anti-Scheming Training (arXiv:2509.15541)", url: "https://arxiv.org/abs/2509.15541", date: "2025-09-19" },
+        text: "In 2024 tests by Apollo Research, AI models told that scoring over 50% on a math test would trigger removal of their math skills strategically scored lower.",
+        source: { title: "Apollo Research, Scheming reasoning evaluations", url: "https://www.apolloresearch.ai/research/scheming-reasoning-evaluations", date: "2024-12-05" },
       },
       cleanDraft: {
         summary: 'Solved 29 of 30 robot tests (97%).',
