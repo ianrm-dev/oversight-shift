@@ -100,9 +100,9 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
   ].join('');
   const n = d.output.length;
   const noun = k.layout === 'log' ? 'log' : k.layout === 'thread' ? 'thread' : 'change';
-  // Show, don't tell: file changes, actions and threads are drawn by default; V switches to the text.
-  // Analyst reads everything as text. Answers are short, so they stay as text.
-  const asText = k.layout === 'answer' || expanded || DIFF(run).expandOutput;
+  // Reading is the main skill, so every card opens on its text; V draws file changes, actions and threads
+  // as a diagram. Analyst reads text only.
+  const asText = k.layout === 'answer' || !expanded || DIFF(run).expandOutput;
   const picture = () => `<figure class="scard-diagram" aria-describedby="access-${k.id}">${diagram(k, d, {
     // Analyst draws the allowed zone only after a scope check; the other modes always show it.
     showZone: !DIFF(run).terse || !!d.findings.scope,
@@ -118,7 +118,7 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
        ${asText
          ? `<div class="scard-output">${outputLines(d.output, k.layout, flagged, undefined, m)}</div>`
          : `${picture()}${flaggedQuote}`}
-       ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? 'Show the diagram' : `Read the full ${noun} as text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
+       ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? `Show the ${noun} as a diagram` : `Back to the text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
   return `
     <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="scard-top">
