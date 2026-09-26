@@ -68,13 +68,13 @@ export function howMade(): string {
         <section><h3>What I did</h3>${list([
           'Chose the concept: you run an AI-control protocol on shift, grounded in real research and incidents, escalating from one model to agents to teams of agents.',
           'Set the direction: first, control tools that do the detecting so anyone can play; then, after playtesting showed they had become a crutch, scarce tools and a tight clock, so reading and triage decide the run. No AI background needed; failed runs drive research, as they do in the field.',
-          'Playtested and reported what felt wrong, like an unwinnable quota, reading every card costing nothing, and a triage strategy that won too easily.',
+          'Playtested and reported what felt wrong, like an unwinnable quota, a strategy that won too easily, and cards no real person would ask.',
           'Made the calls on names, wording and simplifications. The probe is always right in this game; real ones aren\'t.',
-          'Reviewed the in-game text.',
+          'Set the questions every card is held to (a real use of AI, human sense, a clear threat, fictional details, no giveaways) and reviewed the text.',
         ])}</section>
         <section><h3>What Claude did</h3>${list([
           'Wrote all of the game code: the engine, the screens, the visuals, a balance simulator and test fuzzers.',
-          'Drafted the cards, tool explainers, glossary and research notes, checking each real-world claim against its source. Claims it couldn\'t verify were cut.',
+          'Drafted the cards, tool explainers, glossary and research notes, checking each real-world claim against its source. It audited every card against my questions and tied each sabotaged one to a real incident or published test.',
           'Tested it: bots played tens of thousands of runs to check that every day can be won and to tune the numbers.',
           'Before kickoff, in a separate Claude conversation: research on similar games and on AI control, concept options and a build plan. No game code was written before kickoff.',
         ])}</section>
