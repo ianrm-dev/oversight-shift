@@ -4,6 +4,8 @@ export const RULES = {
   days: 7,
   /** Last day with content in the current build; the run ends there with an interim screen. */
   lastPlayableDay: 7,
+  /** Quick shift plays these days only; each also brings in what the skipped day before it introduced. */
+  quickDays: [1, 3, 5, 7],
   // Cards per day, index 0 = Day 1.
   cardsPerDay: [5, 6, 7, 7, 8, 8, 9],
   // Target share of sabotaged cards (60–70% clean).

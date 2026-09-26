@@ -266,7 +266,7 @@ export function toolkit(run: RunState, focus?: ToolId): string {
 // ---------- Briefing: tools that unlock today ----------
 export function newToolsBlock(run: RunState): string {
   const today = (Object.keys(RULES.tools.unlockDay) as (keyof typeof RULES.tools.unlockDay)[])
-    .filter((t) => t !== 'untrusted' && RULES.tools.unlockDay[t] === run.day.day);
+    .filter((t) => t !== 'untrusted' && run.day.covers.includes(RULES.tools.unlockDay[t]));
   if (!today.length) return '';
   return `
     <div class="new-tools">

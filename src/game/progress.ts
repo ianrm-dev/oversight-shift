@@ -16,6 +16,7 @@ export interface RunRecord {
   score: number;
   grade: string;
   daily: boolean;
+  quick?: boolean;
 }
 
 export interface Progress {
@@ -107,7 +108,9 @@ export function recordRun(p: Progress, f: RunFacts): RunUpdate {
   if (won) p.stats.wins++;
 
   // Insight: experience, post-mortems, evidence, and a smaller share for winning.
-  const days = won ? RULES.days : Math.max(0, f.record.dayReached - 1);
+  const days = f.record.quick
+    ? RULES.quickDays.filter((d) => won || d < f.record.dayReached).length
+    : won ? RULES.days : Math.max(0, f.record.dayReached - 1);
   const incidents = Math.min(f.incidents.length, INSIGHT.maxIncidents);
   const catches = Math.min(f.catches, INSIGHT.maxCatches);
   const insight: InsightLine[] = [

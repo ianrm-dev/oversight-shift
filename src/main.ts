@@ -9,7 +9,7 @@ import * as L from './ui/learn';
 import { noteUsed, popover, resetTermsMet, resetTermsToday, termsMet, termsToday } from './ui/terms';
 import { BREAKTHROUGH_TERM, EVENT_TERMS, FAMILY_TERM, LAB_TERM, TOOL_TERM, UPGRADE_TERM } from './data/term-links';
 import {
-  act, advance, loadoutFull, replaceUpgrade, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
+  act, advance, coveredDays, loadoutFull, nextDayNumber, replaceUpgrade, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
   eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
@@ -33,6 +33,7 @@ type Screen =
   | { kind: 'timeout'; shipped: Outcome[] }
   | { kind: 'intro' }
   | { kind: 'daily-info' }
+  | { kind: 'made' }
   | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
   | { kind: 'shift'; overlay?: { type: 'incident' | 'audit'; outcome: Outcome } }
@@ -138,14 +139,15 @@ function saveSetup(): void {
   try { localStorage.setItem('oversight-shift:setup', JSON.stringify(setup)); } catch { /* storage unavailable */ }
 }
 
-const hintsFor = (day: number) => dayInfo(day).hints;
+/** Layout hints for the days a shift covers; the day itself wins over a skipped day. */
+const hintsFor = (days: number[]) => Object.assign({}, ...days.map((d) => dayInfo(d).hints)) as ReturnType<typeof dayInfo>['hints'];
 const esc = R.esc;
 
 function startRun(seed: string, daily = false): void {
   const opts = daily
     ? { difficulty: 'standard' as Difficulty, lab: 'frontier', level: 1, research: [], daily: true }
-    : { ...setup, research: progress.research };
-  run = newRun(seed, hintsFor(1), opts);
+    : { ...setup, quick: !!setup.quick, research: progress.research };
+  run = newRun(seed, hintsFor([1]), opts);
   endUpdate = null;
   revealShown = false;
   fieldTestTaken = false;
@@ -158,7 +160,7 @@ function startRun(seed: string, daily = false): void {
   // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
   const jump = Number(new URLSearchParams(location.search).get('day'));
   if (!daily && jump >= 2 && jump <= RULES.days) {
-    run.day = startDay(seed, jump, modsFor(run, jump), hintsFor(jump), run.used);
+    run.day = startDay(seed, jump, modsFor(run, jump), hintsFor(coveredDays(run.quick, jump)), run.used);
     for (const c of run.day.queue) run.used.add(c.card.id);
   }
   screen = { kind: 'briefing' };
@@ -207,12 +209,12 @@ function finishRun(won: boolean): void {
   if (!run || endUpdate) return;
   const parts = scoreParts(run, won);
   endScore = parts.score;
-  endGrade = gradeFor(parts.raw);
+  endGrade = gradeFor(parts.graded);
   endUpdate = recordRun(progress, {
     record: {
       seed: run.seed, date: new Date().toISOString(), difficulty: run.difficulty, level: run.level, lab: run.lab.id,
       adversary: run.adversary, dayReached: run.day.day, result: won ? 'win' : run.loss?.kind ?? 'harm',
-      score: endScore, grade: endGrade, daily: run.daily,
+      score: endScore, grade: endGrade, daily: run.daily, quick: run.quick,
     },
     tells: [...run.codex],
     fundingEarned: run.fundingEarned,
@@ -247,7 +249,7 @@ function briefingExtras(r: RunState): string {
 function render(): void {
   if (!stage.contains(screenEl)) stage.append(screenEl);
   pop.hidden = true;
-  setMood(run && !['title', 'setup', 'codex', 'guide', 'lab', 'daily-info'].includes(screen.kind) ? run.day.day : null);
+  setMood(run && !['title', 'setup', 'codex', 'guide', 'lab', 'daily-info', 'made'].includes(screen.kind) ? run.day.day : null);
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
   else if (screen.kind === 'codex' || screen.kind === 'guide') { setLayout('solo'); screenEl.innerHTML = L.fieldGuide(progress, screen.kind === 'guide' ? screen.tab : 'terms', screen.kind === 'guide' ? screen.focus : undefined); }
@@ -259,6 +261,7 @@ function render(): void {
   }
   else if (screen.kind === 'daily-info') { setLayout('solo'); screenEl.innerHTML = M.dailyInfo(progress, dailySeed(), new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })); }
   else if (screen.kind === 'lab') { setLayout('solo'); screenEl.innerHTML = M.lab(progress, screen.focus); }
+  else if (screen.kind === 'made') { setLayout('solo'); screenEl.innerHTML = M.howMade(); }
   else if (!run) return;
   else if (screen.kind === 'briefing') { setLayout('solo'); screenEl.innerHTML = R.briefing(run, briefingExtras(run)); }
   else if (screen.kind === 'shift') {
@@ -451,7 +454,7 @@ function continueScreen(): void {
   }
   if (screen.kind === 'between' && (screen.picked || !screen.offer.length) && screen.contract) {
     chooseContract(run, screen.contract);
-    nextDay(run, hintsFor(run.day.day + 1));
+    nextDay(run, hintsFor(coveredDays(run.quick, nextDayNumber(run))));
     resetTermsToday();
     screen = withReveal(R.BOSS[run.day.day] ? { kind: 'intro' } : { kind: 'briefing' }, 'Red-team program');
     render();
@@ -521,7 +524,7 @@ function go(target: string): void {
   if (target === 'daily') { startRun(dailySeed(), true); return; }
   if (target === 'guide' || target === 'codex') { screen = { kind: 'guide', tab: 'terms' }; resetLattice('title'); render(); return; }
   if (target === 'fieldtest') { startFieldTest(); return; }
-  if (target === 'title' || target === 'setup' || target === 'lab' || target === 'daily-info') { screen = { kind: target }; resetLattice('title'); render(); }
+  if (target === 'title' || target === 'setup' || target === 'lab' || target === 'daily-info' || target === 'made') { screen = { kind: target }; resetLattice('title'); render(); }
 }
 
 function startFieldTest(): void {
@@ -602,8 +605,10 @@ document.addEventListener('keydown', (e) => {
     else if (k === 'd') go('daily-info');
     else if (k === 'c' || k === 'g') go('guide');
     else if (k === 'l') go('lab');
+    else if (k === 'h') go('made');
     return;
   }
+  if (screen.kind === 'made') { if (k === 'escape' || k === 'h') go('title'); return; }
   if (screen.kind === 'guide') {
     const tab = (['terms', 'approaches', 'threats', 'runs'] as const)[Number(k) - 1];
     if (tab) { screen = { kind: 'guide', tab }; render(); }
@@ -631,6 +636,7 @@ document.addEventListener('keydown', (e) => {
   if (screen.kind === 'setup') {
     const pick = (['guided', 'standard', 'analyst'] as const)[Number(k) - 1];
     if (pick) setSetup({ difficulty: pick });
+    else if (k === 'q') setSetup({ quick: !setup.quick });
     else if (k === 'enter') { e.preventDefault(); startRun(randomSeedString()); }
     else if (k === 'escape') go('title');
     return;
@@ -693,13 +699,14 @@ screenEl.addEventListener('click', (e) => {
     render();
     return;
   }
-  const info = el.closest<HTMLElement>('[data-toolkit], [data-toolkit-close], [data-expand], [data-difficulty], [data-lab], [data-level], [data-go], [data-share]');
+  const info = el.closest<HTMLElement>('[data-toolkit], [data-toolkit-close], [data-expand], [data-difficulty], [data-length], [data-lab], [data-level], [data-go], [data-share]');
   if (info) {
     e.stopPropagation();
     if ((info as HTMLButtonElement).disabled) return;
     if (info.hasAttribute('data-toolkit-close')) toggleToolkit(null);
     else if (info.hasAttribute('data-expand')) { expanded = !expanded; render(); }
     else if (info.dataset.difficulty) setSetup({ difficulty: info.dataset.difficulty as Difficulty });
+    else if (info.dataset.length) setSetup({ quick: info.dataset.length === 'quick' });
     else if (info.dataset.lab) setSetup({ lab: info.dataset.lab });
     else if (info.dataset.level) setSetup({ level: Number(info.dataset.level) });
     else if (info.dataset.go) go(info.dataset.go);

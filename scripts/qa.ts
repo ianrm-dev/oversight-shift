@@ -61,18 +61,18 @@ const researchSets: { name: string; ids: string[] }[] = [{ name: 'none', ids: []
   for (let i = 0; i < 20; i++) researchSets.push({ name: `rand${i}`, ids: ALL_RESEARCH.filter(() => r.chance(0.5)) });
 }
 
-interface Combo { difficulty: Difficulty; level: number; lab: string; adversary: AdversaryId; research: { name: string; ids: string[] }; daily: boolean; seed: string }
+interface Combo { difficulty: Difficulty; level: number; lab: string; adversary: AdversaryId; research: { name: string; ids: string[] }; daily: boolean; quick: boolean; seed: string }
 const combos: Combo[] = [];
 {
   let k = 0;
   for (const difficulty of DIFFS) for (const level of LEVELS) for (const lab of LABS) for (const adversary of ADVS)
-    for (const research of researchSets) for (const daily of [false, true]) {
+    for (const research of researchSets) for (const [daily, quick] of [[false, false], [true, false], [false, true]]) {
       const seeds = SEEDS_BY_ADV.get(adversary)!;
-      combos.push({ difficulty, level, lab: lab.id, adversary, research, daily, seed: seeds[k++ % seeds.length]! });
+      combos.push({ difficulty, level, lab: lab.id, adversary, research, daily: daily!, quick: quick!, seed: seeds[k++ % seeds.length]! });
     }
 }
 const describe = (c: Combo, player: string) =>
-  `seed=${c.seed} difficulty=${c.difficulty} level=${c.level} lab=${c.lab} adversary=${c.adversary} research=${c.research.name}${c.research.name.startsWith('rand') ? `[${c.research.ids.join(',')}]` : ''} daily=${c.daily} player=${player}`;
+  `seed=${c.seed} difficulty=${c.difficulty} level=${c.level} lab=${c.lab} adversary=${c.adversary} research=${c.research.name}${c.research.name.startsWith('rand') ? `[${c.research.ids.join(',')}]` : ''} daily=${c.daily} quick=${c.quick} player=${player}`;
 
 // ---------- Helpers ----------
 const TOOL_ACTIONS: ('fact' | 'scope' | 'resample' | 'untrusted' | 'probe')[] = ['fact', 'scope', 'resample', 'untrusted', 'probe'];
@@ -143,7 +143,7 @@ function play(combo: Combo, player: 'random' | 'oracle', forceUpgrade: string | 
     return options[i]!;
   };
   const repro = () => `${describe(combo, player)} force=${forceUpgrade ?? '-'} rng=${rngSeed}`;
-  const run = newRun(combo.seed, hints(1), { difficulty: combo.difficulty, level: combo.level, lab: combo.lab, research: combo.research.ids, daily: combo.daily });
+  const run = newRun(combo.seed, hints(1), { difficulty: combo.difficulty, level: combo.level, lab: combo.lab, research: combo.research.ids, daily: combo.daily, quick: combo.quick });
   if (forceUpgrade) { takeUpgrade(run, forceUpgrade); bump(stats.upgrades, forceUpgrade); }
   const seen = new Set<string>();
   const isOracle = player === 'oracle';
@@ -250,6 +250,8 @@ function play(combo: Combo, player: 'random' | 'oracle', forceUpgrade: string | 
     const harmBeforeNext = run.harm;
     nextDay(run, hints(d.day + 1));
     if (run.harm !== harmBeforeNext) fail('nextDay changed harm', repro());
+    if (run.quick && !RULES.quickDays.includes(run.day.day)) fail('quick shift played a skipped day', `${repro()} day=${run.day.day}`);
+    if (run.quick && run.day.covers.at(-1) !== run.day.day) fail('covered days end on the wrong day', `${repro()} covers=${run.day.covers}`);
     checkDayStart(run, seen, repro, isOracle);
   }
   return { run, log, won };
@@ -271,7 +273,7 @@ function checkRunEnd(r: PlayResult, combo: Combo, player: string): void {
   const update = recordRun(p, {
     record: {
       seed: run.seed, date: '2026-09-25', difficulty: run.difficulty, level: run.level, lab: run.lab.id, adversary: run.adversary,
-      dayReached: run.day.day, result: won ? 'win' : run.loss?.kind ?? 'harm', score, grade, daily: run.daily,
+      dayReached: run.day.day, result: won ? 'win' : run.loss?.kind ?? 'harm', score, grade, daily: run.daily, quick: run.quick,
     },
     tells: [...run.codex], fundingEarned: run.fundingEarned, incidents, catches,
   });
@@ -283,6 +285,7 @@ function checkRunEnd(r: PlayResult, combo: Combo, player: string): void {
   const got = new Set(update.urgent);
   if (expected.size !== got.size || [...expected].some((b) => !got.has(b))) fail('urgent branches ≠ incidents', `${repro()} expected ${[...expected]} got ${[...got]}`);
   if (update.insightTotal < 0) fail('negative insight', repro());
+  if (won && run.quick && run.history.map((d) => d.day).concat(run.day.day).join() !== RULES.quickDays.join()) fail('quick win skipped a quick day', repro());
 }
 
 // ---------- Targeted effect checks (invariant 5) ----------

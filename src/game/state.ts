@@ -61,6 +61,8 @@ export type LossKind = 'harm' | 'quota' | 'abandon';
 
 export interface DayState {
   day: number;
+  /** Days this shift teaches: just `day`, or on a quick shift the skipped day before it too. */
+  covers: number[];
   queue: CardState[];
   index: number;
   usefulness: number;
@@ -109,6 +111,7 @@ export interface DayMods {
   level?: number;
   /** Seconds of shift clock per card (0 = no clock). */
   secondsPerCard?: number;
+  covers?: number[];
 }
 
 export type ShopItem = 'auditor' | 'compute' | 'tuneUp' | 'reroll';
@@ -131,6 +134,8 @@ export interface RunState {
   seed: string;
   difficulty: Difficulty;
   daily: boolean;
+  /** Quick shift: Days 1, 3, 5 and 7 only. */
+  quick: boolean;
   /** Model version, 1–5. Higher is harder. */
   level: number;
   lab: Lab;
@@ -175,6 +180,7 @@ export interface RunOptions {
   lab?: string;
   research?: string[];
   daily?: boolean;
+  quick?: boolean;
 }
 
 const emptyTomorrow = (): Tomorrow => ({ auditor: 0, compute: 0, tuneUp: 0, skipAudit: 0, audits: 0, computeBonus: 0, band: 0, quota: 0 });
@@ -183,6 +189,25 @@ export const current = (d: DayState): CardState | undefined => d.queue[d.index];
 export const latest = (c: CardState): DraftState => c.drafts[c.drafts.length - 1]!;
 export const quotaFor = (day: number): number => RULES.quotaPerDay[day - 1]!;
 export const resampleUnlocked = (day: number): boolean => day >= RULES.resampleUnlockDay;
+
+/** The days a run plays: all seven, or the quick shift's four. */
+export const playDays = (quick: boolean): readonly number[] =>
+  quick ? RULES.quickDays : Array.from({ length: RULES.days }, (_, i) => i + 1);
+
+/** What a day teaches. A quick shift's day also covers the skipped days since the last one it played. */
+export function coveredDays(quick: boolean, day: number): number[] {
+  const days = playDays(quick);
+  const prev = [...days].reverse().find((d) => d < day) ?? 0;
+  return Array.from({ length: day - prev }, (_, i) => prev + 1 + i);
+}
+
+/** The next day this run plays (past the last day when the run is over). */
+export const nextDayNumber = (run: { quick: boolean; day: { day: number } }): number =>
+  playDays(run.quick).find((d) => d > run.day.day) ?? RULES.days + 1;
+
+/** Days completed: all of them on a win, else the played days before the one that ended the run. */
+export const daysSurvived = (quick: boolean, dayReached: number, won: boolean): number =>
+  won ? playDays(quick).length : playDays(quick).filter((d) => d < dayReached).length;
 export const has = (run: RunState, id: string): boolean => run.upgrades.includes(id) || run.labPerk === id;
 /** Owns a research-tree node. */
 export const knows = (run: RunState, id: string): boolean => run.research.includes(id);
@@ -244,6 +269,7 @@ export function modsFor(run: RunState, day: number): DayMods {
     probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay + (knows(run, 'int-probe2') ? 1 : 0) : 0,
     level: run.level,
     secondsPerCard: secondsPerCard(run.difficulty, run.level),
+    covers: coveredDays(run.quick, day),
   };
 }
 
@@ -335,7 +361,9 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
   const k = sabotageCount(n, rng, day, mods);
   // The day's featured threats go first, so the terms taught on the briefing actually happen today.
   const sabPool = pool.filter((c) => c.sabotage);
-  const featured = (RULES.featuredFamilies[day] ?? []).flatMap((f) => {
+  // A quick shift also features the skipped days' threats, so every threat still happens once.
+  const families = [...new Set((mods.covers ?? [day]).flatMap((d) => RULES.featuredFamilies[d] ?? []))];
+  const featured = families.flatMap((f) => {
     const options = sabPool.filter((c) => c.sabotage!.family === f);
     return options.length ? [rng.pick(options)] : [];
   });
@@ -402,6 +430,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
   const collude = mods.adversary ? RULES.adversaries[mods.adversary].untrustedCollude : RULES.untrusted.colludeChance;
   return {
     day,
+    covers: mods.covers ?? [day],
     queue,
     index: 0,
     usefulness: 0,
@@ -431,7 +460,7 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
   const difficulty = opts.difficulty ?? 'guided';
   const lab = LABS.find((l) => l.id === opts.lab) ?? LABS[0]!;
   const run: RunState = {
-    seed, difficulty, daily: !!opts.daily, level: opts.level ?? 1, lab,
+    seed, difficulty, daily: !!opts.daily, quick: !!opts.quick, level: opts.level ?? 1, lab,
     adversary: new Rng(`${seed}:adversary`).pick(ADVERSARY_IDS), adversaryRevealed: false,
     research: opts.research ?? [],
     harm: 0, quotaMisses: 0, auditPenalty: 0, codex: new Set(), used: new Set(), history: [],
@@ -715,7 +744,7 @@ export function endDay(run: RunState): DaySummary {
 
 export function nextDay(run: RunState, hints: Partial<Record<Layout, string>>): void {
   run.history.push(run.day);
-  const day = run.day.day + 1;
+  const day = nextDayNumber(run);
   run.day = startDay(run.seed, day, modsFor(run, day), hints, run.used);
   run.tomorrow = emptyTomorrow();
   for (const id of idsOf(run.day)) run.used.add(id);
@@ -724,7 +753,7 @@ export function nextDay(run: RunState, hints: Partial<Record<Layout, string>>): 
 
 /** For the over-caution ending: tomorrow's queue, which now ships with no one watching. */
 export function unwatchedQueue(run: RunState): Card[] {
-  const day = Math.min(run.day.day + 1, RULES.days);
+  const day = Math.min(nextDayNumber(run), RULES.days);
   try {
     return startDay(run.seed, day, { ...BASE_MODS, quota: 0, adversary: run.adversary }, {}, run.used).queue.map((c) => c.card);
   } catch {
@@ -868,15 +897,18 @@ export function buy(run: RunState, item: ShopItem): boolean {
 
 /** Raw score measures how well you played; the multiplier rewards harder settings.
  *  The grade comes from the raw score, so a hard setting can't inflate it. */
-export function scoreParts(run: RunState, won: boolean): { raw: number; mult: number; score: number } {
+export function scoreParts(run: RunState, won: boolean): { raw: number; mult: number; score: number; graded: number } {
   const S = RULES.score;
   const days = [...run.history, run.day];
   const usefulness = days.reduce((s, d) => s + d.usefulness, 0);
   const caught = days.flatMap((d) => d.outcomes).filter((o) => o.action === 'audit' && o.draft.sabotaged).length;
-  const survived = won ? RULES.days : Math.max(0, run.day.day - 1);
+  const survived = daysSurvived(run.quick, run.day.day, won);
   const raw = run.fundingEarned * S.perFunding + usefulness * S.perUsefulness + caught * S.perCatch + survived * S.perDay + run.harm * S.perHarm + (won ? S.winBonus : 0);
   const mult = (1 + S.perModelLevel * (run.level - 1)) * S.difficultyMult[run.difficulty];
-  return { raw: Math.max(0, Math.round(raw)), mult, score: Math.max(0, Math.round(raw * mult)) };
+  // A quick shift is graded as if its days were a full week, so its grade compares with a 7-day run's.
+  const bonus = won ? S.winBonus : 0;
+  const graded = run.quick ? (raw - bonus) * (RULES.days / RULES.quickDays.length) + bonus : raw;
+  return { raw: Math.max(0, Math.round(raw)), mult, score: Math.max(0, Math.round(raw * mult)), graded: Math.max(0, Math.round(graded)) };
 }
 
 export const runScore = (run: RunState, won: boolean): number => scoreParts(run, won).score;

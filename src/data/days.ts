@@ -8,6 +8,8 @@ export interface DayInfo {
   rule: string[];
   /** Shown on the first card of this layout that day. */
   hints: Partial<Record<Layout, string>>;
+  /** Quick shift: what a later briefing says about this day when it's skipped. Empty means nothing carries over. */
+  quickRule?: string;
   /** One line from the real-world record, shown on this day's briefing. */
   record?: string;
 }
@@ -52,7 +54,7 @@ export const DAYS: DayInfo[] = [
     },
     record: "In July 2025, a coding agent deleted a company's production database during a code freeze.",
   },
-  { day: 4, phase: 'Agents', boss: false, rule: ['Nothing new today, but the monitor under-rates agent actions: it scores them lower than it should.', 'Read past the score.'], hints: {},
+  { day: 4, phase: 'Agents', boss: false, rule: ['Nothing new today, but the monitor under-rates agent actions: it scores them lower than it should.', 'Read past the score.'], hints: {}, quickRule: '',
     record: 'In 2025, METR found frontier models editing the scoring code so their own work would be marked a success.' },
   {
     day: 5, phase: 'Multi-agent', boss: false,

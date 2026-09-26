@@ -274,7 +274,7 @@ export function actionbar(run: RunState, preview: Preview, disabled = false): st
     btn('U', 'audit', 'Audit', d.audits > 0 ? 'Human expert checks it · always right' : 'No auditor hours left', d.audits > 0),
     btn('D', 'defer', 'Defer', deferValue(run) === U.ship ? `Hotline: trusted redo, full value · +${U.ship}` : `Discard; trusted model redoes it · +${U.defer}`, true),
     unlocked
-      ? btn('R', 'resample', 'Resample', d.compute > 0 ? `${RULES.resampleCost} compute · new draft + score` : 'No compute left', d.compute > 0, d.day === RULES.resampleUnlockDay ? ' <span class="new-badge">New</span>' : '')
+      ? btn('R', 'resample', 'Resample', d.compute > 0 ? `${RULES.resampleCost} compute · new draft + score` : 'No compute left', d.compute > 0, d.covers.includes(RULES.resampleUnlockDay) ? ' <span class="new-badge">New</span>' : '')
       : btn('R', 'resample', 'Resample', `Unlocks on Day ${RULES.resampleUnlockDay}`, false),
   ].join('');
 }
@@ -395,13 +395,16 @@ export function briefing(run: RunState, toolsToday = ''): string {
   const info = dayInfo(d.day);
   const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's usefulness quota. One fewer auditor today. Miss it again and the model ships without you.</li>` : '';
   const side = `${d.day === 1 ? cast() : ''}${toolsToday}`;
+  // Quick shift: the skipped day's new rule comes first, so nothing it introduced goes unexplained.
+  const skipped = d.covers.filter((x) => x !== d.day).map((x) => [x, dayInfo(x).quickRule ?? dayInfo(x).rule[0] ?? ''] as const)
+    .filter(([, rule]) => rule).map(([x, rule]) => `<li class="skipped-rule"><span class="eyebrow">Since Day ${x}</span> ${linkTerms(rule, 2)}</li>`).join('');
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
       <div class="briefing-card${side ? ' has-side' : ''}">
         <div class="briefing-main">
-          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
+          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days}${run.quick ? ' · Quick shift' : ''} · ${esc(info.phase)}</span>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
           <h2 class="briefing-title">Shift briefing</h2>
-          <ul class="briefing-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}${penalty}</ul>
+          <ul class="briefing-rules">${skipped}${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
             <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
             <div${d.quotaAsked - d.quota >= 2 ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked - d.quota >= 2 ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>
@@ -756,7 +759,7 @@ export function replayStrip(run: RunState, won: boolean): string {
     return `<div class="tick-row"><span class="tick-day">D${d.day}</span>${cells}</div>`;
   }).join('');
   const grid = days.map((d) => `D${d.day} ${d.outcomes.map((o) => TICK[tickOf(o)].emoji).join('')}`).join('\n');
-  const head = `Oversight Shift · ${RULES.difficulty[run.difficulty].label} · model v${run.level}${run.daily ? ` · ${run.seed.replace('DAILY-', 'daily ')}` : ''} · ${won ? 'survived the week' : `ended on Day ${run.day.day}`}`;
+  const head = `Oversight Shift · ${RULES.difficulty[run.difficulty].label} · model v${run.level}${run.quick ? ' · quick shift' : ''}${run.daily ? ` · ${run.seed.replace('DAILY-', 'daily ')}` : ''} · ${won ? 'survived the week' : `ended on Day ${run.day.day}`}`;
   const share = `${head}\n${grid}\nplay: ianrmackinnon.com/play/oversight-shift`;
   const legend = (Object.keys(TICK) as Tick[]).map((t) => `<span class="legend-item"><span class="tick t-${t}"></span>${TICK[t].label}</span>`).join('');
   return `

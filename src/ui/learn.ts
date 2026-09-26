@@ -37,7 +37,7 @@ export const DAY_TERMS: Record<number, string[]> = {
 };
 
 export function dayTermsBlock(run: RunState, p: Progress): string {
-  const terms = (DAY_TERMS[run.day.day] ?? []).map(findTerm).filter((t): t is Term => !!t);
+  const terms = run.day.covers.flatMap((d) => DAY_TERMS[d] ?? []).map(findTerm).filter((t): t is Term => !!t);
   if (!terms.length) return '';
   return `
     <div class="day-terms">
@@ -113,7 +113,7 @@ function threatsTab(p: Progress): string {
 
 function runsTab(p: Progress): string {
   const history = p.history.length
-    ? p.history.map((h) => `<li><span class="hs-grade g-${h.grade}">${h.grade}</span><span>${h.result === 'win' ? 'Won' : `Day ${h.dayReached}`} · ${RULES.difficulty[h.difficulty].label} · v${h.level}${h.daily ? ' · daily' : ''}</span><span class="muted">${esc(ADVERSARIES[h.adversary].name)} · ${h.score}</span></li>`).join('')
+    ? p.history.map((h) => `<li><span class="hs-grade g-${h.grade}">${h.grade}</span><span>${h.result === 'win' ? 'Won' : `Day ${h.dayReached}`} · ${RULES.difficulty[h.difficulty].label} · v${h.level}${h.daily ? ' · daily' : ''}${h.quick ? ' · quick' : ''}</span><span class="muted">${esc(ADVERSARIES[h.adversary].name)} · ${h.score}</span></li>`).join('')
     : '<li class="muted">No runs yet.</li>';
   const research = TREE.filter((n) => p.research.includes(n.id)).map((n) => `<li class="done"><span class="rs-dot"></span><div><strong>${esc(n.name)}</strong><span>${esc(n.effect)}</span></div></li>`).join('')
     || '<li class="muted">Nothing researched yet. Runs earn Insight, and failures earn the most.</li>';

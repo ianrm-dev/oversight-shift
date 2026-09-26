@@ -1304,6 +1304,10 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 }
 .lab-opt.is-selected { border-color: var(--cat-budget); box-shadow: 0 0 0 1px var(--cat-budget); }
 .lab-opt:disabled { opacity: 0.45; cursor: default; }
+.len-picker { display: flex; gap: var(--space-2); }
+.len-opt { display: flex; align-items: baseline; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: rgb(13 20 32 / 0.85); border: 1px solid var(--line-strong); border-radius: var(--radius); font-size: var(--fs-sm); color: var(--text-2); }
+.len-opt strong { color: var(--text); }
+.len-opt.is-selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .ver-row { display: flex; align-items: center; gap: var(--space-4); }
 .ver-picker { display: flex; gap: var(--space-2); }
 .ver-opt { width: 48px; height: 40px; font-family: var(--font-mono); background: rgb(13 20 32 / 0.85); border: 1px solid var(--line-strong); border-radius: var(--radius); }
@@ -1316,6 +1320,14 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .codex { justify-content: flex-start; align-items: stretch; text-align: left; padding: var(--space-5) var(--space-6); gap: var(--space-3); }
 .cx-top { display: flex; justify-content: space-between; align-items: flex-start; }
 .cx-top h2 { margin: 2px 0 0; font-size: var(--fs-2xl); }
+.made { justify-content: flex-start; align-items: stretch; text-align: left; padding: var(--space-5) var(--space-6); gap: var(--space-4); }
+.made-intro { margin: 0; max-width: 860px; font-size: var(--fs-lg); line-height: var(--lh-body); color: var(--text); }
+.made-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-5); min-height: 0; }
+.made-grid section { padding: var(--space-4); background: rgb(13 20 32 / 0.85); border: 1px solid var(--line); border-radius: var(--radius); }
+.made-grid h3 { margin: 0 0 var(--space-2); font-size: var(--fs-md); color: var(--accent); }
+.made-grid ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--fs-sm); line-height: var(--lh-body); color: var(--text-2); }
+.made-foot { margin: 0; font-size: var(--fs-sm); color: var(--text-3); }
+.title-made { margin-top: var(--space-1); }
 .cx-grid { display: grid; grid-template-columns: 1fr 1fr 340px; gap: var(--space-5); min-height: 0; flex: 1; }
 .cx-grid section { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .cx-grid h3 { margin: 0; font-size: var(--fs-md); }
