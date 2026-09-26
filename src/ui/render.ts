@@ -2,7 +2,7 @@
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
 import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
-import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
+import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCost, shopCount } from '../game/state';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
@@ -614,7 +614,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
     const disabled = !canBuy(run, item) || (item === 'reroll' && (picked || !offer.length));
     return `<button class="shop-item" data-buy="${item}" ${disabled ? 'disabled' : ''}>
       <span class="shop-name">${name}</span><span class="shop-desc">${desc}</span>
-      <span class="shop-foot"><span class="shop-cost">${spec.cost}</span><span class="shop-count">${n}/${spec.max}</span></span>
+      <span class="shop-foot"><span class="shop-cost">${shopCost(run, item)}</span><span class="shop-count">${n}/${spec.max}</span></span>
     </button>`;
   }).join('');
   return `
@@ -646,4 +646,21 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
 
 export function toast(text: string, tone: 'good' | 'neutral' | 'defer'): string {
   return `<div class="toast toast-${tone}" role="status">${esc(text)}</div>`;
+}
+
+// ---------- Shift clock ran out ----------
+export function timeout(run: RunState, shipped: Outcome[]): string {
+  const bad = shipped.filter((o) => o.draft.sabotaged);
+  const harm = shipped.reduce((s, o) => s + o.harm, 0);
+  return `
+    <main class="solo event-screen">
+      <article class="event-card timeout-card">
+        <div class="eyebrow">Day ${run.day.day} · shift clock</div>
+        <h2 class="event-title">The queue didn't wait.</h2>
+        <p class="event-text">Time ran out with ${shipped.length} card${shipped.length === 1 ? '' : 's'} still unreviewed. They shipped as they were${bad.length ? `, and ${bad.length} of them turned out to be sabotage${harm ? ` (+${harm} harm)` : ''}` : ', and all of them happened to be clean'}.</p>
+        <ul class="unwatched">${shipped.map((o) => `<li class="${o.draft.sabotaged ? 'bad' : ''}"><span class="log-dot ${o.draft.sabotaged ? 'incident' : 'approve'}"></span><div><strong>${esc(o.card.title)}</strong><span>${o.draft.sabotaged ? esc(o.card.sabotage!.headline) : 'Shipped fine.'}</span></div></li>`).join('')}</ul>
+        <p class="event-anchor"><span class="eyebrow">Why there's a clock</span>Careful human review is slow, and real review queues have deadlines. In a 2025 pilot, human auditors given 90 seconds per item had 60% median accuracy. Tools are fast; your attention is the scarce part.</p>
+        <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Continue</button>
+      </article>
+    </main>`;
 }

@@ -9,7 +9,7 @@ import * as L from './ui/learn';
 import { popover, resetTermsMet, termsMet } from './ui/terms';
 import {
   act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
-  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
+  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
 import type { Breakthrough, Contract, Difficulty, GameEvent, ToolId, Upgrade } from './types';
@@ -28,6 +28,7 @@ type Screen =
   | { kind: 'codex' }
   | { kind: 'guide'; tab: L.GuideTab; focus?: string }
   | { kind: 'fieldtest'; test: L.TestState }
+  | { kind: 'timeout'; shipped: Outcome[] }
   | { kind: 'daily-info' }
   | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
@@ -176,6 +177,7 @@ function render(): void {
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
   else if (screen.kind === 'codex' || screen.kind === 'guide') { setLayout('solo'); screenEl.innerHTML = L.fieldGuide(progress, screen.kind === 'guide' ? screen.tab : 'terms', screen.kind === 'guide' ? screen.focus : undefined); }
+  else if (screen.kind === 'timeout' && run) { setLayout('solo'); screenEl.innerHTML = R.timeout(run, screen.shipped); }
   else if (screen.kind === 'fieldtest') {
     setLayout('solo');
     screenEl.innerHTML = screen.test.done && run ? L.fieldTestResults(screen.test, talkingPoints(run, termsMet())) : L.fieldTest(screen.test);
@@ -309,6 +311,13 @@ function continueScreen(): void {
   if (!run) return;
   if (screen.kind === 'reveal') { screen = screen.then; render(); return; }
   if (screen.kind === 'fieldtest') { advanceFieldTest(); return; }
+  if (screen.kind === 'timeout') {
+    if (run.loss) { screen = { kind: 'over' }; render(); return; }
+    const summary = endDay(run);
+    screen = { kind: 'review', html: R.review(run, summary) };
+    render();
+    return;
+  }
   if (screen.kind === 'briefing') { screen = { kind: 'shift' }; render(); return; }
   if (screen.kind === 'shift' && screen.overlay) { nextCard(); return; }
   if (screen.kind === 'review') {
@@ -548,6 +557,31 @@ screenEl.addEventListener('mouseover', (e) => {
   const next = t && !(t as HTMLButtonElement).disabled ? (t.dataset.action as R.Preview) : null;
   if (next !== preview) { preview = next; renderPreview(); }
 });
+
+// ---------- Shift clock ----------
+// Counts down only while a card is on screen: reports, reveals, the toolkit and hidden tabs pause it.
+let lastTick = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  const dt = (now - lastTick) / 1000;
+  lastTick = now;
+  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || document.hidden) return;
+  const d = run.day;
+  if (!d.attention || dayOver(d)) return;
+  d.attentionLeft = Math.max(0, d.attentionLeft - dt);
+  const fill = screenEl.querySelector<HTMLElement>('.clock-fill');
+  const num = screenEl.querySelector<HTMLElement>('.clock-num');
+  const pct = (d.attentionLeft / d.attention) * 100;
+  if (fill) fill.style.setProperty('--v', `${pct.toFixed(1)}%`);
+  if (num) num.textContent = S.clockText(d.attentionLeft);
+  screenEl.querySelector('[data-clock]')?.classList.toggle('is-low', pct < 20);
+  if (d.attentionLeft <= 0) {
+    const shipped = shipUnreviewed(run);
+    freshHarm = shipped.reduce((s, o) => s + o.harm, 0);
+    screen = { kind: 'timeout', shipped };
+    render();
+  }
+}, 200);
 
 // ---------- Term popover ----------
 const pop = document.createElement('div');

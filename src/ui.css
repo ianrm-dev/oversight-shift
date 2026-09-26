@@ -1642,3 +1642,10 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .talk-list .term { font-weight: 600; color: var(--text); align-self: flex-start; }
 .briefing-stats { display: grid; grid-template-columns: repeat(3, 1fr); }
 .stage > .term-pop { position: absolute; z-index: 20; }
+.hud-clock { display: flex; align-items: center; gap: 6px; flex: none; }
+.hud-clock .bar { width: 70px; }
+.clock-fill { position: absolute; inset: 0 auto 0 0; width: var(--v); border-radius: 4px; background: var(--text-2); }
+.hud-clock.is-low .clock-fill { background: var(--harm); animation: fresh-flash 1s var(--ease-in-out) infinite; }
+.hud-clock.is-low .clock-num { color: var(--harm); }
+.timeout-card { border-color: rgb(240 194 75 / 0.5); }
+.timeout-card .unwatched { max-height: 220px; }

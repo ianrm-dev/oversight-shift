@@ -53,6 +53,8 @@ export interface Outcome {
   warning?: boolean;
   /** Deferred with Trusted editing, but the sabotage survived the edit. */
   slipped?: boolean;
+  /** Shipped without review because the shift clock ran out. */
+  unreviewed?: boolean;
 }
 
 export type LossKind = 'harm' | 'quota';
@@ -79,6 +81,11 @@ export interface DayState {
   /** Catch bonus refunds one auditor hour per day. */
   catchRefunded?: boolean;
   probesLeft: number;
+  /** Shift clock: seconds for the whole day (0 = no clock), and seconds left. */
+  attention: number;
+  attentionLeft: number;
+  /** How many times each tool was used today (for "terms in action"). */
+  toolsUsed: Partial<Record<'fact' | 'scope' | 'resample' | 'untrusted' | 'probe' | 'audit' | 'defer', number>>;
   /** Whether the untrusted monitor colludes with the model today (revealed by the Canary). */
   untrustedColludes: boolean;
   outcomes: Outcome[];
@@ -99,6 +106,9 @@ export interface DayMods {
   blind?: Layout;
   contract?: Contract;
   probes?: number;
+  level?: number;
+  /** Seconds of shift clock per card (0 = no clock). */
+  secondsPerCard?: number;
 }
 
 export type ShopItem = 'auditor' | 'compute' | 'tuneUp' | 'reroll';
@@ -146,6 +156,8 @@ export interface RunState {
   /** Bought or earned between days; consumed by the next day. */
   tomorrow: Tomorrow;
   rerolls: number;
+  /** Shop purchases this run, per item: each raises that item's price. */
+  shopBought: Record<ShopItem, number>;
   eventsSeen: string[];
   /** Every change to harm outside a card incident, so the player can see why harm moved. */
   harmLog: { day: number; amount: number; reason: string }[];
@@ -193,6 +205,17 @@ export const harmCeiling = (run: RunState): number =>
 
 export const factHit = (run: RunState): number => Math.max(0.3, DIFF(run).factHit + levelMods(run.level).factHitDelta);
 
+/** Shift-clock seconds per card for a difficulty and model version (0 = no clock). */
+export function secondsPerCard(difficulty: Difficulty, level: number): number {
+  const A = RULES.attention;
+  const base = A.secondsPerCard[difficulty];
+  return base ? Math.max(A.minPerCard, base + A.perLevel * (level - 1)) : 0;
+}
+
+/** Cards dealt on a day: later model versions send more work. */
+export const cardsFor = (day: number, level = 1): number =>
+  RULES.cardsPerDay[day - 1]! + RULES.extraCardsFromLevel.filter((l) => level >= l).length;
+
 export const BASE_MODS: DayMods = { audits: RULES.auditsPerDay, compute: RULES.computePerDay, bandNarrow: 0, bandScale: 1, quota: RULES.quotaPerDay[0]! };
 
 /** Tomorrow's budget: base rules, difficulty, lab, model version, upgrades, purchases, events, penalties. */
@@ -217,6 +240,8 @@ export function modsFor(run: RunState, day: number): DayMods {
     blind: t.blind,
     contract,
     probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay + (knows(run, 'int-probe2') ? 1 : 0) : 0,
+    level: run.level,
+    secondsPerCard: secondsPerCard(run.difficulty, run.level),
   };
 }
 
@@ -267,6 +292,18 @@ function drawSabotage(bad: Card[], k: number, rng: Rng, adversary?: AdversaryId)
   return out;
 }
 
+/** Weighted order without replacement. */
+function drawWeighted(cards: Card[], rng: Rng, weight: (c: Card) => number): Card[] {
+  const left = [...cards];
+  const out: Card[] = [];
+  while (left.length) {
+    const pick = rng.weightedPick(left, weight);
+    out.push(pick);
+    left.splice(left.indexOf(pick), 1);
+  }
+  return out;
+}
+
 /** Usefulness a perfect player ships: every clean card approved, every sabotage deferred or caught.
  *  Unspent compute is NOT counted, because a careful player spends it on tools. */
 export function perfectUsefulness(queue: CardState[]): number {
@@ -292,11 +329,14 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
   const fresh = eligible.filter((c) => !exclude.has(scenarioOf(c)));
   // Prefer unseen cards; fall back to the full pool if a long run exhausts them.
   const pool = attempt < RULES.maxGenerationAttempts / 2 ? fresh : eligible;
-  const n = RULES.cardsPerDay[day - 1]!;
+  const n = cardsFor(day, mods.level);
   const k = sabotageCount(n, rng, day, mods);
   const bad = uniqueScenarios(drawSabotage(pool.filter((c) => c.sabotage), k + 3, rng, mods.adversary)).slice(0, k);
   const badKeys = new Set(bad.map(scenarioOf));
-  const good = uniqueScenarios(rng.shuffle(pool.filter((c) => !c.sabotage && !badKeys.has(scenarioOf(c)))));
+  const cleanPool = pool.filter((c) => !c.sabotage && !badKeys.has(scenarioOf(c)));
+  // Later model versions favor clean work that looks suspicious: reading past the score matters more.
+  const nearMiss = (mods.level ?? 1) >= RULES.nearMissFromLevel;
+  const good = uniqueScenarios(nearMiss ? drawWeighted(cleanPool, rng, (c) => 0.5 + c.trueSignal / 25) : rng.shuffle(cleanPool));
   if (bad.length < k || good.length < n - k) return null;
 
   // Make sure a newly introduced layout actually shows up on its first day.
@@ -367,6 +407,9 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     blind: mods.blind,
     hotlineUsed: false,
     probesLeft: mods.probes ?? 0,
+    attention: (mods.secondsPerCard ?? 0) * queue.length,
+    attentionLeft: (mods.secondsPerCard ?? 0) * queue.length,
+    toolsUsed: {},
     untrustedColludes: day >= RULES.untrusted.colludeFromDay && !mods.paraphraser && new Rng(`${seed}:collude:d${day}`).chance(collude),
     outcomes: [],
   };
@@ -388,7 +431,7 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
     breakthroughs: opts.research?.includes('int-probe-start') ? ['probe'] : [],
     warningsLeft: RULES.difficulty[difficulty].freeWarnings,
     rest: { quota: 0, compute: 0, audits: 0, ceiling: 0 },
-    tomorrow: emptyTomorrow(), rerolls: 0, eventsSeen: [], harmLog: [],
+    tomorrow: emptyTomorrow(), rerolls: 0, shopBought: { auditor: 0, compute: 0, tuneUp: 0, reroll: 0 }, eventsSeen: [], harmLog: [],
     day: undefined as unknown as DayState,
   };
   run.day = startDay(seed, 1, modsFor(run, 1), hints);
@@ -512,6 +555,7 @@ export function act(run: RunState, action: Action): Outcome | null {
   const c = current(d);
   if (!c || !canAct(run, action)) return null;
   const draft = latest(c);
+  if (action !== 'approve') d.toolsUsed[action] = (d.toolsUsed[action] ?? 0) + 1;
 
   if (action === 'probe') {
     d.probesLeft--;
@@ -577,6 +621,19 @@ export function act(run: RunState, action: Action): Outcome | null {
   if (draft.sabotaged && c.card.sabotage && (action === 'approve' || action === 'audit' || slipped)) run.codex.add(c.card.sabotage.family);
   if (run.harm >= harmCeiling(run)) run.loss = { kind: 'harm', day: d.day, fatal: outcome };
   return outcome;
+}
+
+/** The shift clock ran out: everything left in the queue ships unreviewed. Returns what shipped. */
+export function shipUnreviewed(run: RunState): Outcome[] {
+  const d = run.day;
+  const shipped: Outcome[] = [];
+  while (!dayOver(d) && !run.loss) {
+    const o = act(run, 'approve');
+    if (o) { o.unreviewed = true; shipped.push(o); }
+    d.index++;
+  }
+  d.attentionLeft = 0;
+  return shipped;
 }
 
 /** True when the outcome should show an incident report. */
@@ -774,14 +831,17 @@ export function shopCount(run: RunState, item: ShopItem): number {
   return item === 'reroll' ? run.rerolls : run.tomorrow[item];
 }
 
+/** Price of a shop item now: base cost, plus one for each earlier purchase this run. */
+export const shopCost = (run: RunState, item: ShopItem): number => RULES.shop[item].cost + run.shopBought[item] * RULES.shopEscalation;
+
 export function canBuy(run: RunState, item: ShopItem): boolean {
-  const spec = RULES.shop[item];
-  return run.funding >= spec.cost && shopCount(run, item) < spec.max;
+  return run.funding >= shopCost(run, item) && shopCount(run, item) < RULES.shop[item].max;
 }
 
 export function buy(run: RunState, item: ShopItem): boolean {
   if (!canBuy(run, item)) return false;
-  run.funding -= RULES.shop[item].cost;
+  run.funding -= shopCost(run, item);
+  run.shopBought[item]++;
   if (item === 'reroll') run.rerolls++;
   else run.tomorrow[item]++;
   return true;

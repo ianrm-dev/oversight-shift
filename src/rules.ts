@@ -120,6 +120,16 @@ export const RULES = {
     grades: [['S', 1400], ['A', 1150], ['B', 850], ['C', 550], ['D', 0]] as [string, number][],
   },
 
+  /** Attention budget: careful human review takes time. Seconds of shift clock per card in the queue.
+   *  When it runs out, the rest of the queue ships unreviewed, because the queue doesn't wait. */
+  attention: { secondsPerCard: { guided: 0, standard: 30, analyst: 20 }, perLevel: -2, minPerCard: 12 },
+  /** Later model versions send more work: extra cards per day from these levels. */
+  extraCardsFromLevel: [3, 5],
+  /** From this model version, clean cards that look suspicious are dealt more often. */
+  nearMissFromLevel: 4,
+  /** Each purchase of a shop item raises its price for the rest of the run. */
+  shopEscalation: 1,
+
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */
   difficulty: {
     guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings. Best for a first shift.', factHit: 0.95, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },

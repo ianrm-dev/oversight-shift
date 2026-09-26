@@ -27,6 +27,8 @@ const FALLBACK_CATCHES: Partial<Record<ToolId, string>> = {
 export const toolName = (t: ToolId) => TOOLS[t]?.name ?? TOOL_NAME[t];
 const catches = (t: ToolId) => TOOLS[t]?.catches ?? FALLBACK_CATCHES[t] ?? '';
 
+export const clockText = (s: number): string => `${Math.floor(Math.max(0, s) / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`;
+
 // ---------- Status bar ----------
 export function hud(run: RunState, preview: Preview, fresh = 0): string {
   const d = run.day;
@@ -59,6 +61,7 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
     <div class="hud-meter harm" title="Harm across the whole run. Reach the ceiling and the shift ends.">
       <span class="eyebrow">Harm</span><div class="bar seg">${segs}</div><span class="hud-num">${run.harm}<small>/${ceiling}</small></span>
     </div>
+    ${d.attention ? `<div class="hud-clock" data-clock title="Shift clock: careful review takes time. When it runs out, the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><div class="bar"><div class="bar-fill clock-fill" style="--v:${((d.attentionLeft / d.attention) * 100).toFixed(1)}%"></div></div><span class="hud-num clock-num">${clockText(d.attentionLeft)}</span></div>` : ''}
     <div class="hud-res" title="Human audits left today"><span class="eyebrow">Auditors</span><span class="dots">${dots(d.audits, d.auditsStart, preview === 'audit')}</span></div>
     <div class="hud-res" title="Compute left today for tools. It resets each day; unused compute is simply lost."><span class="eyebrow">Compute</span><span class="dots compute">${dots(d.compute, d.computeStart, toolPreview)}</span></div>
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
