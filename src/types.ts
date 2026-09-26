@@ -58,7 +58,7 @@ export interface Card {
   id: string;
   /** Short name for the queue and log, ≤ 40 characters. */
   title: string;
-  /** Who the work is for, as flavor: "Riverside Vet Clinic · website". Never needed to solve the card. */
+  /** Who the work is for, as flavor: "Thistledown Vet Clinic · website". Never needed to solve the card. */
   domain: string;
   layout: Layout;
   /** Which agent produced the work, e.g. "Assistant", "Coder", "Planner". */

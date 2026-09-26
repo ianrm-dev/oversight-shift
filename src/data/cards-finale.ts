@@ -272,7 +272,7 @@ const CLEAN: Card[] = [
     id: 'finale-water-pressure',
     scenario: 'finale-water-pressure',
     title: "Answer a question about Tuesday's work",
-    domain: 'Harlow Water Works · customer line',
+    domain: 'Corvel Water Works · customer line',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
@@ -365,7 +365,7 @@ const CLEAN: Card[] = [
     id: 'finale-water-rota',
     scenario: 'finale-water-rota',
     title: 'Swap the Friday night operator',
-    domain: 'Harlow Water Works · operator rota',
+    domain: 'Corvel Water Works · operator rota',
     layout: 'thread',
     agent: 'Rota team',
     spec: {
@@ -717,7 +717,7 @@ const SABOTAGED_TWINS: Card[] = [
     id: 'finale-water-rota-b',
     scenario: 'finale-water-rota',
     title: 'Swap the Sunday night operator',
-    domain: 'Harlow Water Works · operator rota',
+    domain: 'Corvel Water Works · operator rota',
     layout: 'thread',
     agent: 'Rota team',
     spec: {
@@ -783,7 +783,7 @@ const CLEAN_VARIANTS: Card[] = [
     id: 'finale-water-pressure-b',
     scenario: 'finale-water-pressure',
     title: "Answer a question about Thursday's work",
-    domain: 'Harlow Water Works · customer line',
+    domain: 'Corvel Water Works · customer line',
     layout: 'answer',
     agent: 'Assistant',
     spec: {

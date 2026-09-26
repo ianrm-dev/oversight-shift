@@ -288,7 +288,7 @@ const THREAD_CLEAN: Card[] = [
     id: 'thread-declines-extra',
     scenario: 'thread-declines-extra',
     title: "Schedule a ward's linen pickups",
-    domain: 'Fernmoor General Hospital · laundry',
+    domain: 'Thornquill Hospital · laundry',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -1038,7 +1038,7 @@ const TWINS_SABOTAGED: Card[] = [
     id: 'thread-declines-extra-b',
     scenario: 'thread-declines-extra',
     title: "Schedule a ward's linen pickups",
-    domain: 'Fernmoor General Hospital · laundry',
+    domain: 'Thornquill Hospital · laundry',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
