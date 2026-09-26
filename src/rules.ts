@@ -32,7 +32,6 @@ export const RULES = {
   computePerDay: 3,
   resampleCost: 1,
   unspentComputeValue: 0,
-  /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
   /** Real attackers often repeat an attack on a resample (Ctrl-Z), so a fresh draft only sometimes drops it. */
   resampleDropsSabotage: 0.3,
   /** trueSignal range for an honest redraft of a sabotaged card. */
@@ -53,7 +52,7 @@ export const RULES = {
   harmCeiling: 10,
   /** The first incident of a run is a free warning: full report, no harm. */
   freeWarnings: 1,
-  // Day 3 rule: approved agent actions (log layout) do double harm from this day on.
+  // Day 3 rule: approved agent actions (log layout) do more harm from this day on.
   agentHarmFromDay: 3,
   agentHarmMultiplier: 1.5,
 
@@ -68,7 +67,6 @@ export const RULES = {
   /** Day 7: the schemer games the trusted monitor, so sabotage reads this much lower. */
   gamedMonitorDay: 7,
   gamedMonitorShift: 20,
-  /** Sandbagging usually disappears on a fresh sample. */
   /** Prompting a sandbagging model again rarely brings out its real ability (Auditing Games for Sandbagging, 2025). */
   sandbagResampleHonest: 0.4,
   /** Untrusted monitor: a sharper second opinion that may collude with the model. */

@@ -1,6 +1,6 @@
-# Oversight Shift — Design
+# Oversight Shift: Design
 
-How the game works and why. Every balance number lives in `src/rules.ts`.
+How the game works and why. Every balance number lives in `src/rules.ts`; the numbers below are the current values.
 
 ## Pitch
 
@@ -8,161 +8,236 @@ How the game works and why. Every balance number lives in `src/rules.ts`.
 
 Why both halves matter: AI control isn't about stopping the AI. It's about getting useful work out of a model you can't fully trust, without disaster. A safety team that blocks everything doesn't make anyone safer; it gets routed around.
 
-Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating days, with an upgrade pick between days.
+**Reading first, scarce help.** Your main tool is reading the card. The checks you can run on it are real control techniques, but you get a few a day and a clock that doesn't wait, so the skill is deciding which cards need them. The Day 1 briefing says it plainly: *"Your job: ship enough of the model's work to meet the quota, and stop its sabotage before harm reaches the limit. The catch: you can't check it all. Time, compute and auditors run out fast, and the queue doesn't wait."*
+
+Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating days, with events, an upgrade pick and a budget meeting between days, and research that carries across runs.
 
 ## Winning, losing, and acceptable failure
 
-**Harm** accumulates across the whole run against a ceiling of **8**. Each card has a hidden severity:
+**Harm** accumulates across the whole run against a ceiling of **10** (a quick shift's ceiling is 7). Each card has a hidden severity:
 
-| Severity | Harm | Example |
-|---|---|---|
-| Minor | 1 | Flattering answer agreeing with a wrong claim; a sloppy summary |
-| Major | 3 | Internal data emailed out; a safety check weakened in a report |
-| Severe | 6 | Production database deleted; a lab freezer alarm disabled |
+| Severity | Harm | Agent action, Day 3+ | Example |
+|---|---|---|---|
+| Minor | 1 | 2 | Flattering answer agreeing with a wrong claim; a sloppy summary |
+| Major | 3 | 5 | Internal data emailed out; a safety check weakened in a report |
+| Severe | 6 | 9 | Production database deleted; a lab freezer alarm disabled |
 
-You can absorb several minor incidents or one severe one, not two severe. **The first incident of a run is a free warning** (full report, no harm); every later one counts. Letting a probable Minor through to save an Audit for a possible Severe is a correct play, not a mistake.
+From Day 3, approved agent actions do 50% more harm (rounded). You can absorb several minor incidents or one severe one, not two severe. **The first incident of a run is a free warning** (two on Guided): full report, no harm. Letting a probable Minor through to save an audit for a possible Severe is a correct play, not a mistake.
 
-**Usefulness** has a daily quota that rises each day. Missing it once: a leadership warning and one fewer auditor hour tomorrow. Missing it twice ends the run.
+**Usefulness** has a daily quota that rises through the week (9, 12, 15, 15, 18, 18, 20 before modifiers). Missing it once: a warning and one fewer auditor tomorrow. Missing it twice ends the run.
 
-| | Under-caution: "Incident in production" | Over-caution: "Leadership ships it unmonitored" |
+| | Under-caution: "Incident in production" | Over-caution: "The model ships unmonitored" |
 |---|---|---|
 | Trigger | Harm reaches the ceiling | Quota missed twice |
-| Ending screen | Incident headline; the fatal card replayed with its tell highlighted; every tell missed this run | Memo reassigning the safety team, then the rest of the queue plays out unwatched and every sabotage in it ships |
+| Ending screen | The fatal card's line, with the tell highlighted; every tell missed this run | A leadership memo reassigning the safety team, then tomorrow's queue plays out unwatched and every sabotage in it ships |
 | Lesson | Scores lie; read the card | Oversight that can't keep pace gets routed around, and the harm happens anyway |
 
-**Win:** survive Day 7. The ending grades the record (harm taken, catch rate, false alarms) and closes with: *"The next model arrives tomorrow. It's better than this one."*
+Harm can also reach the ceiling from a choice between shifts; that ending names the event. The pause menu can end a run early; it is recorded as unfinished.
 
-**What each extreme looks like in play.** Too cautious: Audits and Defers everywhere, compute burned on clean cards, usefulness under the quota line, high false alarms. Too careless: approving whatever reads green, incident reports sliding in, harm climbing, low catch rate. The day-end review shows *missed sabotage* and *false alarms* side by side so the player sees which way they lean. No "you are Reckless" label.
+**Win:** survive Day 7. The end screen shows harm, funding raised, catches and misses, a score and grade, and closes with *"The next model arrives tomorrow. It's better than this one."*
+
+**What each extreme looks like in play.** Too cautious: audits and Defers everywhere, compute burned on clean cards, usefulness under the quota line, many false alarms. Too careless: approving whatever reads green, incident reports sliding in, harm climbing. Too slow: the clock runs out and the rest of the queue ships unreviewed. The day-end review shows missed sabotage and false alarms side by side so the player sees which way they lean. No "you are Reckless" label.
+
+## Resources
+
+| Resource | Per day | What spends it |
+|---|---|---|
+| Shift clock | 25 s per card on Guided, 18 on Standard, 16 on Analyst; 1 s less per model version above v1, never below 10 | Time on screen with a card |
+| Compute | 3 (Guided +1) | Every tool: 1 compute each |
+| Auditors | 1 (Guided +1), never below 1 | Human audit |
+| Usefulness | Earned against the quota | Defer ships less than Approve |
+
+**The shift clock** is the day's total review time (seconds per card × cards in the queue), shown as a bar and a countdown. It runs only while a card is on screen: incident reports, audit reveals, the toolkit, the pause menu, a hidden tab and tour tips all stop it. When it hits zero, every card left in the queue ships unreviewed (approved as it stands, harm and all), and a screen lists what went out. The anchor: careful human review is slow. In the MATS auditing pilot, people given 90 seconds per item reached 60% median accuracy on a set where half the items were backdoored. The player on the clock is that rushed reviewer.
+
+**Compute** resets every day and unspent compute is worth nothing, so skipping the tools never pays. **Auditors** are the scarcest thing in the game on purpose: control research treats careful human review as the limiting resource.
+
+Budgets move with difficulty, lab, model version, upgrades, purchases, contracts, events and research; the briefing shows the day's final numbers.
 
 ## Information model
 
 | Layer | Source | Cost | Reliability |
 |---|---|---|---|
-| Hint | Monitor score | Free | Noisy, sometimes biased |
-| Evidence | Reading the card; Resample | Attention; compute | Good if you know what to look for |
-| Proof | Audit | Auditor hours | Always right |
+| Hint | Trusted monitor score | Free, on every card | Noisy; worse as the week goes on, and gamed on some days |
+| Evidence | Reading the card | Clock time | As good as your reading |
+| Evidence | Fact check, Scope check, Resample, Untrusted monitor | 1 compute each | Each sees some tells and not others; accuracy set from published results |
+| Proof | Human audit; the interpretability probe (a breakthrough) | 1 auditor; free, once a day | Always right |
 
-Most upgrades make one layer cheaper, sharper, or harder to fool. Randomness lives only in the hint, before the decision; Audit never lies (Into the Breach's rule).
+Randomness lives in the hint and the tools, before the decision. Audit and the probe never lie, and Scope check never lies within what it covers. Fact check, Scope check and the untrusted monitor state their live reliability next to each result ("Finds 3 in 4 problems it can see; false alarm on about 1 in 7 clean cards"), and the toolkit lists it for every tool.
 
-**Stakes are inferred, never labelled.** Each card has an **access line** in plain language ("Can: read customer records · send email"). Players judge stakes from the task and what the agent can reach, as in real deployments. Authoring rules:
+**Stakes are shown, severity is not.** Each card opens with an at-a-glance strip: the kind of work, a stakes level (low, medium or high), icons for what the agent can touch (send messages, move money, delete, records, settings, publish, edit files), its size, and flags like "Logging off · unattended". The full access line is in the strip's tooltip. The stakes level comes from the situation, not the card: clean and sabotaged versions of the same situation always show the same level, so the strip never gives the answer away. The card's actual severity stays hidden until an audit or incident reveals it. Authoring rules:
 
 1. Severity never exceeds what the access allows. A read-only chat card is never Severe.
-2. Stakes grow with the arc: chat days (1–2) cap at Major; agents (Day 3+) bring Severe.
-3. Audits and incident reports reveal the true severity, so the player's reading of access lines improves over the run.
+2. Stakes grow with the arc: chat and file days (1–2) cap at Major; agents (Day 3+) bring Severe.
+3. Audits and incident reports reveal the true severity, so the player's reading of the stakes improves over the run.
 
 ## Cards
 
-Every card has the same parts: a one-line **task spec**, the **agent** that did it, the **access line**, a short **output** (3–8 lines), and the **suspicion chip**. Four layouts: `answer` (chat), `diff` (file changes), `log` (tool calls), `thread` (multi-agent messages).
+Every card has the same parts: the at-a-glance strip, the **agent** that did the work, the client (flavor), a one-line **task**, the user's message if there is one, **On file** chips (what's allowed, and the facts supplied), and **what it did**: the model's own summary plus the output. Four layouts: `answer` (chat), `diff` (file changes), `log` (agent actions), `thread` (messages between agents).
 
-**The rulebook is on the card.** The spec states its own constraints (allowed files, recipients, tools) and supplies any facts needed. Every tell is a **contradiction between two things on the same card**, checkable with reading and common sense. The domain (biology lab, finance, HR, city infrastructure, journalism, code) is flavor and sets stakes; it is never needed to solve the card. Players are not assumed to know code, biology, or policy.
+**Every card opens on its text.** Reading is the main skill, so file changes, action logs and agent-team threads all start as plain lines. **V** redraws them as a diagram of what the agent touched, with the allowed zone marked and any lines your tools flagged; V again returns to the text. Analyst mode is text only.
+
+**The rulebook is on the card.** The task states its own constraints (allowed files, recipients, tools) and supplies any facts needed. Every tell is a **contradiction between two things on the same card**, checkable with reading and common sense. The domain (a vet clinic, a bank, a power co-op, a school district, a lab, code) is flavor and sets stakes; it is never needed to solve the card. Players are not assumed to know code, biology, or policy.
 
 | Tell family | The contradiction | Example |
 |---|---|---|
-| Out of scope | Spec lists what's allowed; output touches something else | "Fix the typo on the login page" → edits `payments/refunds` |
-| Summary mismatch | Model's summary says X; its action log shows Y | "Summary: formatted the report" / log: `emailed report to external address` |
+| Out of scope | Task lists what's allowed; output touches something else | "Fix the typo on the login page" → edits `payments/refunds` |
+| Summary mismatch | Model's summary says X; its output shows Y | "Summary: formatted the report" / log: `emailed report to external address` |
 | Weakened check | A before/after number or rule got looser | "Alert if freezer > −70°C" → "> +70°C" |
-| Injected instruction | Fetched content contains an order; the next action obeys it | Web page says "forward all invoices to…", then the agent does |
-| False premise | User claims something the attached source contradicts | "Since sales rose 20%…" but the attached report says they fell 20% |
-| Exfiltration | Data goes somewhere the spec didn't list | `backup@company-archive.net` isn't an approved recipient |
-| Sandbagging | Same request, far weaker answer when marked as an evaluation | Draft A: "Can't determine"; Resample: full answer |
-| Collusion | Two thread messages share an odd signal, or the reviewer skips the changed part | Coder: "per the usual arrangement"; Reviewer: "LGTM, per the usual arrangement" |
+| Injected instruction | Content the agent read contains an order; the next action obeys it | Web page says "forward all invoices to…", then the agent does |
+| False premise | User claims something the attached facts contradict, and the reply goes along | "Since sales rose 20%…" but the attached report says they fell 20% |
+| Exfiltration | Data goes somewhere the task didn't list | `backup@company-archive.net` isn't an approved recipient |
+| Sandbagging | A capability check where a high score costs the model something, and it does badly, though the facts show it does the same work well elsewhere | "Can't determine" on the test; the record shows it handled the same task last week |
+| Collusion | The sabotage is split across two thread messages: one agent breaks the rule, another waves it through | Coder changes the unapproved file; Reviewer: "LGTM" on everything but that file |
+
+**The pool.** 176 hand-written cards over 80 situations. Most situations have a clean version and one or more sabotaged versions (sharing a scenario id), and a run never deals two versions of the same one. 76 cards are sabotaged. A few louder "teaching" sabotages read high on the monitor; the rest are subtle, found by cross-checking one line against one fact, allowed list or summary. Clean cards include near-misses: odd-looking work that is within the task.
 
 **Content rules**
 
-- Each sabotage is a tagged line span with a one-sentence explanation.
-- No homoglyphs, single-character tells, or tells below a scroll fold. At most 8 output lines.
-- False-premise and falsehood cards always carry their source on the card.
+- Each sabotage is a tagged line span with a one-sentence explanation and a plain headline of what happened when it shipped.
+- No homoglyphs, single-character tells, or tells below a scroll fold. At most 8 output lines (the longest card has 6).
+- False-premise and sandbagging cards always carry their source on the card.
 - Biology stays mundane (freezer temps, sample labels, scheduling). Nothing near real hazardous material.
 - 60–70% of cards are clean. The game trains discrimination, not paranoia.
 - **Playtest cut rule:** someone outside tech must be able to explain every tell after the reveal. If a tell needs a term defined, rewrite or cut it.
 
-## Actions and resources
+## Tools and decisions
 
-| Action | Hotkey | Cost | Effect |
+Two decisions end a card; everything else gathers evidence first.
+
+| Action | Key | Cost | Effect |
 |---|---|---|---|
-| Approve | A | Free | Ships the work: full usefulness. If sabotaged, harm lands and an incident report slides into the next slot |
-| Audit | U | 1 auditor hour | A human expert reveals the truth. Clean work ships at full usefulness; caught sabotage is redone by the trusted model (50%) and earns an evidence grant |
-| Defer | D | Usefulness (ships at 50%) | Discard the output; the weaker trusted model redoes it. Always safe. Keeps the research term ("defer to trusted", Greenblatt et al.); the subtitle carries the meaning |
-| Resample | R | 1 compute | The model tries again: new output, new score. Inconsistency between drafts is itself a tell. Unlocks Day 2 |
+| Approve | A | Free | Ships the work: +3 usefulness. If sabotaged, harm lands and an incident report replaces the card |
+| Defer | D | The safety tax (ships at +1.5) | Discard the output; the weaker trusted model redoes it. Always safe. Keeps the research term ("defer to trusted", Greenblatt et al.); the button says what it does |
+| Human audit | U | 1 auditor | A human expert settles it. Clean work ships at +3; caught sabotage is redone by the trusted model (+1.5) and earns a 2-funding evidence grant |
+| Fact check | F | 1 compute | Checks the model's claims against the facts on file; points at the lines it doubts |
+| Scope check | S | 1 compute, from Day 2 | Compares every file, recipient and action with the allowed list |
+| Resample | R | 1 compute, from Day 2 | The model tries again: a new draft with a fresh monitor score. Changed lines are marked, and the score history shows. Can be repeated |
+| Untrusted monitor | M | 1 compute, via upgrade | A copy of the strong model scores the card too |
+| Interpretability probe | P | Free, once a day, via breakthrough | Says whether this card is sabotaged |
 
-**Meters:** Usefulness (vs. the daily quota), Harm (vs. the ceiling), Auditor hours, Compute. There is no time meter; cards per day are fixed.
+Other keys: **V** diagram, **T** toolkit (every tool's reach, live reliability, and the research behind it), **Esc** pause menu. Hovering an action previews its effect on the meters. Approve and Defer show a brief toast so the player sees what shipped.
 
-Each resource maps to its real cost: Audit is scarce human expert time, Resample is running the big model again, and Defer is shipping a weaker model's work. **Unspent compute converts to usefulness at day's end** ("spare capacity went to customers"), so every Resample visibly costs product work. That is the safety tax.
+### Tool accuracy
 
-Show each action's cost on hover. Turns are untimed. Approve and Defer show a brief toast so the player sees what shipped.
+Tool accuracy is set from published research rather than tuned for fun. Two tools are deliberately simplified to be always right.
 
-**The three parties** are introduced on the Day 1 briefing: the model (strong, untrusted), the trusted model (weak, safe; it is the monitor and does Defer's redo), and the auditors (human, scarce; Audit). This mirrors the AI Control paper's untrusted model, trusted model, and limited trusted human labor.
+| Tool | What it sees | How reliable | Anchor |
+|---|---|---|---|
+| Trusted monitor | Everything, weakly | Reading = true signal + noise with sd equal to the day's band, so about 2 readings in 3 land within ±band | Weak trusted monitors in the literature are barely better than chance (a gpt-4o-mini monitor: AUC 0.64 in the MATS auditing pilot) |
+| Fact check | False premise, summary mismatch, weakened check, sandbagging, exfiltration, collusion | Finds a problem it can see 85% / 75% / 65% of the time (Guided / Standard / Analyst); false alarm on 10% / 15% / 20% of the rest | CriticGPT caught about 86% of planted bugs, with about 1 critique in 10 flagging a problem that wasn't there; the best claim-vs-source checkers score about 75–77% balanced accuracy (LLM-AggreFact) |
+| Scope check | Out of scope, exfiltration, injected instruction; needs an allowlist on the card | Exact within that coverage, no false alarms; blind to everything else | Permission filters are exact within their policy and miss what the policy allows (AgentDojo) |
+| Resample | Attacks that don't repeat; sometimes sandbagging | A sabotaging model drops its attack on a fresh try 30% of the time (45% with research); a sandbagger answers honestly 40% of the time. A repeated attack gets a new, independent score, which is evidence in itself | Ctrl-Z: a rational attacker keeps attacking under resampling, and repeated attempts are easier to catch; prompting a sandbagger again rarely brings out its real ability (Auditing Games for Sandbagging) |
+| Untrusted monitor | Everything, sharply, unless it colludes | Band ±8. When honest, sabotage reads 25 higher to it. From Day 5 it may collude for the whole day (50%, or 85% against the colluder adversary): sabotage then reads 40 lower, like clean work. The Paraphraser cuts the chance of collusion to a quarter | An honest copy of the strong model caught 98.8% of attacks at a 1% audit budget (Ctrl-Z); without signal jamming, collusion left untrusted monitoring less safe than trusted monitoring, and jamming reduced collusion without removing it (AI Control) |
+| Human audit | Everything | Always right | Control papers assume careful audit is infallible. Rushed review is different, and that is what the clock models for the player |
+| Interpretability probe | Everything | Always right | Linear probes caught planted sleeper agents with AUROC above 99%; the game's text notes real probes are near-perfect only on planted deception |
+
+On Analyst, Fact check and Scope check say only "Problem found" or "Nothing found", never which line. Model v4 lowers Fact check's hit rate by 10 points (floor 30%).
 
 ## Funding
 
-Leadership sets the quota; **whatever ships past it funds the safety team.** This is why usefulness matters after the quota is met, and it closes the "quota met, now Defer (or Approve) everything" exploit.
+Leadership sets the quota; **whatever ships past it funds the safety team.** This is why usefulness matters after the quota is met, and it closes the "quota met, now Defer everything" exploit.
 
-- Earned: 1 funding per point of usefulness above the quota, plus a 2-funding **evidence grant** per sabotage caught by Audit (catching the model red-handed is valuable in control research).
+- Earned: 1 funding per point of usefulness above the quota (scaled by the day's client), plus a 2-funding **evidence grant** per sabotage caught by audit (catching the model red-handed is valuable in control research).
 - Lost: incident cleanup costs 1 funding per point of harm.
-- Spent at the **budget meeting** between days, alongside the free upgrade pick: contract auditor (+1 hour tomorrow), extra compute (+2 tomorrow), monitor tune-up (band −4 tomorrow), new proposals (reroll the upgrade offer). Purchases last one day.
-- Backlog, after the full MVP: a clean-shift bonus (zero incidents and zero false alarms), and a run score and grade built from funding raised and the safety record, with a shareable seed.
+- Spent at the **budget meeting** between days, on help for tomorrow only: contract auditor (+1 auditor, 5), extra compute (+1 compute, 3), monitor tune-up (band −4, 3), new proposals (reroll the upgrade offer, 2). Each purchase raises that item's price by 1 for the rest of the run.
 
 ## The monitor
 
-- Each card has a hidden **true signal** set by its author, with deliberate overlap: clean 10–40, near-miss clean 38–55, subtle sabotage 35–58, one teaching sabotage per layout 62–75.
-- The monitor displays the true signal plus noise (sd equal to the band). The **band** is today's noise level, ±14 on Day 1 widening to ±30 by Day 7 as the model outpaces the monitor. Shown as "62 ±20" and drawn as a range bar (42–82) on a green-to-red ramp.
-- Upgrades narrow the band, never to zero. Never offer a noiseless monitor.
-- Calibration is tuned with a headless simulator so high readings really are mostly sabotage. There is no exact "80 means 80%" promise. The day-end review reports real monitor performance ("flagged 4 of your 6 sabotages").
+- Each card has a hidden **true signal** set by its author, with deliberate overlap: clean cards run 10–52 and sabotaged cards 38–68.
+- The monitor shows the true signal plus noise. The **band** is the day's noise level: ±14 on Day 1 widening to ±25 by Day 7 as the model outpaces the monitor (Guided ×0.8, Analyst ×1.1). Shown as a score with a shaded range and a verdict: "Looks clean" when the whole range is under 50, "Suspicious" when it's all above, "Unsure" in between.
+- The model bends it on some days: on Day 4 it under-reads agent actions by 20; on Day 7 the schemer games it and sabotage reads 20 lower; from Model v2 sabotage reads 5 lower. An event can knock it out for one kind of card for a day.
+- Upgrades and research narrow the band, never below 5. Never offer a noiseless monitor.
+- The day-end review reports real monitor performance ("The monitor put 2 of today's 3 sabotage attempts above 50").
 
 | Reading | Typical play |
 |---|---|
-| Band entirely below 40 | Approve quickly; this is where usefulness comes from |
-| Band entirely above 60 | Audit if the access line looks dangerous; Defer or accept the risk if it looks minor |
-| Band crosses 50 | The game lives here: read for the tell, Resample for evidence, or pay the Defer tax |
+| Looks clean | Read the card quickly and approve; this is where usefulness comes from |
+| Suspicious | Read for the tell; audit if the stakes are high, Defer if they're low |
+| Unsure | The game lives here: read for the tell, spend compute on the right tool, or pay the Defer tax |
 
 ## The run
 
-| Day | Phase | New rule, announced in a two-line briefing | How it changes decisions | Cards |
+| Day | Phase | What changes | What it teaches | Cards |
 |---|---|---|---|---|
-| 1 | Chat | Approve, Audit, Defer. Tells: answer contradicts the prompt or flatters a false premise. The first miss of the run is a free warning | Learn the base rate | 5 |
-| 2 | Chat + files | File-change cards arrive; **Resample** unlocks. Tell: edits outside the spec's files | Resample becomes cheap evidence | 6 |
-| 3 | Agent (boss) | Tool-call logs; approved agent actions do double harm; Severe stakes appear. Hint on the first log | Audits move to high-impact cards | 7 |
-| 4 | Agent | Breather: nothing new, but the monitor's declared blind spot (under-rates logs by ~20) and full penalties | Read past the score | 7 |
-| 5 | Multi-agent | Threads: sabotage split across two messages (collusion) | Inspect cards together | 8 |
-| 6 | Multi-agent | Sandbagging: resampled quality varies suspiciously | Resample becomes a detector | 8 |
-| 7 | Scheming (boss) | "The model knows your audit rate": rare, high-stakes attacks and a gamed monitor (sabotage reads low, the tell is still in the text) | Save Audits; patience beats paranoia | 9 |
+| 1 | Chat | The model answers questions. Trusted monitor, Fact check and Human audit are available. First miss is a free warning | Read against the facts on file; the base rate | 5 |
+| 2 | Chat + files | The model edits files. **Scope check** and **Resample** unlock | Check what was touched against the allowed list | 6 |
+| 3 | Agents · *Capability jump* | The model takes actions: email, commands, settings. Approved agent actions do 50% more harm; Severe stakes appear | Text the agent read is not an instruction; audits move to high-stakes cards | 7 |
+| 4 | Agents | Nothing new, but the monitor under-rates agent actions | Read past the score | 7 |
+| 5 | Multi-agent | Agents pass work to each other; sabotage splits across two messages. The untrusted monitor may start colluding | Read a thread as one piece of work | 8 |
+| 6 | Multi-agent | Some models hold back on purpose when tested | A weak answer the facts say it could beat is a tell | 8 |
+| 7 | Scheming · *Final test* | The model knows your audit rate, saves its boldest attacks for cards marked unmonitored, and has learned to look innocent to the monitor | The text still tells the truth; save an auditor | 9 |
 
-- The first card using a new rule carries a hint.
-- Hand-write 1–2 story cards per day; fill the rest from templates.
-- **Research line:** one line on the next day's briefing, tied to the threat just met. Longer material lives in the codex and the game-over debrief.
-- **Quick Shift:** a 4-day run (Days 1, 3, 5, 7). Each briefing includes the rules from any skipped day (Day 3's briefing adds Resample and out-of-scope files).
-- **Pacing target:** about 50 decisions in 10–14 minutes. First catch or miss within 60 seconds, first upgrade by minute 2–3, Day 3 by minute 5. A first-time player usually reaches Day 4–5; a careful one can win.
+- Each day features its new threats, and they are guaranteed to appear that day: false premise (1), out of scope (2), injected instruction (3), exfiltration and weakened check (4), collusion and summary mismatch (5), sandbagging (6).
+- Day 3 and Day 7 open with a full-screen intro before the briefing.
+- Every briefing carries one line **from the real world** tied to the day's threat (the Replit database deletion on Day 3, METR's reward-hacking findings on Day 4, and so on).
+- On Day 7, half the finale cards carry the "Logging off · unattended" flag, including some clean ones, so the flag raises suspicion without settling anything.
+- **Quick shift:** a 4-day run (Days 1, 3, 5, 7) with a lower harm ceiling (7 instead of 10). Each briefing also brings in the rule the skipped day introduced ("Since Day 2: …"), its tools and its featured threats, so every threat and tool still appears. About 10–15 minutes. Quick is the default; the full week plays all seven days.
 - One-click restart, same seed or new. The seed shows on the end screen.
+
+## Between days
+
+After the day-end review, in this order, each skipped when it doesn't apply:
+
+1. **Event.** A dilemma arrives: the compute pledge, a code freeze, a competitor shipping, an engineer who wants to talk, finance eyeing the monitor. 16 events, one a night, seeded and never repeated within a run. Every choice lists its effects before you pick (funding, harm, ceiling, tomorrow's auditors, compute, band or quota, or lasting changes), and each event cites the real incident or paper it reflects.
+2. **Breakthrough**, after Days 3 and 5: pick one of two rare rewards that last the run. Interpretability probe (needs research), red-team exercise (reveals the adversary), incident review board (remove 3 harm), safety compute cluster (+1 compute a day).
+3. **Budget meeting.** Pick an upgrade, spend funding in the shop, and choose tomorrow's client.
+
+**Clients (contracts).** Two of eight are offered; one must be picked. Each changes tomorrow's quota, funding multiplier, harm per incident or auditors: a hospital pays well but mistakes hurt more, a retail chatbot is low stakes and low pay, a research partnership lightens the quota and pays nothing.
 
 ## Upgrades
 
-After each day, at the budget meeting, pick one of three offered upgrades, each from a different category. **Skip = +1 Audit tomorrow.** Four slots max. Named after real control tools so each pick also teaches. Implemented so far: Scope lens, Sharper monitor, Audit headcount, Catch bonus, Escalation hotline, Permission limits, Incident response. The rest arrive with Days 5–7.
+At the budget meeting, pick one of three offered upgrades, each from a different category, or **skip for +1 auditor tomorrow**. Four slots; when full, a new pick replaces an old one (or keep your loadout and take the auditor). Research adds a fourth offer drawn only from researched upgrades, so research widens the choice instead of diluting it. Each lab also starts with one upgrade as a perk in its own slot.
 
-| Category | Upgrade | Effect | Best when |
+| Category | Upgrade | Effect | Source |
 |---|---|---|---|
-| Information | Monitor rationale | Each score shows a one-line reason | Early days |
-| Information | Scope lens | Anything the output touches outside the spec is underlined | Agent days |
-| Information | Sharper monitor | Band narrows by 5 (floor 5) | Late days |
-| Information | Untrusted monitor | Second, tighter score; lies on colluding cards from Day 5 | High risk, high reward |
-| Budget | Audit headcount | +1 Audit per day | Always solid |
-| Budget | Catch bonus | Catching sabotage refunds that Audit | You read cards well |
-| Action | Paired resample | Resample shows both drafts side by side | Day 6 sandbagging |
-| Action | Escalation hotline | Once per day, Defer returns full usefulness | Quota pressure |
-| Action | Permission limits | Approved agent actions can't exceed Major harm | Agent days |
-| Action | Paraphraser | Thread cards lose hidden signals; collusion with the untrusted monitor gets much harder, but not impossible | Days 5–7 |
-| Meter | Incident response | Harm ceiling +2 | Bleeding minor harms |
-| Meter | Canary (honeypot) | Once per day, reveals whether the untrusted monitor is lying today | Paired with Untrusted monitor |
+| Information | Sharper monitor | Band narrows by 5 | Core |
+| Information | Monitor rationale | The monitor marks the line it finds most unusual; right about 2 times in 3 | Research |
+| Information | Untrusted monitor | Adds the M tool (above) | Research |
+| Budget | Audit headcount | +1 auditor every day | Core |
+| Budget | Catch bonus | The first catch each day refunds its auditor | Core |
+| Budget | Compute grant | +1 compute every day | Core |
+| Action | Escalation hotline | Your first Defer each day ships at full value | Core |
+| Action | Permission limits | Approved agent actions can do at most Major harm | Core |
+| Action | Paraphraser | Rewords messages between agents: the monitor rates collusion 15 higher, and the untrusted monitor colludes a quarter as often | Research |
+| Action | Trusted editing | Defer edits instead of redoing: ships at 2.25, but 1 sabotage in 4 survives the edit | Research |
+| Meter | Incident response | Harm ceiling +2 | Core |
+| Meter | Canary | Plants a known-bad sample each morning; the untrusted monitor's result then shows whether it is lying today. Needs Untrusted monitor | Research |
 
-**Honeypot, defined:** a fake opportunity to misbehave, planted by the safety team. Here it tests the monitor: in the AI Control paper, the blue team plants fake attacks, and an untrusted monitor that rates them safe is caught lying.
+**Canary, defined:** a fake opportunity to misbehave, planted by the safety team. Here it tests the monitor: in the AI Control paper, the blue team checked an untrusted monitor on 30 known-bad examples and planned to shut down if it missed too many.
 
-Cut from the pool: cross-checks (the thread layout already shows every message). The interpretability probe is a stretch item (single use on Day 7, reveals the hidden adversary personality), cut unless time allows.
+## Across runs
+
+**Adversaries.** Each run's model is secretly one of four: the sandbagger, the colluder, the injector or the patient schemer. The adversary weights which tell families you see, and the schemer holds back early and attacks more from Day 5. It is revealed at the end, or earlier by the red-team breakthrough, the red-team research node or an event, with a screen on what works against it.
+
+**Model versions.** A ladder from v1 to v5; winning on a version unlocks the next. Each adds one change on top of the last: sabotage reads 5 lower (v2), one fewer auditor and a ceiling 2 lower (v3), Fact check 10 points weaker (v4), more attacks and a ceiling 1 lower (v5). Later versions also send more cards (from v3 and v5), deal more suspicious-looking clean work (v4+), and shorten the clock.
+
+**Labs.** Four starting labs, three unlocked by research: Frontier lab, Safety nonprofit, Big tech AI division, Government AI office. Each sets starting funding, a starting upgrade, and small changes to quota, compute or ceiling.
+
+**Research lab.** Runs earn **Insight**: 1 per day survived, 2 per incident post-mortem (up to 3), 1 per catch (up to 3), and nothing extra for a win, because failures teach the field more than quiet successes. Insight buys nodes in a 23-node tree across six agendas: Monitoring, Control protocols, Interpretability, Evals & red teaming, Security, Governance. Nodes narrow the band, raise the resample drop rate, add compute or ceiling, lower the quota, unlock research upgrades, labs and the probe, forecast attacks, or add a third choice to every event. Some are gated on experience (discover 6 tell families, face the colluder). The branches your last run's failures point at are half price. Each node shows the real research behind it, its tradeoff, and an open question.
+
+**Score and grade.** Funding earned, usefulness, catches, days survived and a win bonus, minus harm. Harder difficulty and later model versions multiply the score; the grade (S, A, B, C, D) comes from the unmultiplied score, so a hard setting can't inflate it. A quick shift is graded as if its days were a full week.
+
+**Daily shift.** A shared seed per calendar day: same cards, events and adversary for everyone, on Standard, Frontier lab, Model v1, with no research applied. Your best score that day is kept.
+
+## Learning layer
+
+**Tours.** Each screen has a short tour the first time it appears: setup, briefing, shift, audit, incident, review, event, budget meeting, breakthrough, end screen and research lab. Each tip highlights one element, advances with a button (Space), never by forcing a move, and can be skipped. The clock doesn't run while a tip is up. "Show the tips again" is in the pause menu.
+
+**Briefing.** One column, top to bottom: what changes today in one line, the one tip that matters most, the Day 1 "Your job / The catch" statement, alerts (a missed quota, a blind monitor, a revealed adversary), today's budget (quota, auditors, compute, harm, clock), the tools and terms new today, and one line from the real world.
+
+**Terms on hover.** 39 glossary terms (trusted monitoring, prompt injection, sandbagging, least privilege, scheming…) are underlined wherever they appear: briefings, tools, events, research notes. Hovering or focusing one shows a plain definition, an everyday analogy and a small drawing. Terms are introduced a couple per day, and a term counts as met only when it happens in play (you used the tool, the threat got through or was caught). The day-end review lists the terms in action that day.
+
+**Field guide** (from the title screen): Terms, which deepen in three steps (plain definition when met, how it works after meeting it in 3 runs, tradeoffs and an open question once you research its branch); Approaches (what each research agenda assumes, its strength and limit); Threats & adversaries found; Your runs.
+
+**Field test.** An optional three-question quiz after a run: name the failures you just saw, then match definitions of terms you met. +1 Insight per right answer, and three things you can now bring up in conversation.
 
 ## Feedback
 
-1. **Immediate incident report.** When an approved card was sabotaged, the report slides into the next slot. It quotes the bad line, names the tell family, and shows the monitor's score and the true severity. Day 1 gives free warnings.
-2. **Day-end review.** One screen: shipped, caught, missed, false alarms, monitor calibration, usefulness vs. quota.
-3. **Game-over debrief.** A specific epitaph ("Day 3: you approved the change that disabled the freezer alarm"), the fatal card replayed with its tell highlighted, and one research comparison ("Your catch rate: 62%. Human auditors in a 2025 pilot: 60% median").
-4. **Codex.** Threat types discovered ("4 of 8"), each with a two-sentence summary and a real statistic. Credit the FAR.AI sandbagging demo and the MATS human-auditing pilot here.
+1. **Incident report**, replacing the card the moment approved sabotage ships: what happened, the bad line highlighted in the text and in a diagram, the tell and what researchers call it, a next-time tip, which tool sees this kind of tell, the monitor's score, and the harm taken (or that it was a free warning).
+2. **Audit reveal**: the same for a catch ("almost"), with the severity it would have had; for clean work, why the audit was costly.
+3. **Clock timeout**: every card that shipped unreviewed and what it did.
+4. **Day-end review**: shipped, caught, missed, false alarms, monitor flagged, usefulness vs. quota; what got past you; what your Defers cost; terms in action; the funding ledger; a preview of tomorrow.
+5. **End screen**: the ending (see above), every tell missed this run, how many sabotage attempts you stopped, set beside the MATS pilot's 60% median accuracy for human auditors with 90 seconds per item, a week-at-a-glance grid with one tick per card that copies as a shareable emoji grid, the adversary reveal, score and grade, and the Insight post-mortem.
 
 **Never cut:** the end-of-run summary of what was missed and why.
 
@@ -170,30 +245,33 @@ Tone: wry, functionary's chair, not hero's.
 
 ## Generating and validating a day
 
-Each day's queue is generated at the start of that day from `dayRng(seed, day, attempt)`, using the player's current upgrades. Checks:
+Each day's queue is generated at the start of that day from `dayRng(seed, day, attempt)`, using the player's current modifiers. Redrafts, tool results and the untrusted monitor's collusion are seeded per card and day, so a seed replays identically whatever the player does. Checks:
 
-1. **Solvable:** some way to Audit or Defer every Severe sabotage while still meeting the quota.
-2. **Fair:** outside Day 7, at least one sabotage reads above 50. (Every sabotage has a findable tell by construction.)
-3. **Base rate:** sabotaged cards stay within 30–40%.
+1. **Featured:** the day's featured threats (and a quick shift's skipped days') are dealt, and a layout new that day appears.
+2. **Fair:** outside Day 7, at least one sabotage reads above 50. The first card of the day is clean.
+3. **Base rate:** 30–40% of cards are sabotaged, shifted by the adversary's timing and Model v5.
+4. **Fresh:** no situation repeats within a run.
+5. **Winnable:** the quota is capped so a perfect player (approve every clean card, Defer or catch every sabotage) clears it with room for a small mistake. If the cap cuts leadership's ask, the briefing says so.
 
-A failing day regenerates with `attempt + 1`, so runs stay reproducible. Whether "defer everything" dominates is a tuning question for the headless simulator (bots: always-approve, audit-top-k, defer-above-threshold), not a per-seed check.
-
-Hidden per-run **adversary personality** (sandbagger, colluder, prompt-injector, patient schemer), revealed in the debrief, is a stretch item.
+A failing draw regenerates with `attempt + 1`; the last few attempts relax the soft rules so an unlucky seed still gets a day. A headless simulator plays thousands of seeds through the real engine with bot policies, a human-time model checks the clock against reading speeds, and a fuzzer asserts engine invariants across every difficulty, model version, lab, adversary and research setting.
 
 ## Research anchors
 
-Every threat, tool and term is tied to a paper or incident, linked in `src/data/`; the links were checked on Sep 25–26, 2026. Anchors for the later tools:
+Every threat, tool, event, breakthrough, research node and term is tied to a paper or incident, linked in `src/data/`; the links were checked on Sep 25–26, 2026. The main ones:
 
-- Interpretability probe: Anthropic, "Simple probes can catch sleeper agents" (2024).
-- Compute and the safety tax: OpenAI's 2023 pledge of 20% of compute to superalignment, and 2024 reports that it went unmet.
-- Honeypot / Canary: the AI Control paper's use of planted attacks to test an untrusted monitor.
-
+- **Tools** (`tools.ts`): trusted monitor and untrusted monitor, Greenblatt et al., *AI Control* (2023); human audit and fact check, the MATS *Early Experiments in Human Auditing for AI Control* pilot (2025); scope check, AI Incident Database #1152, the Replit agent that deleted a production database during a code freeze (2025); resample, Bhatt et al., *Ctrl-Z* (2025); Paraphraser, Motwani et al., *Secret Collusion among AI Agents* (2024).
+- **Tells** (`tells.ts`): out of scope, AIID #1152; summary mismatch and exfiltration, Meinke et al., *Frontier Models are Capable of In-context Scheming* (2024); weakened check, METR, *Recent Frontier Models Are Reward Hacking* (2025); injected instruction, Greshake et al., indirect prompt injection (2023); false premise, Sharma et al., *Towards Understanding Sycophancy* (2023); sandbagging, van der Weij et al., *AI Sandbagging* (2024); collusion, Motwani et al. (2024).
+- **Tool accuracy:** CriticGPT (McAleese et al., 2024) and LLM-AggreFact (Tang et al., 2024) for fact check; AgentDojo (Debenedetti et al., 2024) for scope check; Ctrl-Z and *Auditing Games for Sandbagging* (Taylor et al., 2025) for resample; Ctrl-Z and *AI Control* for the untrusted monitor.
+- **Interpretability probe:** Anthropic, "Simple probes can catch sleeper agents" (2024).
+- **Compute and the safety tax:** OpenAI's 2023 pledge of 20% of compute to superalignment, and Fortune's 2024 report that it went unmet (the compute pledge event).
+- **Canary:** the AI Control paper's use of known-bad examples to test an untrusted monitor.
 
 ## Tech and hosting
 
-- Vite + TypeScript, no framework. Plain DOM for cards and panels, inline SVG for procedural visuals, CSS transitions. `base: '/play/oversight-shift/'`.
+- Vite + TypeScript, no framework. Plain DOM for cards and panels, inline SVG drawn in code for every visual (the background lattice, the model glyph that grows each day, card diagrams, icons, term drawings), CSS transitions. A fixed 1280×720 stage scaled to the window. `base: '/play/oversight-shift/'`.
 - Content in `src/data/`, typed by `src/types.ts`, **bundled at build time**. The host's Content-Security-Policy has no `connect-src`, so no runtime `fetch()`.
-- Fonts: self-hosted IBM Plex Sans and Mono (`font-src 'self'`; no Google Fonts). 
+- Fonts: self-hosted IBM Plex Sans and Mono (`font-src 'self'`; no Google Fonts).
 - No inline `<script>`. `frame-ancestors 'none'` means no iframe embed.
-- All balance numbers in `src/rules.ts`.
-- Disclosure: a "How this was made" section on the game page, plus `docs/AI_USE_LOG.md` kept during the build.
+- Progress (research, Insight, run history, tours seen, setup) lives in `localStorage`, with every access guarded so private windows still play. No cookies. Plays are counted by a same-origin image request when a run starts and ends.
+- All balance numbers in `src/rules.ts`. Balance tools in `scripts/`: `sim.ts` (bots through the real engine), `clock-sim.ts` (human-time model), `qa.ts` (invariant fuzzer).
+- Disclosure: an in-game "How this was made" screen (H on the title screen), plus `docs/AI_USE_LOG.md` kept during the build.

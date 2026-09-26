@@ -4,6 +4,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { CARDS } from '../src/data/cards';
 import { DAYS } from '../src/data/days';
 import { EVENTS } from '../src/data/events';
+import { JARGON } from '../src/data/jargon';
 import { TERMS } from '../src/data/glossary';
 import { ADVERSARIES, BREAKTHROUGHS, CONTRACTS, LABS, MODEL_VERSIONS, TRUSTED_EDITING_NOTE } from '../src/data/meta';
 import { RESEARCH_ANCHORS } from '../src/data/research-anchors';
@@ -61,9 +62,9 @@ for (const [name, title, pick] of files) {
 }
 
 // ---------- Days, events, meta ----------
-const days = DAYS.map((d) => `### Day ${d.day} · ${d.phase}${d.boss ? ' (boss)' : ''}\n- Rules: ${d.rule.join(' / ')}\n${Object.entries(d.hints).map(([l, h]) => `- Hint (${l}): ${h}`).join('\n')}${d.record ? `\n- From the record: ${d.record}` : ''}`).join('\n\n');
+const days = DAYS.map((d) => `### Day ${d.day} · ${d.phase}${d.boss ? ' (capability jump / final test)' : ''}\n- Headline: ${d.rule[0] ?? ''}\n- Tip: ${d.rule[1] ?? ''}${d.quickRule !== undefined ? `\n- On a quick shift, when this day is skipped: ${d.quickRule || '(nothing carries over)'}` : ''}${d.record ? `\n- From the real world: ${d.record}` : ''}`).join('\n\n');
 const events = EVENTS.map((e) => `### ${e.title} \`${e.id}\` (Days ${e.minDay}–${e.maxDay})\n${e.text}\n${e.choices.map((c) => `- **${c.label}**: ${c.effects.map((x) => JSON.stringify(x).replace(/[{}"]/g, '')).join(', ')}${c.after ? ` — "${c.after}"` : ''}`).join('\n')}${e.anchor ? `\n- Record: ${e.anchor.line} ${src(e.anchor.source)}` : ''}`).join('\n\n');
-writeFileSync(`${OUT}/5-days-and-events.md`, `# Briefings, hints and events\n\n## Days\n\n${days}\n\n## Events\n\n${events}\n`);
+writeFileSync(`${OUT}/5-days-and-events.md`, `# Briefings and events\n\n## Days\n\n${days}\n\n## Events\n\n${events}\n`);
 
 const adv = Object.values(ADVERSARIES).map((a) => `### ${a.name}\n- Tagline: ${a.tagline}\n- Codex: ${a.codex}\n- Real world: ${a.realWorld} ${src(a.source)}`).join('\n\n');
 const labs = LABS.map((l) => `- **${l.name}**: ${l.blurb}`).join('\n');
@@ -93,6 +94,10 @@ const research = BRANCHES.map((b) => {
 }).join('\n\n');
 writeFileSync(`${OUT}/9-research-tree.md`, `# Research tree\n\n${research}\n`);
 
+// Everyday jargon: the hover definitions for technical words (not Field guide entries).
+const jargon = JARGON.map((j) => `- **${j.word}**${j.meta ? ' *(not linked on cards)*' : ''}${j.auto === false ? ' *(label only)*' : ''}: ${j.plain}${j.like ? ` *${j.like}*` : ''}`).join('\n');
+writeFileSync(`${OUT}/10-jargon.md`, `# Jargon hover definitions\n\n${JARGON.length} everyday technical words, each with one plain sentence and sometimes an everyday comparison (in italics). They show on hover wherever the word appears. AI-safety terms are in the glossary (8-glossary.md) instead.\n\n${jargon}\n`);
+
 writeFileSync(`${OUT}/README.md`, `# Text review sheet
 
 Everything a player reads that comes from content data, exported by \`npx tsx scripts/export-text.ts\`.
@@ -104,11 +109,12 @@ Re-run after edits. Interface strings (buttons, labels, screen copy) live in \`s
 | [2-cards-days-3-4.md](2-cards-days-3-4.md) | Agent actions |
 | [3-cards-days-5-6.md](3-cards-days-5-6.md) | Multi-agent threads and sandbagging |
 | [4-cards-day-7.md](4-cards-day-7.md) | Finale |
-| [5-days-and-events.md](5-days-and-events.md) | Briefings, hints, between-day events |
+| [5-days-and-events.md](5-days-and-events.md) | Briefings (headline, tip, real-world line) and between-day events |
 | [6-adversaries-labs-upgrades.md](6-adversaries-labs-upgrades.md) | Adversaries, labs, contracts, model versions, breakthroughs, upgrades |
 | [7-tools-and-tells.md](7-tools-and-tells.md) | Tool explainers and tell families |
 | [8-glossary.md](8-glossary.md) | All glossary terms |
 | [9-research-tree.md](9-research-tree.md) | Research branches and nodes |
+| [10-jargon.md](10-jargon.md) | Hover definitions for everyday technical words |
 
 Suggested order: glossary and tools first (they make factual claims), then events, then skim cards by scenario.
 `);

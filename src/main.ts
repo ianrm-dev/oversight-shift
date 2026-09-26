@@ -102,7 +102,7 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   incident: { title: 'Incident report', steps: [
     { target: '.incident-headline', text: 'Something got past you. This is what happened when the work shipped.' },
     { target: '.tell', text: 'The tell: the clue on the card, what researchers call this, and which tool would have caught it.' },
-    { target: '.hud-meter.harm', text: 'Harm adds up over the whole run, and the run ends when it reaches the limit. Your first miss is a free warning.' },
+    { target: '.hud-meter.harm', text: 'Harm adds up over the whole run, and the run ends when it reaches the limit. Your first miss (two on Guided) is a free warning.' },
   ] },
   review: { title: 'End of day', steps: [
     { target: '.review-body', text: 'How the day went: what got past you, what you caught, and the terms you saw in action.' },

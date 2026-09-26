@@ -1,7 +1,7 @@
 import type { Upgrade } from '../types';
 
-// Upgrades the engine applies today. The rest of the DESIGN.md pool (Monitor rationale,
-// Untrusted monitor, Paired resample, Paraphraser, Canary) arrives with Days 5–7.
+// The upgrade pool. Some (Monitor rationale, Untrusted monitor, Paraphraser, Canary, Trusted editing)
+// are offered only once the matching research is funded; see RULES.upgradeResearch.
 export const UPGRADES: Upgrade[] = [
   {
     id: 'sharper-monitor',
