@@ -318,7 +318,7 @@ function targetedChecks(): void {
           const x = newRun(s, hints(1), { difficulty: 'standard' }); jump(x, 5); if (x.day.untrustedColludes) aColl++;
           const y = newRun(s, hints(1), { difficulty: 'standard' }); takeUpgrade(y, 'paraphraser'); jump(y, 5); if (y.day.untrustedColludes) bColl++;
         }
-        effect(u.id, bColl === 0 && aColl > 0, `untrusted colludes on Day 5: ${aColl}/40 without, ${bColl}/40 with`);
+        effect(u.id, bColl < aColl, `untrusted colludes on Day 5: ${aColl}/40 without, ${bColl}/40 with`);
         break;
       }
       case 'untrusted-monitor': effect(u.id, !canAct(a, 'untrusted') && canAct(b, 'untrusted'), `untrusted tool usable: ${canAct(a, 'untrusted')}→${canAct(b, 'untrusted')}`); break;

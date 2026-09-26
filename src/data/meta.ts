@@ -145,7 +145,7 @@ export const BREAKTHROUGHS: Breakthrough[] = [
   {
     id: 'probe',
     name: 'Interpretability probe',
-    description: 'Once per day, reveal whether the card in front of you is sabotaged, without spending an auditor.',
+    description: 'Once per day, reveal whether the card in front of you is sabotaged, without spending an auditor. (Always right here; real probes are near-perfect only on planted deception.)',
     realWorld:
       'Anthropic trained "linear classifiers that use residual stream activations to predict when a sleeper agent trojan model will choose to defect," reaching AUROC scores above 99%. That worked on models built to misbehave in a known way; real deceptive models may be harder to read.',
     source: { title: 'Anthropic, Simple probes can catch sleeper agents', url: 'https://www.anthropic.com/research/probes-catch-sleeper-agents', date: 'Apr 2024' },

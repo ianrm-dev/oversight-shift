@@ -149,7 +149,7 @@ After each day, at the budget meeting, pick one of three offered upgrades, each 
 | Action | Paired resample | Resample shows both drafts side by side | Day 6 sandbagging |
 | Action | Escalation hotline | Once per day, Defer returns full usefulness | Quota pressure |
 | Action | Permission limits | Approved agent actions can't exceed Major harm | Agent days |
-| Action | Paraphraser | Thread cards lose hidden signals; the untrusted monitor can't collude | Days 5–7 |
+| Action | Paraphraser | Thread cards lose hidden signals; collusion with the untrusted monitor gets much harder, but not impossible | Days 5–7 |
 | Meter | Incident response | Harm ceiling +2 | Bleeding minor harms |
 | Meter | Canary (honeypot) | Once per day, reveals whether the untrusted monitor is lying today | Paired with Untrusted monitor |
 

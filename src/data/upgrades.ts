@@ -70,7 +70,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'paraphraser',
     name: 'Paraphraser',
     category: 'action',
-    description: 'Rewords messages between agents, breaking many hidden signals. The monitor rates collusion higher, and the untrusted monitor stays honest.',
+    description: 'Rewords messages between agents, breaking many hidden signals. The monitor rates collusion higher, and the untrusted monitor rarely colludes.',
     bestWhen: 'Best on multi-agent days',
   },
   {

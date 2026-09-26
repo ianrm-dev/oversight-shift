@@ -29,11 +29,11 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
   audit: {
     id: 'audit',
     name: 'Human audit',
-    what: 'A human expert checks the work. Always right, rarely available.',
+    what: 'A careful expert review. Always right in this game, as control research assumes, and scarce.',
     catches: 'Everything',
     realWorld:
-      'Control research treats careful human review as the scarcest resource: the AI Control paper let its safety team audit at most 2% of tasks (with GPT-4 standing in for trusted experts). Real auditing is harder than it sounds: in a 2025 pilot, people given 1.5 minutes per item barely beat chance.',
-    stat: 'In that pilot, 11 people judging code for hidden backdoors in 1.5 minutes each reached 60% median accuracy.',
+      'Control research treats careful human review as the scarcest resource: the AI Control paper let its safety team audit at most 2% of tasks (with GPT-4 standing in for trusted experts). Rushed review is different: in a 2025 pilot, people given 1.5 minutes per item barely beat chance. On the shift clock, that rushed reviewer is you.',
+    stat: 'In that pilot, 11 people judging code for hidden backdoors in 1.5 minutes each reached 60% median accuracy, on a set where half the items were backdoored.',
     source: HUMAN_AUDITING_PILOT,
   },
   fact: {
@@ -42,7 +42,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     what: 'The trusted model checks the model’s claims against the facts on file.',
     catches: 'False claims, loosened rules, leaks, collusion',
     realWorld:
-      'This is a critic: a second AI that reviews the work and points out problems for a person to confirm. In a 2025 pilot, an AI reviewer helped the best human auditors but not the typical one. Critics tell you where to look; they don’t do the looking for you.',
+      'This is a critic: a second AI that reviews the work and points out problems for a person to confirm. In a 2025 pilot, an AI reviewer helped the best human auditors but not the typical one. Critics tell you where to look; they don’t do the looking for you. Even the best AI fact-checkers, comparing claims with a source document, are right only about 3 times in 4.',
     stat: 'On the 10 backdoors the author judged hardest, median accuracy rose from about 16% to about 36%, so most were still missed.',
     source: HUMAN_AUDITING_PILOT,
   },
@@ -63,8 +63,8 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
   resample: {
     id: 'resample',
     name: 'Resample',
-    what: 'Ask for a fresh attempt. Attacks often don’t repeat.',
-    catches: 'Sandbagging, and attacks that don’t repeat',
+    what: 'Ask for a fresh attempt. A model that drops its attack loses it; one that repeats it gives you more evidence.',
+    catches: 'Attacks that don’t repeat; sometimes sandbagging',
     realWorld:
       'Ctrl-Z introduced resample protocols: when an agent’s step looks suspicious, take more samples of that step instead of trusting the first one. Extra samples let the protocol block the suspicious version, and a model that keeps trying the attack produces more evidence against itself.',
     stat: 'The best resampling protocol cut attack success from 58% to 7%, at a 5% cost to an honest agent’s performance.',

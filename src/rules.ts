@@ -33,7 +33,8 @@ export const RULES = {
   resampleCost: 1,
   unspentComputeValue: 0,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
-  resampleDropsSabotage: 0.5,
+  /** Real attackers often repeat an attack on a resample (Ctrl-Z), so a fresh draft only sometimes drops it. */
+  resampleDropsSabotage: 0.3,
   /** trueSignal range for an honest redraft of a sabotaged card. */
   cleanRedraftSignal: [12, 32] as const,
 
@@ -58,7 +59,7 @@ export const RULES = {
 
   // Monitor noise band (±) per day, index 0 = Day 1. The reading's sd is band × noiseSdFraction,
   // so about two-thirds of readings land within ±band of the true signal. Upgrades narrow it, never to zero.
-  monitorBand: [14, 16, 19, 22, 25, 27, 30],
+  monitorBand: [14, 16, 18, 20, 22, 24, 25],
   minMonitorBand: 5,
   noiseSdFraction: 1.0,
   // Day 4 blind spot: logs read this much lower.
@@ -68,9 +69,13 @@ export const RULES = {
   gamedMonitorDay: 7,
   gamedMonitorShift: 20,
   /** Sandbagging usually disappears on a fresh sample. */
-  sandbagResampleHonest: 0.8,
+  /** Prompting a sandbagging model again rarely brings out its real ability (Auditing Games for Sandbagging, 2025). */
+  sandbagResampleHonest: 0.4,
   /** Untrusted monitor: a sharper second opinion that may collude with the model. */
-  untrusted: { band: 8, colludeFromDay: 5, colludeChance: 0.5, colludeShift: 40 },
+  /** An honest copy of the strong model is a sharp monitor (Ctrl-Z: 98.8% of attacks caught at a 1% audit budget),
+   *  so sabotage reads `honestLift` higher to it; a colluding copy reads it as clean work. A paraphraser cuts
+   *  the chance of collusion to `paraphraserCollusionMult`, not to zero. */
+  untrusted: { band: 8, colludeFromDay: 5, colludeChance: 0.5, colludeShift: 40, honestLift: 25, paraphraserCollusionMult: 0.25 },
   /** Paraphraser breaks hidden signals, so collusion in threads reads this much higher. */
   paraphraserCollusionBoost: 15,
   /** Monitor rationale points at the tell line this often on sabotaged cards. */
@@ -141,9 +146,9 @@ export const RULES = {
 
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */
   difficulty: {
-    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings, a relaxed clock. Best for a first shift.', factHit: 0.95, factFalse: 0.05, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
-    standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.9, factFalse: 0.1, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
-    analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.7, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
+    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings, a relaxed clock. Best for a first shift.', factHit: 0.85, factFalse: 0.1, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
+    standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.75, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
+    analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.65, factFalse: 0.2, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
   },
 
   // Funding: why usefulness matters past the quota. Leadership sets the quota; whatever ships
