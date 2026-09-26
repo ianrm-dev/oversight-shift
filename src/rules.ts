@@ -123,6 +123,11 @@ export const RULES = {
   /** Attention budget: careful human review takes time. Seconds of shift clock per card in the queue.
    *  When it runs out, the rest of the queue ships unreviewed, because the queue doesn't wait. */
   attention: { secondsPerCard: { guided: 0, standard: 30, analyst: 20 }, perLevel: -2, minPerCard: 12 },
+  /** Each day's featured threat is guaranteed to appear, so the day's new terms happen in play. */
+  featuredFamilies: {
+    1: ['false-premise'], 2: ['out-of-scope'], 3: ['injected-instruction'], 4: ['exfiltration', 'weakened-check'],
+    5: ['collusion', 'summary-mismatch'], 6: ['sandbagging'], 7: [],
+  } as Record<number, string[]>,
   /** Later model versions send more work: extra cards per day from these levels. */
   extraCardsFromLevel: [3, 5],
   /** From this model version, clean cards that look suspicious are dealt more often. */

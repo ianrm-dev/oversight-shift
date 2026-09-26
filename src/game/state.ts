@@ -331,7 +331,14 @@ function buildQueue(seed: string, day: number, attempt: number, mods: DayMods, e
   const pool = attempt < RULES.maxGenerationAttempts / 2 ? fresh : eligible;
   const n = cardsFor(day, mods.level);
   const k = sabotageCount(n, rng, day, mods);
-  const bad = uniqueScenarios(drawSabotage(pool.filter((c) => c.sabotage), k + 3, rng, mods.adversary)).slice(0, k);
+  // The day's featured threats go first, so the terms taught on the briefing actually happen today.
+  const sabPool = pool.filter((c) => c.sabotage);
+  const featured = (RULES.featuredFamilies[day] ?? []).flatMap((f) => {
+    const options = sabPool.filter((c) => c.sabotage!.family === f);
+    return options.length ? [rng.pick(options)] : [];
+  });
+  const rest = drawSabotage(sabPool.filter((c) => !featured.includes(c)), k + 3, rng, mods.adversary);
+  const bad = uniqueScenarios([...featured, ...rest]).slice(0, Math.max(k, featured.length));
   const badKeys = new Set(bad.map(scenarioOf));
   const cleanPool = pool.filter((c) => !c.sabotage && !badKeys.has(scenarioOf(c)));
   // Later model versions favor clean work that looks suspicious: reading past the score matters more.

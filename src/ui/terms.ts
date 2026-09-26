@@ -11,16 +11,29 @@ export const termById = (id: string): Term | undefined => TERMS.find((t) => t.id
 export const termForFamily = (f: TellFamily): Term | undefined => TERMS.find((t) => t.family === f);
 export const termForTool = (tool: ToolId): Term | undefined => TERMS.find((t) => t.tool === tool);
 
-/** Terms shown to the player during the current run (for "you can now talk about" and progress). */
+/** Terms the player met IN PLAY this run: a tool used, a threat revealed, an event or breakthrough.
+ *  Showing a definition doesn't count; happening does. Drives Field guide depth, the Field test and talking points. */
 const met = new Set<string>();
+/** Terms that came up today, with what happened, for the day review's "terms in action". */
+let today: { id: string; what: string }[] = [];
 export const termsMet = (): string[] => [...met];
-export const resetTermsMet = (): void => met.clear();
+export const resetTermsMet = (): void => { met.clear(); today = []; };
+export const termsToday = (): { id: string; what: string }[] => today;
+export const resetTermsToday = (): void => { today = []; };
+
+/** Record that a term happened in play. `what` is a short phrase for the day review. */
+export function noteUsed(id: string | undefined, what: string): void {
+  if (!id || !termById(id)) return;
+  met.add(id);
+  const row = today.find((r) => r.id === id);
+  if (row) { if (!row.what.includes(what)) row.what += `; ${what}`; }
+  else today.push({ id, what });
+}
 
 /** A hoverable term. `label` defaults to the term's name. */
 export function chip(id: string | undefined, label?: string): string {
   const t = id ? termById(id) : undefined;
   if (!t) return label ? esc(label) : '';
-  met.add(t.id);
   return `<span class="term" data-term="${t.id}" tabindex="0">${esc(label ?? t.term)}</span>`;
 }
 

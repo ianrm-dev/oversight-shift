@@ -231,7 +231,7 @@ export const TERMS: Term[] = [
   {
     id: 'sandbagging',
     term: 'Sandbagging',
-    aka: ['sandbagging', 'sandbagger', 'sandbagged', 'capability checks', 'capability check'],
+    aka: ['sandbagging', 'sandbagger', 'sandbagged', 'hold back', 'holding back'],
     category: 'threat',
     family: 'sandbagging',
     branch: 'evals',
@@ -477,7 +477,7 @@ export const TERMS: Term[] = [
   {
     id: 'evals',
     term: 'Evals',
-    aka: ['dangerous capability evaluations', 'capability evaluations', 'evaluations', 'evals'],
+    aka: ['dangerous capability evaluations', 'capability evaluations', 'evaluations', 'evals', 'capability check', 'capability checks'],
     category: 'approach',
     branch: 'evals',
     plain: 'Tests that measure what an AI can do, especially abilities that could be dangerous.',

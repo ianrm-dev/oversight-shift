@@ -1649,3 +1649,16 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .hud-clock.is-low .clock-num { color: var(--harm); }
 .timeout-card { border-color: rgb(240 194 75 / 0.5); }
 .timeout-card .unwatched { max-height: 220px; }
+.event-terms { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.event-terms .term { font-size: var(--fs-xs); padding: 1px var(--space-2); border: 1px solid var(--line-strong); border-bottom-style: dotted; border-radius: var(--radius-sm); color: var(--text-2); }
+.terms-action { display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-2) var(--space-3); border: 1px solid rgb(90 216 236 / 0.3); border-radius: var(--radius); background: var(--accent-wash); max-width: 720px; }
+.terms-action ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.terms-action li { display: flex; gap: var(--space-2); font-size: var(--fs-sm); color: var(--text-2); }
+.terms-action .term { font-weight: 600; color: var(--text); white-space: nowrap; }
+.ev-name .term, .action-verb .term, .hud .term { border-bottom-color: rgb(255 255 255 / 0.25); }
+.review-body .missed-list { flex: none; max-height: none; } .review-body { overflow-y: auto; scrollbar-width: thin; padding-right: 4px; }
+.review-body { overflow: hidden; padding-right: 0; }
+.review-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; gap: var(--space-3); padding-right: 4px; }
+.review-foot { flex: none; }
+.next-day .ledger { margin-top: auto; max-width: none; }
+.review-foot { padding: 4px 6px 4px 0; }

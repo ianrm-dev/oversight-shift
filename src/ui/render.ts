@@ -420,7 +420,7 @@ function ledger(s: DaySummary): string {
     </dl>`;
 }
 
-export function review(run: RunState, s: DaySummary): string {
+export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
   const d = run.day;
   const next = dayInfo(d.day + 1);
   const hasNext = d.day < RULES.lastPlayableDay && !run.loss;
@@ -447,10 +447,13 @@ export function review(run: RunState, s: DaySummary): string {
     </header>
     <main class="between-main">
       <section class="review-body">
+<div class="review-scroll">
         <h3>What got past you</h3>
         <ul class="missed-list">${missed}</ul>
         ${notes.length ? `<ul class="review-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
-        ${ledger(s)}
+        ${termsHtml}
+        ${hasNext ? '' : ledger(s)}
+        </div>
         <div class="review-foot">
           <span class="foot-note">Harm so far: <strong class="harm">${run.harm}</strong> of ${harmCeiling(run)}</span>
           <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> ${hasNext ? 'Budget meeting' : 'Continue'}</button>
@@ -461,6 +464,7 @@ export function review(run: RunState, s: DaySummary): string {
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="110"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
         <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
+        ${ledger(s)}
       </aside>` : ''}
     </main>`;
 }

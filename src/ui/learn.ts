@@ -25,13 +25,13 @@ const CATEGORY: Record<TermCategory, string> = {
 
 /** One or two new terms per day, introduced on the briefing. Written as names so content stays readable. */
 export const DAY_TERMS: Record<number, string[]> = {
-  1: ['AI control', 'sycophancy'],
-  2: ['resampling', 'data exfiltration'],
-  3: ['AI agent', 'prompt injection'],
-  4: ['reward hacking', 'least privilege'],
-  5: ['collusion', 'paraphrasing'],
+  1: ['trusted-monitoring', 'sycophancy'],
+  2: ['least-privilege', 'excessive-agency'],
+  3: ['ai-agent', 'prompt-injection'],
+  4: ['exfiltration', 'reward-hacking'],
+  5: ['collusion', 'deception'],
   6: ['sandbagging', 'evals'],
-  7: ['scheming', 'alignment faking'],
+  7: ['scheming', 'alignment-faking'],
 };
 
 export function dayTermsBlock(run: RunState, p: Progress): string {
@@ -170,4 +170,17 @@ export function fieldTestResults(ts: TestState, talk: Term[]): string {
         </div>
       </article>
     </main>`;
+}
+
+/** Day review: the terms that actually happened today, and how. */
+export function termsInAction(rows: { id: string; what: string }[]): string {
+  // Threats first (what happened), then tools and techniques (what you did), then basics.
+  const rank = (id: string) => ({ threat: 0, tool: 1, approach: 2, governance: 3, basics: 4 })[termById(id)?.category ?? 'basics'];
+  const shown = rows.filter((r) => termById(r.id) && r.id !== 'sabotage').sort((a, b) => rank(a.id) - rank(b.id)).slice(0, 6);
+  if (!shown.length) return '';
+  return `
+    <div class="terms-action">
+      <span class="eyebrow">Terms in action today</span>
+      <ul>${shown.map((r) => `<li>${chip(r.id)}<span>${esc(r.what)}</span></li>`).join('')}</ul>
+    </div>`;
 }

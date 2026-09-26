@@ -6,7 +6,8 @@ import { contractById } from './ui/metaScreens';
 import { buyNode, gradeFor, loadProgress, recordFieldTest, recordRun, dailySeed, type RunUpdate } from './game/progress';
 import { buildFieldTest, talkingPoints } from './game/fieldtest';
 import * as L from './ui/learn';
-import { popover, resetTermsMet, termsMet } from './ui/terms';
+import { noteUsed, popover, resetTermsMet, resetTermsToday, termsMet, termsToday } from './ui/terms';
+import { BREAKTHROUGH_TERM, EVENT_TERMS, FAMILY_TERM, LAB_TERM, TOOL_TERM, UPGRADE_TERM } from './data/term-links';
 import {
   act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
   eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
@@ -92,6 +93,9 @@ function startRun(seed: string, daily = false): void {
   revealShown = false;
   fieldTestTaken = false;
   resetTermsMet();
+  noteUsed('ai-control', 'you ran the protocol');
+  noteUsed('trusted-monitoring', 'it scored every card');
+  noteUsed(LAB_TERM[run.lab.id], `your lab: ${run.lab.name}`);
   // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
   const jump = Number(new URLSearchParams(location.search).get('day'));
   if (!daily && jump >= 2 && jump <= RULES.days) {
@@ -242,8 +246,16 @@ function renderPreview(): void {
 // ---------- Flow ----------
 function doAction(action: Action): void {
   if (!run || screen.kind !== 'shift' || screen.overlay || !canAct(run, action)) return;
+  const layout = current(run.day)?.card.layout;
   const outcome = act(run, action);
   freshHarm = outcome?.harm ?? 0;
+  if (action !== 'approve') noteUsed(TOOL_TERM[action], action === 'defer' ? 'you deferred work' : 'you used it');
+  if (layout === 'log') noteUsed('ai-agent', 'agents took actions');
+  if (action === 'fact' || action === 'scope' || action === 'resample' || action === 'untrusted') noteUsed('compute', 'you spent it on tools');
+  if (outcome?.draft.sabotaged && outcome.card.sabotage && (isIncident(outcome) || outcome.action === 'audit')) {
+    noteUsed(FAMILY_TERM[outcome.card.sabotage.family], isIncident(outcome) ? `it got through: “${outcome.card.title}”` : `you caught it: “${outcome.card.title}”`);
+    noteUsed('sabotage', 'you saw it happen');
+  }
   preview = null;
   if (!outcome) { render(); return; } // a tool ran: same card, new evidence
   if (isIncident(outcome)) {
@@ -276,8 +288,11 @@ function nextCard(): void {
   if (run.loss) { screen = { kind: 'over' }; render(); return; }
   advance(run);
   if (dayOver(run.day)) {
+    for (const o of run.day.outcomes) {
+      if (o.action === 'defer' && o.draft.sabotaged && !o.slipped && o.card.sabotage) noteUsed(FAMILY_TERM[o.card.sabotage.family], 'a Defer stopped it');
+    }
     const summary = endDay(run);
-    screen = { kind: 'review', html: R.review(run, summary) };
+    screen = { kind: 'review', html: R.review(run, summary, L.termsInAction(termsToday())) };
   } else {
     screen = { kind: 'shift' };
   }
@@ -314,7 +329,7 @@ function continueScreen(): void {
   if (screen.kind === 'timeout') {
     if (run.loss) { screen = { kind: 'over' }; render(); return; }
     const summary = endDay(run);
-    screen = { kind: 'review', html: R.review(run, summary) };
+    screen = { kind: 'review', html: R.review(run, summary, L.termsInAction(termsToday())) };
     render();
     return;
   }
@@ -336,6 +351,7 @@ function continueScreen(): void {
   if (screen.kind === 'between' && (screen.picked || !screen.offer.length) && screen.contract) {
     chooseContract(run, screen.contract);
     nextDay(run, hintsFor(run.day.day + 1));
+    resetTermsToday();
     screen = withReveal({ kind: 'briefing' }, 'Red-team program');
     render();
   }
@@ -344,6 +360,7 @@ function continueScreen(): void {
 function pickEvent(i: number): void {
   if (!run || screen.kind !== 'event' || screen.chosen !== undefined || !eventChoices(run, screen.event)[i]) return;
   chooseEvent(run, screen.event, i);
+  for (const id of EVENT_TERMS[screen.event.id] ?? []) noteUsed(id, `event: “${screen.event.title}”`);
   screen = { ...screen, chosen: i };
   render();
 }
@@ -352,6 +369,7 @@ function pickBreakthrough(i: number): void {
   if (!run || screen.kind !== 'breakthrough' || !screen.offer[i]) return;
   const id = screen.offer[i]!.id;
   takeBreakthrough(run, id);
+  noteUsed(BREAKTHROUGH_TERM[id], 'your breakthrough');
   afterReview('between');
   if (id === 'red-team') { screen = withReveal(screen, 'Red-team exercise'); render(); }
 }
@@ -363,6 +381,7 @@ function pickUpgrade(index: number | 'skip'): void {
     const u = screen.offer[index];
     if (!u) return;
     takeUpgrade(run, u.id);
+    noteUsed(UPGRADE_TERM[u.id], `upgrade: ${u.name}`);
   }
   screen = { ...screen, picked: true };
   render();

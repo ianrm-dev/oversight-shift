@@ -10,7 +10,8 @@ import { eventChoices } from '../game/state';
 import { RULES } from '../rules';
 import type { Breakthrough, Contract, Difficulty, Effect, GameEvent, TellFamily } from '../types';
 import { esc } from './render';
-import { linkTerms } from './terms';
+import { chip, linkTerms } from './terms';
+import { BREAKTHROUGH_TERM, EVENT_TERMS } from '../data/term-links';
 import { BRANCH_PRIMERS, NODE_DEPTH } from '../data/research-depth';
 
 export interface Setup {
@@ -168,6 +169,7 @@ export function event(run: RunState, ev: GameEvent): string {
       <article class="event-card">
         <div class="eyebrow">After Day ${run.day.day} · a message arrives</div>
         <h2 class="event-title">${esc(ev.title)}</h2>
+        ${(EVENT_TERMS[ev.id] ?? []).length ? `<div class="event-terms">${(EVENT_TERMS[ev.id] ?? []).map((id) => chip(id)).join('')}</div>` : ''}
         <p class="event-text">${linkTerms(ev.text, 2)}</p>
         <div class="ev-choices">${choices}</div>
         ${ev.anchor ? `<p class="event-anchor"><span class="eyebrow">From the record</span>${esc(ev.anchor.line)} <a href="${esc(ev.anchor.source.url)}" target="_blank" rel="noopener">${esc(ev.anchor.source.title)}</a></p>` : ''}
@@ -195,6 +197,7 @@ export function breakthrough(run: RunState, offer: Breakthrough[]): string {
     <button class="upgrade bt-card" data-breakthrough="${b.id}">
       <span class="upgrade-cat">Breakthrough</span>
       <span class="upgrade-name">${esc(b.name)}</span>
+      ${BREAKTHROUGH_TERM[b.id] ? `<span class="event-terms">${chip(BREAKTHROUGH_TERM[b.id])}</span>` : ''}
       <span class="upgrade-desc">${esc(b.description)}</span>
       <span class="bt-real">${esc(b.realWorld)}</span>
       <kbd class="upgrade-key">${i + 1}</kbd>
