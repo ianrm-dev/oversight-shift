@@ -57,7 +57,7 @@ export interface Outcome {
   unreviewed?: boolean;
 }
 
-export type LossKind = 'harm' | 'quota';
+export type LossKind = 'harm' | 'quota' | 'abandon';
 
 export interface DayState {
   day: number;

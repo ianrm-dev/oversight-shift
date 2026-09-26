@@ -12,7 +12,7 @@ export interface RunRecord {
   lab: string;
   adversary: AdversaryId;
   dayReached: number;
-  result: 'win' | 'harm' | 'quota';
+  result: 'win' | 'harm' | 'quota' | 'abandon';
   score: number;
   grade: string;
   daily: boolean;

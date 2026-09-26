@@ -72,6 +72,7 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
     <div class="hud-tags">${run.adversaryRevealed ? `<span class="hud-tag bad" title="Revealed by your red team">${esc({ sandbagger: 'Sandbagger', colluder: 'Colluder', injector: 'Injector', schemer: 'Schemer' }[run.adversary])}</span>` : ''}${run.level > 1 ? `<span class="hud-tag">v${run.level}</span>` : ''}${d.contract ? `<span class="hud-tag" title="${esc(d.contract.blurb)}">${esc(d.contract.name)}</span>` : ''}</div>
     <button class="hud-toolkit" data-toolkit><kbd>T</kbd> Toolkit</button>
+    <button class="hud-toolkit" data-pause="open" aria-label="Pause menu"><kbd>Esc</kbd> Menu</button>
     <ol class="hud-progress" aria-label="Cards today">${progress}</ol>`;
 }
 

@@ -65,6 +65,9 @@ let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
 let fieldTestTaken = false;
+/** Pause menu: open during a run; stops the shift clock. */
+let paused = false;
+const PAUSABLE = new Set(['briefing', 'shift', 'review', 'event', 'breakthrough', 'between', 'reveal', 'timeout']);
 let setup: M.Setup = loadSetup();
 
 function loadSetup(): M.Setup {
@@ -92,6 +95,7 @@ function startRun(seed: string, daily = false): void {
   endUpdate = null;
   revealShown = false;
   fieldTestTaken = false;
+  paused = false;
   resetTermsMet();
   noteUsed('ai-control', 'you ran the protocol');
   noteUsed('trusted-monitoring', 'it scored every card');
@@ -224,6 +228,7 @@ function render(): void {
   } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
+  if (paused && run) screenEl.insertAdjacentHTML('beforeend', R.pauseMenu(run));
   if (toolkitOpen && run && (screen.kind === 'shift' || screen.kind === 'briefing')) {
     screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
   }
@@ -443,6 +448,20 @@ function setSetup(patch: Partial<M.Setup>): void {
   render();
 }
 
+function setPaused(on: boolean): void {
+  paused = on && !!run && PAUSABLE.has(screen.kind);
+  render();
+}
+
+/** Ends the run now: recorded as unfinished, with Insight for the days completed. */
+function abandonRun(): void {
+  if (!run) return;
+  paused = false;
+  if (!run.loss) run.loss = { kind: 'abandon', day: run.day.day };
+  screen = { kind: 'over' };
+  render();
+}
+
 function toggleToolkit(which: ToolId | 'all' | null): void {
   toolkitOpen = which;
   render();
@@ -458,6 +477,14 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape' || k === 't') { e.preventDefault(); toggleToolkit(null); }
     return;
   }
+  if (paused) {
+    e.preventDefault();
+    if (k === 'escape' || k === 'enter' || k === ' ') setPaused(false);
+    else if (k === 'r') { paused = false; restart('same'); }
+    else if (k === 'q') abandonRun();
+    return;
+  }
+  if (k === 'escape' && run && PAUSABLE.has(screen.kind)) { e.preventDefault(); setPaused(true); return; }
   if (screen.kind === 'title') {
     if (k === 'enter' || k === ' ') { e.preventDefault(); go('setup'); }
     else if (k === 'd') go('daily-info');
@@ -523,6 +550,15 @@ document.addEventListener('keydown', (e) => {
 
 screenEl.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
+  const menu = el.closest<HTMLElement>('[data-pause]');
+  if (menu) {
+    const a = menu.dataset.pause;
+    if (a === 'open') setPaused(true);
+    else if (a === 'resume') setPaused(false);
+    else if (a === 'restart') { paused = false; restart('same'); }
+    else if (a === 'quit') abandonRun();
+    return;
+  }
   const guide = el.closest<HTMLElement>('[data-guide-tab], [data-guide-term], [data-answer]');
   if (guide) {
     if (guide.dataset.guideTab) screen = { kind: 'guide', tab: guide.dataset.guideTab as L.GuideTab };
@@ -584,7 +620,7 @@ setInterval(() => {
   const now = performance.now();
   const dt = (now - lastTick) / 1000;
   lastTick = now;
-  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || document.hidden) return;
+  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden) return;
   const d = run.day;
   if (!d.attention || dayOver(d)) return;
   d.attentionLeft = Math.max(0, d.attentionLeft - dt);

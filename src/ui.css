@@ -1683,3 +1683,8 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .hud-count.preview { color: var(--caution); }
 .hud-progress li { width: 7px; height: 7px; }
 .hud-progress { gap: 3px; }
+.pause { position: absolute; z-index: 6; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 420px; display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-lg); box-shadow: var(--shadow-raised); text-align: left; }
+.pause h2 { margin: 0 0 var(--space-2); font-size: var(--fs-2xl); }
+.pause .btn-primary, .pause .btn-ghost { justify-content: flex-start; }
+.btn-ghost.danger:hover { border-color: var(--harm); color: var(--harm); }
+.hud-toolkit + .hud-toolkit { margin-left: 0; }

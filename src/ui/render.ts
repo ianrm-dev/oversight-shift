@@ -497,6 +497,17 @@ function statLine(run: RunState): string {
 export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {
   const loss = run.loss!;
   const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>`;
+  if (loss.kind === 'abandon') {
+    return `
+      <main class="solo over is-abandon">
+        <div class="over-strip memo">${ICON.warn}<span>Shift ended early</span></div>
+        <h1 class="over-title">You stepped away on Day ${loss.day}.</h1>
+        <p class="over-epitaph">The run is recorded as unfinished. You keep what it taught you: Insight for the days you completed and any post-mortems.</p>
+        <div class="over-grid"><div class="over-side">${missedAll(run)}</div><div class="over-side">${statLine(run)}</div></div>
+        ${extras}
+        ${restart}
+      </main>`;
+  }
   if (loss.kind === 'harm' && !loss.fatal) {
     const cause = loss.cause ?? run.harmLog[run.harmLog.length - 1]?.reason;
     return `
@@ -668,4 +679,18 @@ export function timeout(run: RunState, shipped: Outcome[]): string {
         <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Continue</button>
       </article>
     </main>`;
+}
+
+// ---------- Pause menu ----------
+export function pauseMenu(run: RunState): string {
+  return `
+    <div class="toolkit-scrim"></div>
+    <section class="pause" role="dialog" aria-label="Paused">
+      <div class="eyebrow">Paused · Day ${run.day.day} of ${RULES.days}${run.day.attention ? ' · clock stopped' : ''}</div>
+      <h2>Paused</h2>
+      <button class="btn-primary btn-lg" data-pause="resume"><kbd>Esc</kbd> Resume</button>
+      <button class="btn-ghost btn-lg" data-pause="restart"><kbd>R</kbd> Restart this run (same seed)</button>
+      <button class="btn-ghost btn-lg danger" data-pause="quit"><kbd>Q</kbd> End run now</button>
+      <p class="muted small">Ending early records the run as unfinished. You still earn Insight for the days you completed.</p>
+    </section>`;
 }
