@@ -10,7 +10,7 @@ import type { RunState } from '../game/state';
 import { RULES } from '../rules';
 import type { Term, TermCategory, TellFamily } from '../types';
 import { esc } from './render';
-import { chip, depthOf, findTerm, termById } from './terms';
+import { chip, depthOf, findTerm, linkProse, termById } from './terms';
 import { termArt } from '../visual/term-art';
 import { FAMILY_ICON, icon } from '../visual/icons';
 
@@ -42,7 +42,7 @@ export function dayTermsBlock(run: RunState, p: Progress): string {
   return `
     <div class="day-terms">
       <span class="eyebrow">Terms for today</span>
-      ${terms.map((t) => `<div class="day-term">${chip(t.id)}${(p.termsSeen[t.id] ?? 0) === 0 ? '<span class="new-badge">New</span>' : ''}<span>${esc(t.plain)}</span></div>`).join('')}
+      ${terms.map((t) => `<div class="day-term">${chip(t.id)}${(p.termsSeen[t.id] ?? 0) === 0 ? '<span class="new-badge">New</span>' : ''}<span>${linkProse(t.plain)}</span></div>`).join('')}
     </div>`;
 }
 
@@ -52,14 +52,16 @@ function termDetail(p: Progress, t: Term | undefined): string {
   const d = depthOf(p, t);
   if (d === 0) return `<h3>???</h3><p class="muted">You haven't met this one yet. Keep playing.</p>`;
   const branch = BRANCHES.find((b) => b.id === t.branch);
+  const seen = new Set<string>();
+  const p2 = (s: string) => linkProse(s, seen);
   return `
     <h3>${esc(t.term)}</h3>
     <figure class="gd-art">${termArt(t.id, { w: 400, h: 170, animate: true })}</figure>
-    <p class="gd-plain">${esc(t.plain)}</p>
-    <p class="gd-analogy">${esc(t.analogy)}</p>
-    <section class="gd-depth${d >= 2 ? '' : ' is-locked'}"><span class="eyebrow">How it works</span>${d >= 2 ? `<p>${esc(t.how)}</p>` : '<p class="muted">Meet this term in 3 runs to unlock.</p>'}</section>
-    <section class="gd-depth${d >= 3 ? '' : ' is-locked'}"><span class="eyebrow">Tradeoffs and open questions</span>${d >= 3 ? `<p>${esc(t.tradeoffs)}</p>` : `<p class="muted">${branch ? `Research any ${esc(branch.name)} node to unlock.` : 'Meet this term in 6 runs to unlock.'}</p>`}</section>
-    <p class="gd-talk"><span class="eyebrow">Say it in conversation</span>${esc(t.talk)}</p>
+    <p class="gd-plain">${p2(t.plain)}</p>
+    <p class="gd-analogy">${p2(t.analogy)}</p>
+    <section class="gd-depth${d >= 2 ? '' : ' is-locked'}"><span class="eyebrow">How it works</span>${d >= 2 ? `<p>${p2(t.how)}</p>` : '<p class="muted">Meet this term in 3 runs to unlock.</p>'}</section>
+    <section class="gd-depth${d >= 3 ? '' : ' is-locked'}"><span class="eyebrow">Tradeoffs and open questions</span>${d >= 3 ? `<p>${p2(t.tradeoffs)}</p>` : `<p class="muted">${branch ? `Research any ${esc(branch.name)} node to unlock.` : 'Meet this term in 6 runs to unlock.'}</p>`}</section>
+    <p class="gd-talk"><span class="eyebrow">Say it in conversation</span><span>${p2(t.talk)}</span></p>
     ${[t.source, ...(t.sources ?? [])].map((s) => `<a class="gd-source" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)} · ${esc(s.date)}</a>`).join('')}`;
 }
 
@@ -84,14 +86,16 @@ function approachesTab(p: Progress): string {
     const pr = BRANCH_PRIMERS[b.id];
     const owned = TREE.filter((n) => n.branch === b.id && p.research.includes(n.id)).length;
     const total = TREE.filter((n) => n.branch === b.id).length;
+    const seen = new Set<string>();
+    const p2 = (s: string) => linkProse(s, seen);
     return `
       <article class="gd-approach">
         <h4>${esc(b.name)} <span class="muted">· ${owned}/${total} researched</span></h4>
-        <p><strong>What it does.</strong> ${esc(pr.what)}</p>
-        <p><strong>It assumes.</strong> ${esc(pr.assumes)}</p>
-        <p><strong>Strength.</strong> ${esc(pr.strengths)}</p>
-        <p><strong>Limit.</strong> ${esc(pr.limits)}</p>
-        <p class="gd-vs">${esc(pr.vs)}</p>
+        <p><strong>What it does.</strong> ${p2(pr.what)}</p>
+        <p><strong>It assumes.</strong> ${p2(pr.assumes)}</p>
+        <p><strong>Strength.</strong> ${p2(pr.strengths)}</p>
+        <p><strong>Limit.</strong> ${p2(pr.limits)}</p>
+        <p class="gd-vs">${p2(pr.vs)}</p>
       </article>`;
   }).join('');
   return `<p class="gd-intro">There is no single fix for AI safety. Each approach below makes a different bet about what can be trusted and where the risk lives; real deployments layer several. Research their nodes in the lab to go deeper.</p><div class="gd-approaches">${cards}</div>`;
@@ -102,11 +106,11 @@ function threatsTab(p: Progress): string {
     const t = TELLS[f]!;
     const found = p.tells.includes(f);
     const term = TERMS.find((x) => x.family === f);
-    return `<article class="cx-item${found ? '' : ' is-locked'}"><h4>${found ? `${esc(t.name)}${term ? ` · <span class="muted">${esc(term.term)}</span>` : ''}` : '???'}</h4>${found ? `<p>${esc(t.codex)}</p>` : '<p>Catch or miss one to add it.</p>'}</article>`;
+    return `<article class="cx-item${found ? '' : ' is-locked'}"><h4>${found ? `${esc(t.name)}${term ? ` · <span class="muted">${esc(term.term)}</span>` : ''}` : '???'}</h4>${found ? `<p>${linkProse(t.codex)}</p>` : '<p>Catch or miss one to add it.</p>'}</article>`;
   }).join('');
   const advs = Object.values(ADVERSARIES).map((a) => {
     const met = p.adversaries.includes(a.id);
-    return `<article class="cx-item${met ? '' : ' is-locked'}"><h4>${met ? esc(a.name) : 'Unknown adversary'}</h4>${met ? `<p>${esc(a.codex)}</p>` : '<p>Face it in a run to learn its habits.</p>'}</article>`;
+    return `<article class="cx-item${met ? '' : ' is-locked'}"><h4>${met ? esc(a.name) : 'Unknown adversary'}</h4>${met ? `<p>${linkProse(a.codex)}</p>` : '<p>Face it in a run to learn its habits.</p>'}</article>`;
   }).join('');
   return `<div class="gd-two"><section><h4>Tells found · ${p.tells.length}/${Object.keys(TELLS).length}</h4><div class="cx-list">${tells}</div></section><section><h4>Adversaries faced · ${p.adversaries.length}/4</h4><div class="cx-list">${advs}</div></section></div>`;
 }
@@ -144,7 +148,7 @@ export function fieldTest(ts: TestState): string {
   }).join('');
   const right = termById(q.answer)!;
   const feedback = answered
-    ? `<p class="ft-feedback ${ts.picked === q.answer ? 'good' : 'bad'}">${ts.picked === q.answer ? 'Right.' : `It's ${esc(right.term)}.`} ${esc(right.analogy)}</p>
+    ? `<p class="ft-feedback ${ts.picked === q.answer ? 'good' : 'bad'}">${ts.picked === q.answer ? 'Right.' : `It's ${esc(right.term)}.`} ${linkProse(right.analogy)}</p>
        <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> ${ts.index + 1 < ts.questions.length ? 'Next question' : 'See results'}</button>`
     : '';
   return `
@@ -152,7 +156,7 @@ export function fieldTest(ts: TestState): string {
       <article class="event-card ft-card">
         <div class="eyebrow">Field test · question ${ts.index + 1} of ${ts.questions.length} · +1 insight each</div>
         <h2 class="event-title">${esc(q.prompt)}</h2>
-        ${q.context ? `<p class="event-text ft-context">${esc(q.context)}</p>` : ''}
+        ${q.context ? `<p class="event-text ft-context">${linkProse(q.context)}</p>` : ''}
         <div class="ft-opts">${opts}</div>
         ${feedback}
       </article>
@@ -166,7 +170,7 @@ export function fieldTestResults(ts: TestState, talk: Term[]): string {
         <div class="eyebrow">Field test complete · +${ts.correct} insight</div>
         <h2 class="event-title">${ts.correct} of ${ts.questions.length} right</h2>
         <p class="event-text">You can now talk about:</p>
-        <ul class="talk-list">${talk.map((t) => `<li>${chip(t.id)}<span>${esc(t.talk)}</span></li>`).join('')}</ul>
+        <ul class="talk-list">${talk.map((t) => `<li>${chip(t.id)}<span>${linkProse(t.talk)}</span></li>`).join('')}</ul>
         <div class="setup-actions">
           <button class="btn-ghost" data-go="guide"><kbd>G</kbd> Field guide</button>
           <button class="btn-primary btn-lg" data-go="lab"><kbd>L</kbd> Research lab</button>

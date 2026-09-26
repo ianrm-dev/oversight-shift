@@ -7,7 +7,8 @@ import { UPGRADE_ICON, UPGRADE_IMPROVES, upgradeChip } from './upgradeView';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
-import { chip, findTerm, linkTerms, termForFamily } from './terms';
+import { chip, findTerm, jchip, linkJargon, linkTerms, termForFamily } from './terms';
+import { TOOL_TERM, UPGRADE_TERM } from '../data/term-links';
 import { diagram } from '../visual/diagram';
 import { FAMILY_ICON, icon } from '../visual/icons';
 
@@ -145,7 +146,8 @@ function markCls(i: number, tell: Set<number>, m: Marks): string {
   return `${tell.has(i) ? ' is-tell' : ''}${m.flag === i ? ' is-flagged' : ''}${m.changed?.has(i) ? ' is-changed' : ''}`;
 }
 
-export function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[], m: Marks = {}): string {
+/** `txt` renders each line's text: plain escaping by default, or a linker that also marks jargon (see terms.ts). */
+export function outputLines(lines: OutputLine[], layout: Card['layout'], tell: Set<number>, scope?: string[], m: Marks = {}, txt: (s: string) => string = esc): string {
   if (layout === 'diff') {
     let html = '';
     let i = 0;
@@ -155,7 +157,7 @@ export function outputLines(lines: OutputLine[], layout: Card['layout'], tell: S
       while (i < lines.length && (lines[i]!.file ?? '') === file) {
         const l = lines[i]!;
         const change = l.change ?? 'now';
-        rows += `<div class="diff-row ${change}${markCls(i, tell, m)}"><span class="diff-tag">${change}</span><code>${esc(l.text)}</code></div>`;
+        rows += `<div class="diff-row ${change}${markCls(i, tell, m)}"><span class="diff-tag">${change}</span><code>${txt(l.text)}</code></div>`;
         i++;
       }
       const outside = scope && !scope.includes(file);
@@ -164,10 +166,10 @@ export function outputLines(lines: OutputLine[], layout: Card['layout'], tell: S
     return html;
   }
   if (layout === 'thread') {
-    return `<div class="thread">${lines.map((l, i) => `<div class="thread-msg${markCls(i, tell, m)}"><span class="thread-speaker">${esc(l.speaker ?? '')}</span><span class="thread-text">${esc(l.text)}</span></div>`).join('')}</div>`;
+    return `<div class="thread">${lines.map((l, i) => `<div class="thread-msg${markCls(i, tell, m)}"><span class="thread-speaker">${esc(l.speaker ?? '')}</span><span class="thread-text">${txt(l.text)}</span></div>`).join('')}</div>`;
   }
   const cls = layout === 'log' ? 'log-lines' : 'reply';
-  return `<div class="${cls}">${lines.map((l, i) => `<p class="${markCls(i, tell, m).trim()}">${esc(l.text)}</p>`).join('')}</div>`;
+  return `<div class="${cls}">${lines.map((l, i) => `<p class="${markCls(i, tell, m).trim()}">${txt(l.text)}</p>`).join('')}</div>`;
 }
 
 function specBlock(card: Card): string {
@@ -189,14 +191,14 @@ function specBlock(card: Card): string {
     </div>`;
 }
 
-export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output', scope?: string[], marks: Marks = {}): string {
+export function outputBlock(card: Card, draft: { summary?: string; output: OutputLine[] }, tell: Set<number>, label = 'Output', scope?: string[], marks: Marks = {}, seen = new Set<string>()): string {
   const files = new Set(draft.output.map((l) => l.file).filter(Boolean)).size;
   const count = card.layout === 'diff' ? `${files} file${files === 1 ? '' : 's'} changed` : card.layout === 'answer' ? 'Reply' : '';
   return `
     <div class="output">
       <div class="output-head"><span class="eyebrow">${esc(label)}</span><span class="output-count">${count}</span></div>
-      ${draft.summary ? `<p class="summary"><span class="summary-tag">Model's summary</span>${esc(draft.summary)}</p>` : ''}
-      ${outputLines(draft.output, card.layout, tell, scope, marks)}
+      ${draft.summary ? `<p class="summary"><span class="summary-tag">Model's summary</span>${linkJargon(draft.summary, seen)}</p>` : ''}
+      ${outputLines(draft.output, card.layout, tell, scope, marks, (t) => linkJargon(t, seen))}
     </div>`;
 }
 
@@ -287,14 +289,17 @@ export function auditReveal(run: RunState, o: Outcome): string {
   const caught = o.draft.sabotaged && k.sabotage;
   const tell = caught ? new Set(k.sabotage!.spanLineIndexes) : new Set<number>();
   const info = caught ? TELLS[k.sabotage!.family] : undefined;
+  const seen = new Set<string>();
+  const headline = linkJargon(caught ? k.sabotage!.headline.replace(/\.$/, '') + ' — almost.' : k.title, seen);
+  const explanation = caught ? linkJargon(k.sabotage!.explanation, seen, escKeep) : '';
   const verdict = caught
     ? `<div class="verdict-strip is-caught">${ICON.check}<span>Audit · sabotage caught</span><span class="verdict-note">Trusted model redid it · +${RULES.usefulness.caught} usefulness · +${RULES.funding.evidenceGrant} evidence grant</span></div>`
     : `<div class="verdict-strip is-clean">${ICON.check}<span>Audit · clean work</span><span class="verdict-note">Shipped · +${RULES.usefulness.ship} usefulness</span></div>`;
   const body = caught
     ? `<div class="tell">
-         <span class="tell-chip good">${icon(FAMILY_ICON[k.sabotage!.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
-         <p class="tell-text">${escKeep(k.sabotage!.explanation)}</p>
-         ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${esc(info.tip)}</p>` : ''}
+         <span class="tell-chip good">${icon(FAMILY_ICON[k.sabotage!.family] ?? 'sabotage', 16)}<span>${jchip('tell', 'Tell')} · ${esc(info?.name ?? k.sabotage!.family)}</span></span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
+         <p class="tell-text">${explanation}</p>
+         ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${linkJargon(info.tip, seen)}</p>` : ''}
          <dl class="incident-facts">
            <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
            <div><dt>Would have been</dt><dd>${SEVERITY_NAME[k.severity]} harm</dd></div>
@@ -309,10 +314,10 @@ export function auditReveal(run: RunState, o: Outcome): string {
     <article class="card reveal ${caught ? 'is-caught' : 'is-clean'}">
       ${verdict}
       <div class="incident-body">
-        <h2 class="incident-headline">${esc(caught ? k.sabotage!.headline.replace(/\.$/, '') + ' — almost.' : k.title)}</h2>
-        <p class="incident-sub">${esc(k.domain)}</p>
+        <h2 class="incident-headline">${headline}</h2>
+        <p class="incident-sub">${linkJargon(k.domain, seen)}</p>
         <div class="incident-grid">
-          <div class="evidence">${outputBlock(k, o.draft, tell, caught ? 'The bad line' : 'Output')}${caught ? `<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: k.sabotage!.spanLineIndexes, termLabel: termForFamily(k.sabotage!.family)?.term ?? k.sabotage!.family } })}</figure>` : ''}</div>
+          <div class="evidence">${outputBlock(k, o.draft, tell, caught ? 'The bad line' : 'Output', undefined, {}, seen)}${caught ? `<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: k.sabotage!.spanLineIndexes, termLabel: termForFamily(k.sabotage!.family)?.term ?? k.sabotage!.family } })}</figure>` : ''}</div>
           ${body}
         </div>
       </div>
@@ -327,8 +332,8 @@ function toolsFor(_run: RunState, family: string): string {
   if ((RULES.tools.coverage.fact as readonly string[]).includes(family)) names.push('Fact check');
   if (family === 'sandbagging') names.push('Resample');
   return names.length
-    ? `<p class="tell-tool"><strong>Tool that sees this:</strong> ${names.join(', ')}.</p>`
-    : '<p class="tell-tool"><strong>No tool sees this.</strong> Only a human audit or a careful read.</p>';
+    ? `<p class="tell-tool"><strong>Tool that sees this:</strong> ${linkTerms(names.join(', '), 3)}.</p>`
+    : `<p class="tell-tool"><strong>No tool sees this.</strong> Only a ${chip(TOOL_TERM.audit, 'human audit')} or a careful read.</p>`;
 }
 
 // ---------- Incident report ----------
@@ -338,22 +343,25 @@ export function incident(run: RunState, o: Outcome): string {
   const info = TELLS[sab.family];
   const free = !!o.warning;
   const sev = free ? 'Warning · no harm this time' : `${SEVERITY_NAME[k.severity]} · +${o.harm} harm`;
+  const seen = new Set<string>();
+  const headline = linkJargon(sab.headline, seen);
+  const explanation = linkJargon(sab.explanation, seen, escKeep);
   return `
     <article class="card incident" aria-label="Incident report">
       <div class="incident-strip">${ICON.warn}<span>Incident report</span><span class="incident-sev">${esc(sev)}</span><span class="card-id">from ${cardNo(run.day.day, run.day.index)}</span></div>
       <div class="incident-body">
-        <h2 class="incident-headline">${esc(sab.headline)}</h2>
-        <p class="incident-sub">${esc(k.domain)} · ${o.slipped ? `you deferred “${esc(k.title)}”, but the trusted edit missed the sabotage` : `you approved “${esc(k.title)}”`}</p>
+        <h2 class="incident-headline">${headline}</h2>
+        <p class="incident-sub">${linkJargon(k.domain, seen)} · ${o.slipped ? `you deferred “${esc(k.title)}”, but the trusted edit missed the sabotage` : `you approved “${esc(k.title)}”`}</p>
         <div class="incident-grid">
-          <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: sab.spanLineIndexes, termLabel: termForFamily(sab.family)?.term ?? sab.family } })}</figure></div>
+          <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line', undefined, {}, seen)}<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: sab.spanLineIndexes, termLabel: termForFamily(sab.family)?.term ?? sab.family } })}</figure></div>
           <div class="tell">
-            <span class="tell-chip">${icon(FAMILY_ICON[sab.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
-            <p class="tell-text">${escKeep(sab.explanation)}</p>
-            ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${esc(info.tip)}</p>` : ''}
+            <span class="tell-chip">${icon(FAMILY_ICON[sab.family] ?? 'sabotage', 16)}<span>${jchip('tell', 'Tell')} · ${esc(info?.name ?? sab.family)}</span></span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
+            <p class="tell-text">${explanation}</p>
+            ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${linkJargon(info.tip, seen)}</p>` : ''}
             ${toolsFor(run, sab.family)}
             <dl class="incident-facts">
               <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
-              <div><dt>Access</dt><dd>${esc(k.access.replace(/^Can /, ''))}</dd></div>
+              <div><dt>Access</dt><dd>${linkJargon(k.access.replace(/^Can /, ''), seen)}</dd></div>
               <div><dt>Field guide</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
             </dl>
           </div>
@@ -416,7 +424,7 @@ export function briefing(run: RunState, parts: BriefingParts): string {
     .filter(([, rule]) => rule).map(([x, rule]) => `<p class="brief-since"><span class="eyebrow">Since Day ${x}</span> ${linkTerms(rule, 2)}</p>`).join('');
   const cut = d.quotaAsked - d.quota >= 2;
   const cell = (label: string, value: string, note = '', title = '') => `<div${title ? ` title="${esc(title)}"` : ''}><dt>${label}</dt><dd>${value}${note ? `<small>${note}</small>` : ''}</dd></div>`;
-  const learn = `${d.day === 1 ? cast() : ''}${parts.learn}${info.record ? `<p class="briefing-record"><span class="eyebrow">From the real world</span>${esc(info.record)}</p>` : ''}`;
+  const learn = `${d.day === 1 ? cast() : ''}${parts.learn}${info.record ? `<p class="briefing-record"><span class="eyebrow">From the real world</span><span>${linkTerms(info.record, 1)}</span></p>` : ''}`;
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
       <div class="briefing-card has-side">
@@ -428,8 +436,8 @@ export function briefing(run: RunState, parts: BriefingParts): string {
           ${alerts.length ? `<ul class="brief-alerts">${alerts.map((a) => `<li class="${a.tone}">${a.text}</li>`).join('')}</ul>` : ''}
           <dl class="brief-budget">
             ${cell('Quota', String(d.quota), cut ? ` of ${d.quotaAsked}` : ` from ${d.queue.length} cards`, cut ? `Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable.` : 'Usefulness to ship today. Miss it twice and the run ends.')}
-            ${cell('Auditors', String(d.audits))}
-            ${cell('Compute', String(d.compute || '—'))}
+            ${cell(chip(TOOL_TERM.audit, 'Auditors'), String(d.audits))}
+            ${cell(chip('compute', 'Compute'), String(d.compute || '—'))}
             ${cell('Harm', String(run.harm), `/${harmCeiling(run)}`, 'The run ends when harm reaches the limit.')}
             ${d.attention ? cell('Clock', mmss(d.attention), '', 'Time to review today\'s queue. It only runs while a card is on screen.') : ''}
           </dl>
@@ -460,8 +468,9 @@ export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
   const d = run.day;
   const next = dayInfo(d.day + 1);
   const hasNext = d.day < RULES.lastPlayableDay && !run.loss;
+  const seen = new Set<string>();
   const missed = s.missed.length
-    ? s.missed.map((o) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')
+    ? s.missed.map((o) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>${esc(o.card.title)}</strong><span>${linkJargon(o.card.sabotage!.explanation, seen, escKeep)}</span></div></li>`).join('')
     : '<li class="none">You approved no sabotage today.</li>';
   const notes = [
     s.deferred ? `${s.deferred} Defer${s.deferred === 1 ? '' : 's'}: ${s.deferredSabotage} ${s.deferredSabotage === 1 ? 'was' : 'were'} sabotage, ${s.deferred - s.deferredSabotage} ${s.deferred - s.deferredSabotage === 1 ? 'was' : 'were'} clean work you paid the safety tax on.` : '',
@@ -486,7 +495,7 @@ export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
 <div class="review-scroll">
         <h3>What got past you</h3>
         <ul class="missed-list">${missed}</ul>
-        ${notes.length ? `<ul class="review-notes">${notes.map((n) => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+        ${notes.length ? `<ul class="review-notes">${notes.map((n) => `<li>${linkTerms(n, 1, seen)}</li>`).join('')}</ul>` : ''}
         ${termsHtml}
         ${hasNext ? '' : ledger(s)}
         </div>
@@ -499,7 +508,7 @@ export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
         <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? `<span class="boss-tag">${bossLabel(next.day)}</span>` : ''}</div>
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="110"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
-        <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
+        <p class="next-day-rule">${linkTerms(next.rule.join(' '), 2)}</p>
         ${ledger(s)}
       </aside>` : ''}
     </main>`;
@@ -519,20 +528,21 @@ function runStats(run: RunState): { caught: number; deferred: number; sabotage: 
 function missedAll(run: RunState): string {
   const all = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => isIncident(x.o));
   if (!all.length) return '';
-  return `<h3>Every tell you missed</h3><ul class="missed-list">${all.map(({ o, day }) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>Day ${day} · ${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')}</ul>`;
+  const seen = new Set<string>();
+  return `<h3>Every ${jchip('tell', 'tell')} you missed</h3><ul class="missed-list">${all.map(({ o, day }) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>Day ${day} · ${esc(o.card.title)}</strong><span>${linkJargon(o.card.sabotage!.explanation, seen, escKeep)}</span></div></li>`).join('')}</ul>`;
 }
 
 function statLine(run: RunState): string {
   const s = runStats(run);
   const stopped = s.caught + s.deferred;
   const pct = s.sabotage ? Math.round((stopped / s.sabotage) * 100) : 100;
-  return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. For scale: in a MATS pilot, human auditors with 90 seconds per item judged code for hidden backdoors with 60% median accuracy.</p>`;
+  return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. ${linkTerms('For scale: in a MATS pilot, human auditors with 90 seconds per item judged code for hidden backdoors with 60% median accuracy.', 1)}</p>`;
 }
 
 /** End screens: header, then one row of three columns (what happened, compare, your week), then run extras and actions. */
 export function gameOver(run: RunState, unwatched: Card[], week = '', extras = ''): string {
   const loss = run.loss!;
-  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>`;
+  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>`;
   if (loss.kind === 'abandon') {
     return `
       <main class="solo over is-abandon">
@@ -550,7 +560,7 @@ export function gameOver(run: RunState, unwatched: Card[], week = '', extras = '
       <main class="solo over is-harm">
         <div class="over-strip">${ICON.warn}<span>Harm ceiling reached</span></div>
         <h1 class="over-title">The shift is over.</h1>
-        <p class="over-epitaph">After Day ${loss.day}, ${cause ? `${esc(cause)} pushed harm to the ceiling` : 'a decision between shifts pushed harm to the ceiling'}. Harm had already built up: the last straw doesn't have to be a card.</p>
+        <p class="over-epitaph">After Day ${loss.day}, ${cause ? `${linkJargon(cause)} pushed harm to the ceiling` : 'a decision between shifts pushed harm to the ceiling'}. Harm had already built up: the last straw doesn't have to be a card.</p>
         <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
         ${extras}
         ${restart}
@@ -558,13 +568,14 @@ export function gameOver(run: RunState, unwatched: Card[], week = '', extras = '
   }
   if (loss.kind === 'harm') {
     const f = loss.fatal!;
+    const seen = new Set<string>();
     return `
       <main class="solo over is-harm">
-        <div class="over-strip">${ICON.warn}<span>Incident in production</span></div>
+        <div class="over-strip">${ICON.warn}<span>Incident in ${jchip('production', 'production')}</span></div>
         <h1 class="over-title">The shift is over.</h1>
-        <p class="over-epitaph">Day ${loss.day}: you approved “${esc(f.card.title)}”. ${esc(f.card.sabotage!.headline)}</p>
+        <p class="over-epitaph">Day ${loss.day}: you approved “${esc(f.card.title)}”. ${linkJargon(f.card.sabotage!.headline, seen)}</p>
         <div class="over-grid">
-          <div class="evidence">${outputBlock(f.card, f.draft, new Set(f.card.sabotage!.spanLineIndexes), 'The line that ended it')}</div>
+          <div class="evidence">${outputBlock(f.card, f.draft, new Set(f.card.sabotage!.spanLineIndexes), 'The line that ended it', undefined, {}, seen)}</div>
           <div class="over-side">${missedAll(run)}${statLine(run)}</div>
           ${week}
         </div>
@@ -573,13 +584,14 @@ export function gameOver(run: RunState, unwatched: Card[], week = '', extras = '
       </main>`;
   }
   const ships = unwatched.filter((c) => c.sabotage);
+  const seen = new Set<string>();
   return `
     <main class="solo over is-quota">
       <div class="over-strip memo">${ICON.warn}<span>Internal memo · from leadership</span></div>
       <h1 class="over-title">The model ships unmonitored.</h1>
-      <p class="over-epitaph">Two missed quotas. Leadership reassigned the safety team and deployed the model without oversight. Here's tomorrow's queue, with no one watching:</p>
+      <p class="over-epitaph">${linkTerms("Two missed quotas. Leadership reassigned the safety team and deployed the model without oversight. Here's tomorrow's queue, with no one watching:", 1)}</p>
       <div class="over-grid">
-        <ul class="unwatched">${unwatched.map((c) => `<li class="${c.sabotage ? 'bad' : ''}"><span class="log-dot ${c.sabotage ? 'incident' : 'approve'}"></span><div><strong>${esc(c.title)}</strong><span>${c.sabotage ? esc(c.sabotage.headline) : 'Shipped fine.'}</span></div></li>`).join('')}</ul>
+        <ul class="unwatched">${unwatched.map((c) => `<li class="${c.sabotage ? 'bad' : ''}"><span class="log-dot ${c.sabotage ? 'incident' : 'approve'}"></span><div><strong>${esc(c.title)}</strong><span>${c.sabotage ? linkJargon(c.sabotage.headline, seen) : 'Shipped fine.'}</span></div></li>`).join('')}</ul>
         <div class="over-side">
           <p class="over-lesson">${ships.length} sabotage attempt${ships.length === 1 ? '' : 's'} shipped the next day. Oversight that can't keep pace gets routed around, and the harm happens anyway.</p>
           ${statLine(run)}
@@ -596,7 +608,7 @@ export function win(run: RunState, week = '', extras = ''): string {
   return `
     <main class="solo over is-win">
       <div class="briefing-glyph" data-glyph="9" data-size="130"></div>
-      <div class="over-strip win">Deployment complete</div>
+      <div class="over-strip win"><span>${chip('deployment', 'Deployment')} complete</span></div>
       <h1 class="over-title">You got the model through the week.</h1>
       <dl class="briefing-stats">
         <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
@@ -607,7 +619,7 @@ export function win(run: RunState, week = '', extras = ''): string {
       </dl>
       <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
       ${extras}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">Seed ${esc(run.seed)}</span><span class="next-model">The next model arrives tomorrow. It's better than this one.</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span><span class="next-model">The next model arrives tomorrow. It's better than this one.</span></div>
     </main>`;
 }
 
@@ -617,7 +629,7 @@ export function interim(run: RunState): string {
     <main class="solo over is-interim">
       <div class="briefing-glyph" data-glyph="3" data-size="120"></div>
       <h1 class="over-title">You made it through Day ${RULES.lastPlayableDay}.</h1>
-      <p class="over-epitaph">This build ends here. Days 5–7 bring agents that pass work to each other, models that hold back on purpose, and one that knows your audit rate.</p>
+      <p class="over-epitaph">${linkTerms('This build ends here. Days 5–7 bring agents that pass work to each other, models that hold back on purpose, and one that knows your audit rate.', 2)}</p>
       <dl class="briefing-stats">
         <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
         <div><dt>Funding raised</dt><dd>${run.fundingEarned}</dd></div>
@@ -626,7 +638,7 @@ export function interim(run: RunState): string {
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
       </dl>
       ${missedAll(run)}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
     </main>`;
 }
 
@@ -642,10 +654,10 @@ function upgradeCard(u: Upgrade, i: number, pending?: string): string {
   return `
     <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}${pending === u.id ? ' is-pending' : ''}" data-upgrade="${u.id}">
       <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'Research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
-      <span class="upgrade-title">${icon(UPGRADE_ICON[u.id] ?? 'shield', 22)}<span class="upgrade-name">${esc(u.name)}</span></span>
+      <span class="upgrade-title">${icon(UPGRADE_ICON[u.id] ?? 'shield', 22)}<span class="upgrade-name">${chip(UPGRADE_TERM[u.id], u.name)}</span></span>
       <span class="upgrade-improves">Improves: ${esc(UPGRADE_IMPROVES[u.id] ?? 'Your team')}</span>
-      <span class="upgrade-desc">${esc(u.description)}</span>
-      <span class="upgrade-best">${esc(u.bestWhen)}</span>
+      <span class="upgrade-desc">${linkTerms(u.description, 1)}</span>
+      <span class="upgrade-best">${linkTerms(u.bestWhen, 0)}</span>
       <kbd class="upgrade-key">${i + 1}</kbd>
     </button>`;
 }
@@ -666,7 +678,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
   const pick = picked
     ? `<p class="pick-done">${run.tomorrow.skipAudit ? `Skipped: +${run.tomorrow.skipAudit} auditor tomorrow.` : 'Upgrade installed.'} Spend your funding below, or start the shift.</p>`
     : replacing
-      ? `<div class="replace-row">${upgradeCard(upgradeById(pending!)!, 0, pending).replace(/<kbd class="upgrade-key">\d+<\/kbd>/, '')}<p class="pick-done replace-note">Your loadout is full. Pick one of your upgrades below to swap out for <strong>${esc(pendingName)}</strong> (keys <kbd>1</kbd>–<kbd>4</kbd>), or <button class="link-btn" data-replace="keep"><kbd>K</kbd> keep your loadout</button> and take +${RULES.upgrades.skipAuditBonus} auditor tomorrow instead.</p></div>`
+      ? `<div class="replace-row">${upgradeCard(upgradeById(pending!)!, 0, pending).replace(/<kbd class="upgrade-key">\d+<\/kbd>/, '')}<p class="pick-done replace-note">Your ${jchip('loadout', 'loadout')} is full. Pick one of your upgrades below to swap out for <strong>${esc(pendingName)}</strong> (keys <kbd>1</kbd>–<kbd>4</kbd>), or <button class="link-btn" data-replace="keep"><kbd>K</kbd> keep your loadout</button> and take +${RULES.upgrades.skipAuditBonus} auditor tomorrow instead.</p></div>`
       : offer.length
         ? `<div class="upgrades">${offer.map((u, i) => upgradeCard(u, i, pending)).join('')}</div>`
         : '<p class="pick-done">Nothing new to offer: you have every upgrade available.</p>';
@@ -675,7 +687,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
     const n = shopCount(run, item);
     const disabled = !canBuy(run, item) || (item === 'reroll' && (picked || !offer.length));
     return `<button class="shop-item" data-buy="${item}" ${disabled ? 'disabled' : ''}>
-      <span class="shop-name">${name}</span><span class="shop-desc">${desc}</span>
+      <span class="shop-name">${name}</span><span class="shop-desc">${linkTerms(desc, 1)}</span>
       <span class="shop-foot"><span class="shop-cost">${shopCost(run, item)}</span><span class="shop-count">${n}/${spec.max}</span></span>
     </button>`;
   }).join('');
@@ -699,7 +711,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
         <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? `<span class="boss-tag">${bossLabel(next.day)}</span>` : ''}</div>
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="100"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
-        <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
+        <p class="next-day-rule">${linkTerms(next.rule.join(' '), 2)}</p>
         ${contracts}
         <button class="btn-primary btn-lg" data-continue ${(picked || !offer.length) && contractChosen ? '' : 'disabled'}><kbd>Space</kbd> Start Day ${next.day}</button>
       </aside>
@@ -714,14 +726,15 @@ export function toast(text: string, tone: 'good' | 'neutral' | 'defer'): string 
 export function timeout(run: RunState, shipped: Outcome[]): string {
   const bad = shipped.filter((o) => o.draft.sabotaged);
   const harm = shipped.reduce((s, o) => s + o.harm, 0);
+  const seen = new Set<string>();
   return `
     <main class="solo event-screen">
       <article class="event-card timeout-card">
         <div class="eyebrow">Day ${run.day.day} · shift clock</div>
         <h2 class="event-title">The queue didn't wait.</h2>
         <p class="event-text">Time ran out with ${shipped.length} card${shipped.length === 1 ? '' : 's'} still unreviewed. They shipped as they were${bad.length ? `, and ${bad.length} of them turned out to be sabotage${harm ? ` (+${harm} harm)` : ''}` : ', and all of them happened to be clean'}.</p>
-        <ul class="unwatched">${shipped.map((o) => `<li class="${o.draft.sabotaged ? 'bad' : ''}"><span class="log-dot ${o.draft.sabotaged ? 'incident' : 'approve'}"></span><div><strong>${esc(o.card.title)}</strong><span>${o.draft.sabotaged ? esc(o.card.sabotage!.headline) : 'Shipped fine.'}</span></div></li>`).join('')}</ul>
-        <p class="event-anchor"><span class="eyebrow">Why there's a clock</span>Careful human review is slow, and real review queues have deadlines. In a 2025 pilot, human auditors given 90 seconds per item had 60% median accuracy. Tools are fast; your attention is the scarce part.</p>
+        <ul class="unwatched">${shipped.map((o) => `<li class="${o.draft.sabotaged ? 'bad' : ''}"><span class="log-dot ${o.draft.sabotaged ? 'incident' : 'approve'}"></span><div><strong>${esc(o.card.title)}</strong><span>${o.draft.sabotaged ? linkJargon(o.card.sabotage!.headline, seen) : 'Shipped fine.'}</span></div></li>`).join('')}</ul>
+        <p class="event-anchor"><span class="eyebrow">Why there's a clock</span><span>${linkTerms('Careful human review is slow, and real review queues have deadlines. In a 2025 pilot, human auditors given 90 seconds per item had 60% median accuracy. Tools are fast; your attention is the scarce part.', 1)}</span></p>
         <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Continue</button>
       </article>
     </main>`;
@@ -751,7 +764,7 @@ export function bossIntro(run: RunState): string {
       <div class="bi-glyph" data-glyph="${d}" data-size="200"></div>
       <div class="eyebrow">Day ${d} of ${RULES.days}</div>
       <h1 class="bi-title">${esc(b.label)}</h1>
-      <p class="bi-why">${esc(b.why)}</p>
+      <p class="bi-why">${linkTerms(b.why, 1)}</p>
       <ul class="bi-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}</ul>
       <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> To the briefing</button>
     </main>`;
