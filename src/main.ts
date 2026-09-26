@@ -83,8 +83,7 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   briefing: { title: 'Morning briefing', steps: [
     { target: '.brief-headline', text: 'Each day starts here. The big line is what changes today; the line under it is the one tip that matters most.' },
     { target: '.brief-budget', text: 'You can\'t check everything. You get a few auditors, a little compute and a clock, and they run out fast. Ship enough useful work to meet the quota, and keep harm under its limit.' },
-    { target: '.new-tools', text: 'Your tools. All but the trusted monitor cost compute, and only a human audit is always right.' },
-    { target: '.briefing-learn', text: 'Background, if you\'re curious. You can play without it: hover any underlined word, any time, for a plain definition.' },
+    { target: '.brief-new', text: 'What\'s new today. Hover a name for what it does; press T during a shift for the full toolkit.' },
     { target: '.briefing-main [data-continue]', text: 'Begin when you\'re ready. The clock only runs while a card is on screen.' },
   ] },
   shift: { title: 'First shift', steps: [
@@ -351,6 +350,7 @@ function forecast(r: RunState): string {
 
 function briefingExtras(r: RunState): R.BriefingParts {
   const c = r.day.contract;
+  const tools = S.newTools(r);
   return {
     meta: [esc(r.lab.name), r.level > 1 ? `Model v${r.level}` : '', c ? `<span title="${esc(c.blurb)}">Client: ${esc(c.name)}</span>` : ''].filter(Boolean),
     alerts: [
@@ -359,8 +359,8 @@ function briefingExtras(r: RunState): R.BriefingParts {
       ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => ({ text: `Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}.`, tone: h.amount < 0 ? 'good' as const : 'bad' as const })),
       ...(r.research.includes('evl-forecast') ? [{ text: forecast(r), tone: 'info' as const }] : []),
     ],
-    tools: S.newToolsBlock(r),
-    learn: L.dayTermsBlock(r, progress),
+    tools: tools.chips,
+    terms: L.dayTermChips(r, tools.ids),
   };
 }
 

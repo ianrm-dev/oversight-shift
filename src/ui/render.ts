@@ -7,7 +7,7 @@ import { UPGRADE_ICON, UPGRADE_IMPROVES, upgradeChip } from './upgradeView';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
-import { chip, findTerm, linkTerms, termForFamily } from './terms';
+import { chip, linkTerms, termForFamily } from './terms';
 import { diagram } from '../visual/diagram';
 import { FAMILY_ICON, icon } from '../visual/icons';
 
@@ -382,27 +382,19 @@ export function title(difficulty: Difficulty): string {
     </main>`;
 }
 
-function cast(): string {
-  return `
-    <div class="cast">
-      <div class="cast-item"><span class="cast-dot model"></span><div><strong>The model</strong><span>Strong, fast, and not fully trusted. Its work fills your queue.</span></div></div>
-      <div class="cast-item"><span class="cast-dot trusted"></span><div><strong>Trusted model</strong><span>Weaker but safe. It scores each card (the ${chip(findTerm('trusted monitoring')?.id, 'monitor')}) and redoes work you ${chip(findTerm('defer to trusted')?.id, 'Defer')}.</span></div></div>
-      <div class="cast-item"><span class="cast-dot human"></span><div><strong>Your auditors</strong><span>Human experts. Always right, never enough of them. Spend them with ${chip(findTerm('human audit')?.id, 'Audit')}.</span></div></div>
-      <p class="cast-note">Every task you ship earns <strong>usefulness</strong>. Leadership sets a daily usefulness quota, and whatever ships past it becomes <strong>funding</strong> for your team.</p>
-    </div>`;
-}
 
-/** What the briefing shows besides the day's rules. `alerts` are today's warnings; `learn` is optional background. */
+/** What the briefing shows besides the day's rules. `alerts` are today's warnings; `tools` and `terms` are
+ *  hoverable names (their popups carry the explanations, so the briefing doesn't repeat them). */
 export interface BriefingParts {
   meta: string[];
   alerts: { text: string; tone: 'bad' | 'good' | 'info' }[];
-  tools: string;
-  learn: string;
+  tools: string[];
+  terms: string[];
 }
 
 const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
 
-/** Two tiers: the left says what's different today and what you have to work with; the right is optional background. */
+/** One column: what changes today, the job and its limits (Day 1), today's budget, what's new, and go. */
 export function briefing(run: RunState, parts: BriefingParts): string {
   const d = run.day;
   const info = dayInfo(d.day);
@@ -416,15 +408,22 @@ export function briefing(run: RunState, parts: BriefingParts): string {
     .filter(([, rule]) => rule).map(([x, rule]) => `<p class="brief-since"><span class="eyebrow">Since Day ${x}</span> ${linkTerms(rule, 2)}</p>`).join('');
   const cut = d.quotaAsked - d.quota >= 2;
   const cell = (label: string, value: string, note = '', title = '') => `<div${title ? ` title="${esc(title)}"` : ''}><dt>${label}</dt><dd>${value}${note ? `<small>${note}</small>` : ''}</dd></div>`;
-  const learn = `${d.day === 1 ? cast() : ''}${parts.learn}${info.record ? `<p class="briefing-record"><span class="eyebrow">From the real world</span>${esc(info.record)}</p>` : ''}`;
+  // Day 1: the goal and the tension, before the first card.
+  const job = d.day === 1 ? `
+          <div class="brief-job">
+            <p><strong>Your job:</strong> ship enough of the model's work to meet the quota, and stop its sabotage before harm reaches the limit.</p>
+            <p><strong>The catch:</strong> you can't check it all. Time, compute and auditors run out fast, and the queue doesn't wait. Read quickly, and spend your tools where they count.</p>
+          </div>` : '';
+  const fresh = [...parts.tools, ...parts.terms];
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
-      <div class="briefing-card has-side">
+      <div class="briefing-card">
         <div class="briefing-main">
           <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><div class="brief-id"><span class="eyebrow">Day ${d.day} of ${RULES.days}${run.quick ? ' · Quick shift' : ''} · ${esc(info.phase)}</span><span class="brief-meta">${parts.meta.join(' · ')}</span></div>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
           ${skipped}
           <h2 class="brief-headline">${linkTerms(headline ?? '', 2)}</h2>
           ${tip ? `<p class="brief-tip">${linkTerms(tip, 2)}</p>` : ''}
+          ${job}
           ${alerts.length ? `<ul class="brief-alerts">${alerts.map((a) => `<li class="${a.tone}">${a.text}</li>`).join('')}</ul>` : ''}
           <dl class="brief-budget">
             ${cell('Quota', String(d.quota), cut ? ` of ${d.quotaAsked}` : ` from ${d.queue.length} cards`, cut ? `Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable.` : 'Usefulness to ship today. Miss it twice and the run ends.')}
@@ -433,13 +432,10 @@ export function briefing(run: RunState, parts: BriefingParts): string {
             ${cell('Harm', String(run.harm), `/${harmCeiling(run)}`, 'The run ends when harm reaches the limit.')}
             ${d.attention ? cell('Clock', mmss(d.attention), '', 'Time to review today\'s queue. It only runs while a card is on screen.') : ''}
           </dl>
-          ${parts.tools}
+          ${fresh.length ? `<div class="brief-new"><span class="eyebrow">${d.day === 1 ? 'Your tools and terms' : 'New today'}</span><span class="brief-chips">${fresh.join('')}</span><span class="brief-hover">Hover any underlined word for what it means.</span></div>` : ''}
+          ${info.record ? `<p class="briefing-record"><span class="eyebrow">From the real world</span> ${esc(info.record)}</p>` : ''}
           <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Begin Day ${d.day}</button>
         </div>
-        <aside class="briefing-learn">
-          <div class="learn-head"><span class="eyebrow">Learn</span><span>Background for today. You can play without it.</span></div>
-          ${learn}
-        </aside>
       </div>
     </main>`;
 }
@@ -746,14 +742,12 @@ export function pauseMenu(run: RunState): string {
 export function bossIntro(run: RunState): string {
   const d = run.day.day;
   const b = BOSS[d]!;
-  const info = dayInfo(d);
   return `
     <main class="solo boss-intro">
       <div class="bi-glyph" data-glyph="${d}" data-size="200"></div>
       <div class="eyebrow">Day ${d} of ${RULES.days}</div>
       <h1 class="bi-title">${esc(b.label)}</h1>
       <p class="bi-why">${esc(b.why)}</p>
-      <ul class="bi-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}</ul>
       <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> To the briefing</button>
     </main>`;
 }

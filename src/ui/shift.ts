@@ -125,7 +125,6 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
         ${k.agent === 'Agent team' ? '' : `<span class="agent-badge">${esc(k.agent)}</span>`}<span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${esc(k.domain)}</span>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
-      ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${linkTerms(c.hint, 2)}</span></div>` : ''}
       <h2 class="scard-task">${esc(k.spec.goal)}</h2>
       ${k.request ? `<blockquote class="request">${esc(k.request)}</blockquote>` : ''}
       ${rules ? `<div class="scard-rules"><span class="eyebrow">On file</span><div class="chips">${rules}</div></div>` : ''}
@@ -163,7 +162,6 @@ function toolButton(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrus
   return `
     <button class="ev ev-tool${preview === tool ? ' is-hover' : ''}" data-action="${tool}" ${blocked ? 'disabled' : ''}>
       <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} compute`}</span></div>
-      <span class="ev-sees">Catches: ${esc(catches(tool))}</span>
     </button>`;
 }
 
@@ -198,7 +196,7 @@ function probeBlock(run: RunState, c: CardState, preview: Preview): string {
   const f = latest(c).findings.probe;
   if (f) return `<div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}"><div class="ev-head"><span class="ev-name">Interpretability probe</span>${f.problem ? '<span class="ev-flag">Deception</span>' : '<span class="ev-okay">Clear</span>'}</div><p class="ev-finding">${esc(f.text)}</p></div>`;
   const blocked = toolBlocked(run, 'probe');
-  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right in this game; limited uses per day.</span></button>`;
+  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div></button>`;
 }
 
 /** Today's context (revealed adversary, model version, client), shown above the evidence rather than in the crowded status bar. */
@@ -210,10 +208,6 @@ function context(run: RunState): string {
   ].filter(Boolean);
   return tags.length ? `<span class="ev-tags">${tags.join('')}</span>` : '';
 }
-
-/** With many tools on the panel, unused tools drop their one-line description so Human audit stays in view. */
-const crowded = (run: RunState): boolean =>
-  [toolUnlocked(run, 'scope'), toolUnlocked(run, 'resample'), has(run, 'untrusted-monitor'), run.breakthroughs.includes('probe')].filter(Boolean).length >= 3;
 
 export function evidence(run: RunState, c: CardState, preview: Preview): string {
   const d = latest(c);
@@ -232,7 +226,6 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     ${probeBlock(run, c, preview)}
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
       <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
-      <span class="ev-sees">Always right. Settles the card.</span>
     </button>
     ${run.upgrades.length || run.labPerk ? `<div class="ev-loadout"><span class="eyebrow">Your upgrades</span>${[run.labPerk, ...run.upgrades].filter((x): x is string => !!x).map((id) => upgradeIcon(id)).join('')}</div>` : ''}`;
 }
@@ -249,7 +242,7 @@ export function decide(run: RunState, preview: Preview, disabled: boolean): stri
 export function shiftMain(run: RunState, expanded: boolean, animate: boolean, preview: Preview): string {
   const c = current(run.day);
   if (!c) return '';
-  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel${crowded(run) ? ' is-crowded' : ''}">${evidence(run, c, preview)}</aside>`;
+  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel">${evidence(run, c, preview)}</aside>`;
 }
 
 // ---------- Toolkit reference ----------
@@ -278,14 +271,9 @@ export function toolkit(run: RunState, focus?: ToolId): string {
 }
 
 // ---------- Briefing: tools that unlock today ----------
-export function newToolsBlock(run: RunState): string {
+/** Tools that unlock today, as glossary ids (for de-duplicating terms) and hoverable names. */
+export function newTools(run: RunState): { ids: string[]; chips: string[] } {
   const today = (Object.keys(RULES.tools.unlockDay) as (keyof typeof RULES.tools.unlockDay)[])
     .filter((t) => t !== 'untrusted' && run.day.covers.includes(RULES.tools.unlockDay[t]));
-  if (!today.length) return '';
-  return `
-    <div class="new-tools">
-      <span class="eyebrow">${run.day.day === 1 ? 'Your tools' : 'New tools today'}</span>
-      <ul>${today.map((t) => `<li><strong>${toolName(t)}</strong><span>${esc(TOOLS[t]?.what ?? '')}</span></li>`).join('')}</ul>
-      <p class="new-tools-note">Press <kbd>T</kbd> any time for the toolkit: what each tool sees, how reliable it is, and where it comes from.</p>
-    </div>`;
+  return { ids: today.map((t) => TOOL_TERM[t]!), chips: today.map((t) => chip(TOOL_TERM[t], toolName(t))) };
 }

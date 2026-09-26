@@ -36,6 +36,12 @@ export const DAY_TERMS: Record<number, string[]> = {
   7: ['scheming', 'alignment-faking'],
 };
 
+/** Today's terms as hoverable names (the popup carries the definition), minus any a tool name already covers. */
+export function dayTermChips(run: RunState, exclude: string[] = []): string[] {
+  return run.day.covers.flatMap((d) => DAY_TERMS[d] ?? []).map(findTerm).filter((t): t is Term => !!t && !exclude.includes(t.id))
+    .map((t) => chip(t.id));
+}
+
 export function dayTermsBlock(run: RunState, p: Progress): string {
   const terms = run.day.covers.flatMap((d) => DAY_TERMS[d] ?? []).map(findTerm).filter((t): t is Term => !!t);
   if (!terms.length) return '';
