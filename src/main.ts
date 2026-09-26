@@ -153,6 +153,15 @@ function saveSetup(): void {
 }
 
 /** Layout hints for the days a shift covers; the day itself wins over a skipped day. */
+/** Play counts: a same-origin image request when a run starts and ends, counted from the server's request log.
+ *  No cookies and no identifiers; production builds only. */
+function ping(event: 'start' | 'end', params: Record<string, string | number>): void {
+  if (!import.meta.env.PROD) return;
+  const q = new URLSearchParams({ e: event, ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])), r: Math.random().toString(36).slice(2, 8) });
+  new Image().src = `${import.meta.env.BASE_URL}ping.gif?${q}`;
+}
+const runMode = (r: RunState): string => (r.daily ? 'daily' : r.quick ? 'quick' : 'full');
+
 const hintsFor = (days: number[]) => Object.assign({}, ...days.map((d) => dayInfo(d).hints)) as ReturnType<typeof dayInfo>['hints'];
 const esc = R.esc;
 
@@ -161,6 +170,7 @@ function startRun(seed: string, daily = false): void {
     ? { difficulty: 'standard' as Difficulty, lab: 'frontier', level: 1, research: [], daily: true }
     : { ...setup, quick: !!setup.quick, research: progress.research };
   run = newRun(seed, hintsFor([1]), opts);
+  ping('start', { m: runMode(run), d: run.difficulty, v: run.level });
   endUpdate = null;
   revealShown = false;
   fieldTestTaken = false;
@@ -222,6 +232,7 @@ function finishRun(won: boolean): void {
   if (!run || endUpdate) return;
   const parts = scoreParts(run, won);
   endScore = parts.score;
+  ping('end', { m: runMode(run), d: run.difficulty, res: won ? 'win' : run.loss?.kind ?? 'harm', day: run.day.day });
   endGrade = gradeFor(parts.graded);
   endUpdate = recordRun(progress, {
     record: {
@@ -319,7 +330,8 @@ function render(): void {
   hydrate(screenEl);
   requestAnimationFrame(markScroll);
   screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
-  if (coachStep >= 0) requestAnimationFrame(drawCoach);
+  // Place the tip now, and again once the card's entrance animation has settled, so the spotlight lines up.
+  if (coachStep >= 0) { requestAnimationFrame(drawCoach); window.setTimeout(() => { if (coachStep >= 0) drawCoach(); }, 700); }
 }
 
 /** Panels that scroll get a fade at the bottom while there's more below, so hidden content is never a surprise. */

@@ -27,6 +27,8 @@ npm run preview    # serve dist/ at the same subpath
 
 `npm run build` produces a static site in `dist/` for the subpath `/play/oversight-shift/`; to serve it elsewhere, change `base` in `vite.config.ts`. Everything is bundled: no runtime requests, no inline scripts, and self-hosted fonts, so it runs under a strict Content-Security-Policy.
 
+Play counts: when a run starts and ends, the production build requests `ping.gif` from the same site with the mode, difficulty and result in the query string (plus a random cache-buster), so plays can be counted from the server's request log. No cookies, no identifiers.
+
 ## License
 
 - **Code:** [MIT](LICENSE).
