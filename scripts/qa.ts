@@ -394,10 +394,7 @@ function targetedChecks(): void {
       case 'evl-redteam': { endDay(b); nextDay(b, hints(2)); endDay(a); nextDay(a, hints(2)); effect(`node:${n.id}`, b.adversaryRevealed && !a.adversaryRevealed, `revealed on Day 2: ${b.adversaryRevealed}`); break; }
       case 'sec-least-privilege': {
         jump(a, 3); jump(b, 3);
-        const i = b.day.queue.findIndex((c) => c.card.layout === 'log' && c.card.spec.allowed.length);
-        if (i < 0) { effect(`node:${n.id}`, false, 'no allowlisted log card on Day 3 for this seed'); break; }
-        a.day.index = i; b.day.index = i;
-        effect(`node:${n.id}`, toolCost(b, 'scope') === 0 && toolCost(a, 'scope') === RULES.tools.cost.scope, `scope cost on log ${toolCost(a, 'scope')}→${toolCost(b, 'scope')}`);
+        effect(`node:${n.id}`, b.day.computeStart === a.day.computeStart + 1, `compute ${a.day.computeStart}→${b.day.computeStart}`);
         break;
       }
       case 'sec-permissions': {

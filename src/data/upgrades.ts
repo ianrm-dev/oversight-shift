@@ -28,7 +28,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'catch-bonus',
     name: 'Catch bonus',
     category: 'budget',
-    description: 'When an Audit catches sabotage, you get the auditor hour back.',
+    description: 'The first time each day an Audit catches sabotage, you get the auditor hour back.',
     bestWhen: 'Best when you read cards well',
   },
   {

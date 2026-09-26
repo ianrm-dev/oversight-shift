@@ -25,7 +25,7 @@ export const RULES = {
   // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
   // unspent compute is worth nothing, so skipping the tools never pays.
   resampleUnlockDay: 2,
-  computePerDay: 6,
+  computePerDay: 8,
   resampleCost: 1,
   unspentComputeValue: 0,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
@@ -80,7 +80,7 @@ export const RULES = {
   /** Control tools. Each run costs compute and returns a finding about the current draft. */
   tools: {
     unlockDay: { monitor: 1, audit: 1, fact: 1, scope: 2, resample: 2, untrusted: 1 },
-    cost: { fact: 1, scope: 1, resample: 1, untrusted: 1 },
+    cost: { fact: 2, scope: 1, resample: 1, untrusted: 1 },
     /** What each tool can see. Scope check is exact within its coverage; fact check is probabilistic. */
     coverage: {
       scope: ['out-of-scope', 'exfiltration', 'injected-instruction'],

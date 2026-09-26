@@ -76,6 +76,8 @@ export interface DayState {
   blind?: Layout;
   /** Escalation hotline: the first Defer each day ships at full value. */
   hotlineUsed: boolean;
+  /** Catch bonus refunds one auditor hour per day. */
+  catchRefunded?: boolean;
   probesLeft: number;
   /** Whether the untrusted monitor colludes with the model today (revealed by the Canary). */
   untrustedColludes: boolean;
@@ -204,7 +206,7 @@ export function modsFor(run: RunState, day: number): DayMods {
   const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0) - (knows(run, 'gov-safety-case') ? 1 : 0);
   return {
     audits: RULES.auditsPerDay + D.extraAudits + L.auditsDelta + run.rest.audits + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount + t.audits + (contract?.audits ?? 0) - run.auditPenalty,
-    compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 1 : 0) + t.compute * S.compute.amount + t.computeBonus,
+    compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 1 : 0) + (knows(run, 'sec-least-privilege') ? 1 : 0) + t.compute * S.compute.amount + t.computeBonus,
     bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + (knows(run, 'mon-prompts') ? 2 : 0) + (knows(run, 'mon-ensemble') ? 3 : 0) + t.tuneUp * S.tuneUp.amount - t.band,
     bandScale: D.bandScale,
     quota: Math.max(1, quota),
@@ -428,9 +430,8 @@ export function toolBlocked(run: RunState, tool: 'fact' | 'scope' | 'resample' |
   return null;
 }
 
-/** Compute a tool costs on the current card (Least privilege makes scope checks on agent actions free). */
-export function toolCost(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrusted'): number {
-  if (tool === 'scope' && knows(run, 'sec-least-privilege') && current(run.day)?.card.layout === 'log') return 0;
+/** Compute a tool costs on the current card. */
+export function toolCost(_run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrusted'): number {
   return RULES.tools.cost[tool];
 }
 
@@ -557,7 +558,7 @@ export function act(run: RunState, action: Action): Outcome | null {
   } else if (action === 'audit') {
     d.audits--;
     usefulness = draft.sabotaged ? U.caught : U.ship;
-    if (draft.sabotaged && has(run, 'catch-bonus')) d.audits++;
+    if (draft.sabotaged && has(run, 'catch-bonus') && !d.catchRefunded) { d.audits++; d.catchRefunded = true; }
   } else if (has(run, 'escalation-hotline') && !d.hotlineUsed) {
     d.hotlineUsed = true;
     usefulness = U.ship;

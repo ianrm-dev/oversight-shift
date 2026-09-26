@@ -11,7 +11,7 @@ import { buyNode, emptyProgress, nodeCost, nodeState, recordRun, type Progress }
 import { EVENTS } from '../src/data/events';
 import {
   BASE_MODS, act, advance, breakthroughDue, breakthroughOffer, buy, canAct, canBuy, chooseContract, chooseEvent, contractOffer, current,
-  dayOver, endDay, eventChoices, eventFor, isIncident, latest, newRun, nextDay, prepareCard, runScore, startDay, takeBreakthrough, takeUpgrade, upgradeOffer,
+  dayOver, endDay, eventChoices, eventFor, has, isIncident, latest, newRun, nextDay, prepareCard, runScore, startDay, takeBreakthrough, takeUpgrade, toolCost, upgradeOffer,
   type Action, type RunState,
 } from '../src/game/state';
 import { Rng } from '../src/rng';
@@ -32,7 +32,8 @@ const DAYS = arg('days', RULES.lastPlayableDay);
 const LEVEL = arg('level', 1);
 const LAB = argStr('lab') ?? 'frontier';
 const EXCEPT = argStr('research-except')?.split(',') ?? [];
-const RESEARCH_IDS = argStr('research') === 'all' || EXCEPT.length ? TREE.map((r) => r.id).filter((id) => !EXCEPT.includes(id)) : [];
+const RESEARCH_LIST = argStr('research-list')?.split(',');
+const RESEARCH_IDS = RESEARCH_LIST ?? (argStr('research') === 'all' || EXCEPT.length ? TREE.map((r) => r.id).filter((id) => !EXCEPT.includes(id)) : []);
 const EVENTS_POLICY = (argStr('events') ?? 'random') as 'random' | 'cautious' | 'greedy';
 const hints = (day: number) => dayInfo(day).hints;
 
@@ -112,13 +113,18 @@ const toolsGreedy: Policy = (run) => {
   return anyProblem(run) ? auditOrDefer(run) : 'approve';
 };
 
-const toolsSmart: Policy = (run) => {
+let TRIAGE = false;
+const toolsSmartBase: Policy = (run) => {
   const d = run.day;
   const c = current(d)!;
   const dr = latest(c);
   const { score: s, band } = dr.reading;
-  // A player who read the Day 7 briefing doesn't trust a low score on cards marked unmonitored.
-  if (s + band < 40 && !c.card.unmonitored) return 'approve';
+  // Triage: the monitor is cheap, checks are not. With compute to spare, check almost everything; when
+  // it runs short, spend it only on doubtful cards. A player who read the Day 7 briefing doesn't trust a
+  // low score on cards marked unmonitored.
+  const ratio = d.compute / Math.max(1, d.queue.length - d.index);
+  const bar = !TRIAGE ? 0 : ratio >= 1.5 ? 0 : ratio >= 1 ? 25 : ratio >= 0.6 ? 35 : 45;
+  if ((s + band < 40 || s < bar) && !c.card.unmonitored) return 'approve';
   if (anyProblem(run)) return s >= 50 && canAct(run, 'audit') ? 'audit' : 'defer';
   // The probe is free and exact; spend it on the most doubtful card it meets.
   if (!dr.findings.probe && canAct(run, 'probe') && (s >= 45 || c.card.unmonitored)) return 'probe';
@@ -135,6 +141,9 @@ const toolsSmart: Policy = (run) => {
   return 'approve';
 };
 
+const toolsSmart: Policy = (run, rng, mem) => { TRIAGE = false; return toolsSmartBase(run, rng, mem); };
+const toolsTriage: Policy = (run, rng, mem) => { TRIAGE = true; return toolsSmartBase(run, rng, mem); };
+
 const toolsTrusting: Policy = (run) => {
   const c = current(run.day)!;
   const f = draft(run).findings;
@@ -148,6 +157,20 @@ const novice: Policy = (run, rng, mem) => {
   return mem.sloppy ? threshold(50)(run, rng, mem) : toolsSmart(run, rng, mem);
 };
 
+/** Ian's "check everything" strategy: fact-check every card, scope-check when it's free, treat any red
+ *  (a tool finding or a Suspicious monitor verdict) as sabotage — audit it once Catch bonus refunds
+ *  the hour, otherwise defer — and approve everything green. Never reads the card. */
+const checker: Policy = (run) => {
+  const dr = draft(run);
+  const f = dr.findings;
+  if (!f.fact && canAct(run, 'fact')) return 'fact';
+  if (!f.scope && canAct(run, 'scope') && toolCost(run, 'scope') === 0) return 'scope';
+  const { score: s, band } = dr.reading;
+  const red = anyProblem(run) || s - band > 50;
+  if (red) return has(run, 'catch-bonus') && canAct(run, 'audit') ? 'audit' : 'defer';
+  return 'approve';
+};
+
 const ALL_POLICIES: Record<string, Policy> = {
   'approve-all': () => 'approve',
   'defer-all': () => 'defer',
@@ -158,8 +181,17 @@ const ALL_POLICIES: Record<string, Policy> = {
   'tools-greedy': toolsGreedy,
   'tools-trusting': toolsTrusting,
   'tools-smart': toolsSmart,
+  'tools-triage': toolsTriage,
   novice,
+  checker,
+  'checker-nobuy': checker,
 };
+/** Per-bot budget-meeting behavior. Default: UPGRADE_PREF, then buy compute, then auditors. */
+const BOT_UPGRADE_PREF: Record<string, string[]> = {
+  checker: ['compute-grant', 'catch-bonus', 'auto-scope', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
+  'checker-nobuy': ['compute-grant', 'catch-bonus', 'auto-scope', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
+};
+const NO_COMPUTE_BUY = new Set(['checker-nobuy']);
 const ONLY = argStr('only')?.split(',');
 const POLICIES = Object.fromEntries(Object.entries(ALL_POLICIES).filter(([n]) => !ONLY || ONLY.includes(n)));
 
@@ -206,7 +238,7 @@ function pickContract(offer: Contract[], rng: Rng): Contract {
 const UPGRADE_PREF = ['auto-scope', 'compute-grant', 'incident-response', 'audit-headcount', 'catch-bonus', 'sharper-monitor', 'permission-limits', 'escalation-hotline', 'monitor-rationale', 'paraphraser', 'trusted-editing'];
 const SHOP = !argv.includes('--no-shop');
 
-function betweenDays(run: RunState, rng: Rng): void {
+function betweenDays(run: RunState, rng: Rng, name = ''): void {
   const ev = eventFor(run);
   if (ev) {
     const choices = eventChoices(run, ev);
@@ -223,10 +255,10 @@ function betweenDays(run: RunState, rng: Rng): void {
   const contract = pickContract(contractOffer(run), rng);
   if (SHOP) {
     const offer = upgradeOffer(run);
-    const pick = UPGRADE_PREF.map((id) => offer.find((u) => u.id === id)).find(Boolean) ?? offer[0];
+    const pick = (BOT_UPGRADE_PREF[name] ?? UPGRADE_PREF).map((id) => offer.find((u) => u.id === id)).find(Boolean) ?? offer[0];
     if (pick) takeUpgrade(run, pick.id);
     for (let guard = 0; guard < 6; guard++) {
-      if (canBuy(run, 'compute')) buy(run, 'compute');
+      if (!NO_COMPUTE_BUY.has(name) && canBuy(run, 'compute')) buy(run, 'compute');
       else if (canBuy(run, 'auditor')) buy(run, 'auditor');
       else break;
     }
@@ -266,6 +298,7 @@ interface RunResult { run: RunState; won: boolean }
 // --emulate-proposal: model the recommended node effects without touching src/:
 // Incident database and Sandboxing each become +1 harm ceiling; Permission tiers' severe cap is dropped.
 const EMULATE = argv.includes('--emulate-proposal');
+const LP_EMULATE = argv.includes('--lp-emulate');
 const EMULATED = ['gov-incident-db', 'sec-sandbox', 'sec-permissions'];
 
 function playRun(seed: string, name: string, policy: Policy, difficulty: Difficulty, level: number, research: string[], st: Stats): RunResult | null {
@@ -283,6 +316,13 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
   const rng = new Rng(`bot:${name}:${seed}`);
   let run: RunState;
   try { run = newRun(seed, hints(1), { difficulty, level, lab: LAB, research }); } catch { st.genFail++; return null; }
+  // --lp-emulate: model a weaker Least privilege (+1 compute every day instead of free scope on agent cards).
+  if (LP_EMULATE && run.research.includes('sec-least-privilege')) {
+    run.research = run.research.filter((id) => id !== 'sec-least-privilege');
+    run.rest.compute += 1;
+    run.day.compute += 1;
+    run.day.computeStart += 1;
+  }
   let won = false;
   for (let day = 1; day <= DAYS; day++) {
     while (!dayOver(run.day) && !run.loss) {
@@ -314,7 +354,7 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
     if (run.loss) break;
     st.survived[day - 1]++;
     if (day === DAYS) { won = true; break; }
-    betweenDays(run, rng);
+    betweenDays(run, rng, name);
     if (run.loss) break;
     try { nextDay(run, hints(day + 1)); } catch { st.genFail++; break; }
   }
