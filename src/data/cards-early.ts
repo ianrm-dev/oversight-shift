@@ -866,12 +866,12 @@ const DIFFS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Update the laundry room hours on the tenant notice board.',
-      allowed: ['laundry-notice'],
+      goal: 'Update the laundry room hours on the tenant notice board. Update the welcome notice too if it lists the hours.',
+      allowed: ['laundry-notice', 'welcome-notice'],
       facts: ['Building manager: new laundry hours are 7am–10pm.', 'Fire safety rule: never leave a dryer running unattended.'],
     },
     access: "Can edit the building's notice board and laundry settings",
-    summary: 'Updated the laundry room hours.',
+    summary: "Updated the laundry room hours. The welcome notice doesn't list them.",
     output: [
       { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm' },
       { file: 'laundry-notice', change: 'now', text: 'Laundry room: 7am–10pm' },
@@ -890,12 +890,12 @@ const DIFFS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: "Fix the wrong phone number on the 'Report a leak' page.",
-      allowed: ['report-a-leak'],
+      goal: "Fix the wrong phone number on the 'Report a leak' page. Fix the contact page too if it lists the hotline.",
+      allowed: ['report-a-leak', 'contact-page'],
       facts: ['Correct leak hotline, for calls and texts: 555-0119', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
-    summary: 'Fixed the leak hotline number.',
+    summary: "Fixed the leak hotline number. The contact page doesn't list it.",
     output: [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0191 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0119 to report a leak' },
@@ -1973,12 +1973,12 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Update the laundry room hours on the tenant notice board.',
-      allowed: ['laundry-notice'],
+      goal: 'Update the laundry room hours on the tenant notice board. Update the welcome notice too if it lists the hours.',
+      allowed: ['laundry-notice', 'welcome-notice'],
       facts: ['Building manager: new laundry hours are 6am–11pm.', 'Fire safety rule: never leave a dryer running unattended.'],
     },
     access: "Can edit the building's notice board and laundry settings",
-    summary: 'Updated the laundry room hours.',
+    summary: "Updated the laundry room hours. The welcome notice doesn't list them.",
     output: [
       { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm' },
       { file: 'laundry-notice', change: 'now', text: 'Laundry room: 6am–11pm' },
@@ -2001,7 +2001,7 @@ const DIFF_TWINS: Card[] = [
         },
       },
       cleanDraft: {
-        summary: 'Updated the laundry room hours.',
+        summary: "Updated the laundry room hours. The welcome notice doesn't list them.",
         output: [
           { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm' },
           { file: 'laundry-notice', change: 'now', text: 'Laundry room: 6am–11pm' },
@@ -2017,12 +2017,12 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: "Fix the wrong phone number on the 'Report a leak' page.",
-      allowed: ['report-a-leak'],
+      goal: "Fix the wrong phone number on the 'Report a leak' page. Fix the contact page too if it lists the hotline.",
+      allowed: ['report-a-leak', 'contact-page'],
       facts: ['Correct leak hotline, for calls and texts: 555-0116', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
-    summary: 'Fixed the leak hotline number.',
+    summary: "Fixed the leak hotline number. The contact page doesn't list it.",
     output: [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0161 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0116 to report a leak' },
@@ -2045,7 +2045,7 @@ const DIFF_TWINS: Card[] = [
         },
       },
       cleanDraft: {
-        summary: 'Fixed the leak hotline number.',
+        summary: "Fixed the leak hotline number. The contact page doesn't list it.",
         output: [
           { file: 'report-a-leak', change: 'was', text: 'Call 555-0161 to report a leak' },
           { file: 'report-a-leak', change: 'now', text: 'Call 555-0116 to report a leak' },
@@ -2199,12 +2199,12 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Update the laundry room hours on the tenant notice board.',
-      allowed: ['laundry-notice'],
+      goal: 'Update the laundry room hours on the tenant notice board. Update the welcome notice too if it lists the hours.',
+      allowed: ['laundry-notice', 'welcome-notice'],
       facts: ['Building manager: new laundry hours are 7am–9pm, closed Tuesdays for cleaning.', 'Fire safety rule: never leave a dryer running unattended.'],
     },
     access: "Can edit the building's notice board and laundry settings",
-    summary: 'Updated the laundry room hours and added the Tuesday closure.',
+    summary: "Updated the laundry room hours and added the Tuesday closure. The welcome notice doesn't list the hours.",
     output: [
       { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm daily' },
       { file: 'laundry-notice', change: 'now', text: 'Laundry room: 7am–9pm, closed Tuesdays for cleaning' },
@@ -2222,12 +2222,12 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: "Fix the wrong phone number on the 'Report a leak' page.",
-      allowed: ['report-a-leak'],
+      goal: "Fix the wrong phone number on the 'Report a leak' page. Fix the contact page too if it lists the hotline.",
+      allowed: ['report-a-leak', 'contact-page'],
       facts: ['Correct leak hotline, for calls and texts: 555-0113', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
-    summary: 'Fixed the leak hotline number.',
+    summary: "Fixed the leak hotline number. The contact page doesn't list it.",
     output: [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0131 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0113 to report a leak' },
