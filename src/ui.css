@@ -1921,3 +1921,6 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .briefing .briefing-record { display: block; padding-top: var(--space-2); font-size: var(--fs-xs); color: var(--text-3); }
 .briefing .briefing-record .eyebrow { display: inline; margin-right: var(--space-1); }
 .title-fiction { margin: 0; font-size: var(--fs-xs); color: var(--text-3); }
+/* Status bar: room for Day 7's nine progress dots. */
+.hud .bar, .hud .bar.seg { width: 60px; }
+.hud-clock .bar { width: 48px; }
