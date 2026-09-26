@@ -1596,6 +1596,12 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
   box-shadow: var(--shadow-raised); pointer-events: none;
 }
 .term-pop[hidden] { display: none; }
+/* Everyday jargon (data/jargon.ts): quieter than glossary terms. A faint dotted line in the text's own
+   color and no color change, so card output and monospace lines stay legible. */
+.jargon { border-bottom: 1px dotted color-mix(in srgb, currentColor 45%, transparent); cursor: help; }
+.jargon:hover, .jargon:focus-visible { border-bottom: 1px solid var(--accent); outline: none; }
+.term-pop:has(.pop-jargon) { width: 260px; border-color: var(--line-strong); }
+.pop-term.pop-jargon { font-size: var(--fs-sm); }
 .pop-term { font-size: var(--fs-md); }
 .pop-plain { font-size: var(--fs-sm); color: var(--text); line-height: 1.4; }
 .pop-analogy { font-size: var(--fs-xs); color: var(--text-2); font-style: italic; line-height: 1.4; }
