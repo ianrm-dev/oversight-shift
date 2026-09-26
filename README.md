@@ -41,3 +41,14 @@ Then commit and push the site repo; pushing to main deploys live.
 The site's Content-Security-Policy shapes the build: no runtime `fetch()` (no
 `connect-src`), fonts must be self-hosted (`font-src 'self'`), no inline scripts, and
 the page can't be embedded in an iframe (`frame-ancestors 'none'`).
+
+## License
+
+- **Code:** [MIT](LICENSE).
+- **Content** (the text and data in `src/data/` and `docs/`: cards, scenarios, glossary, tool explainers, events, research tree): [CC BY-NC-SA 4.0](LICENSE-CONTENT). You're welcome to use and adapt it for teaching and other non-commercial work, with credit to Ian Mackinnon, and to share adaptations under the same license. For commercial use, ask first.
+- **The name "Oversight Shift"** isn't licensed. If you build on the game, please give your version a different name.
+- **Fonts:** IBM Plex Sans and Mono, under the SIL Open Font License, bundled from `@fontsource`.
+- **Sources** cited in the content belong to their authors; the game summarizes and links to them.
+
+How the game was made, including AI use, is in [docs/AI_USE_LOG.md](docs/AI_USE_LOG.md) and on the in-game "How this was made" screen.
+

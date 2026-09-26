@@ -83,7 +83,7 @@ export function howMade(): string {
           'No tracking. Your progress stays in your browser.',
         ])}</section>
       </div>
-      <p class="made-foot">Every tool, threat and term cites the paper or incident it's based on: press <kbd>T</kbd> during a shift, or open the Field guide. The full build log is <span class="mono">docs/AI_USE_LOG.md</span> in the source at <span class="mono">github.com/ianrm-dev/oversight-shift</span>.</p>
+      <p class="made-foot">Every tool, threat and term cites the paper or incident it's based on: press <kbd>T</kbd> during a shift, or open the Field guide. The full build log is <span class="mono">docs/AI_USE_LOG.md</span> in the source at <span class="mono">github.com/ianrm-dev/oversight-shift</span>. Code: MIT license. Cards, glossary and other content: CC BY-NC-SA 4.0.</p>
     </main>`;
 }
 
