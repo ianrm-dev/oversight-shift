@@ -1,6 +1,6 @@
 # Oversight Shift — Design
 
-The single source of truth for the build. It reconciles `docs/concept/` (the Sep 23–25 plan) and `docs/research/` (the core-loop report) with the decisions made at kickoff on Sep 25. Where those docs disagree with this one, this one wins. All numbers live in `src/rules.ts` and are untested starting points.
+How the game works and why. Every balance number lives in `src/rules.ts`.
 
 ## Pitch
 
@@ -8,7 +8,7 @@ The single source of truth for the build. It reconciles `docs/concept/` (the Sep
 
 Why both halves matter: AI control isn't about stopping the AI. It's about getting useful work out of a model you can't fully trust, without disaster. A safety team that blocks everything doesn't make anyone safer; it gets routed around.
 
-Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating days, with an upgrade pick between days. Judging: 40% fun, 40% relevance to AI risk, 20% replay value.
+Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating days, with an upgrade pick between days.
 
 ## Winning, losing, and acceptable failure
 
@@ -75,7 +75,6 @@ Every card has the same parts: a one-line **task spec**, the **agent** that did 
 - Biology stays mundane (freezer temps, sample labels, scheduling). Nothing near real hazardous material.
 - 60–70% of cards are clean. The game trains discrimination, not paranoia.
 - **Playtest cut rule:** someone outside tech must be able to explain every tell after the reveal. If a tell needs a term defined, rewrite or cut it.
-- Ian reviews all in-game text for accuracy before submission.
 
 ## Actions and resources
 
@@ -183,51 +182,18 @@ Hidden per-run **adversary personality** (sandbagger, colluder, prompt-injector,
 
 ## Research anchors
 
-The per-threat source table is in `docs/concept/` ("Real-world research and incidents behind each threat"); those links were checked Sep 25. New anchors to verify before use:
+Every threat, tool and term is tied to a paper or incident, linked in `src/data/`; the links were checked on Sep 25–26, 2026. Anchors for the later tools:
 
 - Interpretability probe: Anthropic, "Simple probes can catch sleeper agents" (2024).
 - Compute and the safety tax: OpenAI's 2023 pledge of 20% of compute to superalignment, and 2024 reports that it went unmet.
 - Honeypot / Canary: the AI Control paper's use of planted attacks to test an untrusted monitor.
 
-Several designer quotes in the research report may be paraphrased by a fetch tool; none appear in the game without checking the source.
 
 ## Tech and hosting
 
 - Vite + TypeScript, no framework. Plain DOM for cards and panels, inline SVG for procedural visuals, CSS transitions. `base: '/play/oversight-shift/'`.
-- Content in `src/data/`, typed by `src/types.ts`, **bundled at build time**. The site CSP has no `connect-src`, so no runtime `fetch()`.
-- Fonts: self-hosted IBM Plex Sans and Mono (`font-src 'self'`; no Google Fonts). Matches the personal site.
-- No inline `<script>`. `frame-ancestors 'none'` means no iframe embed; if the submission form needs one, use the GitHub Pages fallback.
+- Content in `src/data/`, typed by `src/types.ts`, **bundled at build time**. The host's Content-Security-Policy has no `connect-src`, so no runtime `fetch()`.
+- Fonts: self-hosted IBM Plex Sans and Mono (`font-src 'self'`; no Google Fonts). 
+- No inline `<script>`. `frame-ancestors 'none'` means no iframe embed.
 - All balance numbers in `src/rules.ts`.
-- **Deploy:** build, copy `dist/` into `~/stacks/site/public/play/oversight-shift/`, and deploy with the site. The site deploys with `rsync --delete` on every push to main and on a daily schedule, so a separately deployed folder gets wiped. Pushing the site's main publishes live: ask Ian first.
 - Disclosure: a "How this was made" section on the game page, plus `docs/AI_USE_LOG.md` kept during the build.
-
-## Build plan
-
-The window closes Sun Sep 27, 3:00 AM ET. Target submission Saturday night.
-
-| Block | When | Done when |
-|---|---|---|
-| 0. Scaffold | Fri 3–4 PM | Done: Vite + TS, seeded RNG, typed data, title screen, subpath verified |
-| 0.5 Look-and-feel mock | Fri, 1 hour hard stop | Static mock of three screens (shift with a file-change card, incident report, upgrade pick) and `src/theme.css` tokens |
-| 1. Core loop | Fri evening | One day playable: queue, four actions, meters, monitor, incident report, day-end review; Days 1–2 content |
-| 2. Run structure | Sat morning | 7 days, briefings, upgrades, both loss endings, win screen; Day 3–4 content |
-| 3. Multi-agent and finale | Sat afternoon | Threads, sandbagging, Day 7 gamed monitor; Days 5–7 content; codex; debrief |
-| 4. Look and feel | Sat evening | SVG lattice, arc meters, range bars, transitions, How this was made |
-| 5. Playtest and ship | Sat night | Two runs by someone else, simulator balance pass, deploy, submit |
-
-Content (about 40 templates across 8 tell families, 4 layouts, many domains) is the critical path. Draft it in parallel with engine work and send batches to Ian for review.
-
-**Cut list, in order:** Canary; interpretability probe; adversary personality; Day 5–6 merge into one multi-agent day; Paired resample and Monitor rationale; sound (never planned).
-
-## Balance status (Sep 25, ~6 PM, tools-first)
-
-`npm run sim -- --all-difficulties --seeds 2000 --days 7` plays the real engine with tool-using bots. Win rates (survive Day 7):
-
-| Bot | Guided | Standard | Analyst |
-|---|---|---|---|
-| tools-smart (good tool habits) | 85% | 62% | 44% |
-| novice (tools, but skips them 30% of the time) | 56% | 34% | 26% |
-| threshold-50 (score only) | 3% | 1% | 1% |
-| approve-all / defer-all | 0% (dead by Day 3–4) | 0% | 0% |
-
-Fact check now covers exfiltration and collusion (our collusion cards break a written rule); Paraphraser keeps the untrusted-monitor and monitor-boost effects. Auditors, not compute, are the binding constraint. Day 7 is the steepest drop.

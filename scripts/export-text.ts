@@ -1,4 +1,4 @@
-// Exports every piece of in-game content text to docs/review/ as readable Markdown, for human review.
+// Exports every piece of in-game content text to private/review/ (not committed) as readable Markdown, for human review.
 // Run: npx tsx scripts/export-text.ts
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { CARDS } from '../src/data/cards';
@@ -14,7 +14,7 @@ import { TOOLS, TOOL_UPGRADE_NOTES } from '../src/data/tools';
 import { UPGRADES } from '../src/data/upgrades';
 import type { Card, Draft } from '../src/types';
 
-const OUT = 'docs/review';
+const OUT = 'private/review';
 mkdirSync(OUT, { recursive: true });
 const src = (s: { title: string; url: string; date: string }) => `[${s.title} · ${s.date}](${s.url})`;
 const q = (s: string) => s.replace(/\|/g, '\\|');

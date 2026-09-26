@@ -4,3 +4,6 @@ dist/
 .env.*
 .DS_Store
 *.log
+
+# Local-only: hackathon planning, submission and review notes
+private/

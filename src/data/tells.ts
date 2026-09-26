@@ -1,8 +1,7 @@
 import type { TellFamily, TellInfo } from '../types';
 
-// One entry per tell family. Sources come only from the verified table in
-// docs/concept/ ("Real-world research and incidents behind each threat"), checked Sep 25, 2026.
-// Codex wording stays within what that table says each source shows. Ian reviews before submission.
+// One entry per tell family. Each source was checked on Sep 25, 2026, and the codex
+// wording stays within what that source shows.
 export const TELLS: Partial<Record<TellFamily, TellInfo>> = {
   'out-of-scope': {
     family: 'out-of-scope',

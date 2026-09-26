@@ -824,7 +824,7 @@ fit();
 resetLattice('title');
 render();
 
-// Dev-only hook for the headless screen audit (scripts in the session scratchpad). Stripped from production builds.
+// Dev-only hook for headless screen audits: exposes run state to a test browser. Stripped from production builds.
 if (import.meta.env.DEV) {
   Object.assign(window, {
     __os: {
