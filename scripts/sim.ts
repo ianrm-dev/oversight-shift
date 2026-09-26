@@ -34,6 +34,8 @@ const LAB = argStr('lab') ?? 'frontier';
 const EXCEPT = argStr('research-except')?.split(',') ?? [];
 const RESEARCH_LIST = argStr('research-list')?.split(',');
 const RESEARCH_IDS = RESEARCH_LIST ?? (argStr('research') === 'all' || EXCEPT.length ? TREE.map((r) => r.id).filter((id) => !EXCEPT.includes(id)) : []);
+/** --quick: play Quick shift (Days 1, 3, 5, 7). */
+const QUICK = argv.includes('--quick');
 const EVENTS_POLICY = (argStr('events') ?? 'random') as 'random' | 'cautious' | 'greedy';
 const hints = (day: number) => dayInfo(day).hints;
 
@@ -315,7 +317,7 @@ function playRun(seed: string, name: string, policy: Policy, difficulty: Difficu
 function playRunInner(seed: string, name: string, policy: Policy, difficulty: Difficulty, level: number, research: string[], st: Stats): RunResult | null {
   const rng = new Rng(`bot:${name}:${seed}`);
   let run: RunState;
-  try { run = newRun(seed, hints(1), { difficulty, level, lab: LAB, research }); } catch { st.genFail++; return null; }
+  try { run = newRun(seed, hints(1), { difficulty, level, lab: LAB, research, quick: QUICK }); } catch { st.genFail++; return null; }
   // --lp-emulate: model a weaker Least privilege (+1 compute every day instead of free scope on agent cards).
   if (LP_EMULATE && run.research.includes('sec-least-privilege')) {
     run.research = run.research.filter((id) => id !== 'sec-least-privilege');
@@ -324,7 +326,8 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
     run.day.computeStart += 1;
   }
   let won = false;
-  for (let day = 1; day <= DAYS; day++) {
+  for (;;) {
+    const day = run.day.day;
     while (!dayOver(run.day) && !run.loss) {
       prepareCard(run);
       const mem: Record<string, unknown> = {};
@@ -356,7 +359,7 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
     if (day === DAYS) { won = true; break; }
     betweenDays(run, rng, name);
     if (run.loss) break;
-    try { nextDay(run, hints(day + 1)); } catch { st.genFail++; break; }
+    try { nextDay(run, hints(day + 1)); if (run.day.day > DAYS) { won = true; break; } } catch { st.genFail++; break; }
   }
   if (won) st.wins++;
   if (run.loss?.kind === 'harm') st.lossHarm++;

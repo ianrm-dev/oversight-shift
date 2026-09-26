@@ -36,7 +36,7 @@ export function title(p: Progress): string {
       <div class="title-menu">
         <button class="menu-opt is-primary" data-go="setup">
           <span class="menu-name"><kbd>Enter</kbd> New shift</span>
-          <span class="menu-desc">Play a 7-day deployment. You'll choose difficulty, lab and model version first.</span>
+          <span class="menu-desc">Play a deployment: a quick shift (4 days) or the full week. You'll choose length, difficulty, lab and model version first.</span>
         </button>
         <button class="menu-opt" data-go="daily-info">
           <span class="menu-name"><kbd>D</kbd> Daily shift</span>
@@ -51,7 +51,7 @@ export function title(p: Progress): string {
           <span class="menu-desc">${runs ? `${Object.keys(p.termsSeen).length} terms met. ` : ''}Plain-language terms, research approaches and their tradeoffs, and your past runs.</span>
         </button>
       </div>
-      <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+      <p class="title-note">About 15 minutes on a quick shift · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
       <button class="link-btn title-made" data-go="made"><kbd>H</kbd> How this was made</button>
     </main>`;
 }
@@ -133,7 +133,7 @@ export function setup(p: Progress, s: Setup): string {
       <section class="setup-row"><span class="eyebrow">Length <kbd>Q</kbd></span>
         <div class="len-picker">
           <button class="len-opt${s.quick ? '' : ' is-selected'}" data-length="full"><strong>Full week</strong><span>All 7 days</span></button>
-          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>Days 1, 3, 5 and 7: every threat and tool, fewer cards</span></button>
+          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>Days 1, 3, 5 and 7: every threat and tool, a tighter harm limit</span></button>
         </div>
       </section>
       <section class="setup-row"><span class="eyebrow">Your lab</span><div class="lab-picker">${labs}</div></section>

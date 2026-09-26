@@ -228,7 +228,7 @@ export function levelMods(level: number): { signalShift: number; auditsDelta: nu
 }
 
 export const harmCeiling = (run: RunState): number =>
-  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + (knows(run, 'sec-sandbox') ? 1 : 0) + (knows(run, 'gov-incident-db') ? 1 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling;
+  RULES.harmCeiling + (has(run, 'incident-response') ? 2 : 0) + (knows(run, 'sec-sandbox') ? 1 : 0) + (knows(run, 'gov-incident-db') ? 1 : 0) + run.lab.ceilingDelta + levelMods(run.level).ceilingDelta + run.rest.ceiling + (run.quick ? RULES.quickCeilingDelta : 0);
 
 export const factHit = (run: RunState): number => Math.max(0.3, DIFF(run).factHit + levelMods(run.level).factHitDelta);
 

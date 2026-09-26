@@ -126,7 +126,7 @@ const PAUSABLE = new Set(['intro', 'briefing', 'shift', 'review', 'event', 'brea
 let setup: M.Setup = loadSetup();
 
 function loadSetup(): M.Setup {
-  const fallback: M.Setup = { difficulty: 'guided', lab: 'frontier', level: 1 };
+  const fallback: M.Setup = { difficulty: 'guided', lab: 'frontier', level: 1, quick: true };
   try {
     const v = JSON.parse(localStorage.getItem('oversight-shift:setup') ?? 'null') as M.Setup | null;
     return v ? { ...fallback, ...v, level: Math.min(v.level ?? 1, progress.maxModel) } : fallback;
