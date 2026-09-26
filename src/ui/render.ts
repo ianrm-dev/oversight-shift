@@ -299,6 +299,7 @@ export function auditReveal(run: RunState, o: Outcome): string {
     ? `<div class="tell">
          <span class="tell-chip good">${icon(FAMILY_ICON[k.sabotage!.family] ?? 'sabotage', 16)}<span>${jchip('tell', 'Tell')} · ${esc(info?.name ?? k.sabotage!.family)}</span></span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
          <p class="tell-text">${explanation}</p>
+         ${basedOn(k.sabotage!)}
          ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${linkJargon(info.tip, seen)}</p>` : ''}
          <dl class="incident-facts">
            <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
@@ -337,6 +338,13 @@ function toolsFor(_run: RunState, family: string): string {
 }
 
 // ---------- Incident report ----------
+/** "Based on a real case": the documented incident or published test a sabotaged card is modeled on. */
+function basedOn(sab: { basedOn?: { text: string; source: { title: string; url: string; date: string } } }): string {
+  const b = sab.basedOn;
+  if (!b) return '';
+  return `<p class="based-on"><span class="eyebrow">Based on a real case</span> <span>${linkJargon(b.text)}</span> <a href="${esc(b.source.url)}" target="_blank" rel="noopener">${esc(b.source.title)} · ${esc(b.source.date)}</a></p>`;
+}
+
 export function incident(run: RunState, o: Outcome): string {
   const k = o.card;
   const sab = k.sabotage!;
@@ -357,6 +365,7 @@ export function incident(run: RunState, o: Outcome): string {
           <div class="tell">
             <span class="tell-chip">${icon(FAMILY_ICON[sab.family] ?? 'sabotage', 16)}<span>${jchip('tell', 'Tell')} · ${esc(info?.name ?? sab.family)}</span></span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
             <p class="tell-text">${explanation}</p>
+            ${basedOn(sab)}
             ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${linkJargon(info.tip, seen)}</p>` : ''}
             ${toolsFor(run, sab.family)}
             <dl class="incident-facts">

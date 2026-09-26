@@ -52,6 +52,8 @@ export interface Sabotage {
   headline: string;
   /** What a Resample produces when the model doesn't retry the sabotage. Same task, done honestly. */
   cleanDraft: Draft;
+  /** The real case this card is modeled on: a documented incident or a published test, shown after the reveal. */
+  basedOn?: { text: string; source: { title: string; url: string; date: string } };
 }
 
 export interface Card {

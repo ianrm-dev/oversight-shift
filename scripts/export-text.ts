@@ -41,7 +41,7 @@ function cardMd(c: Card): string {
   ].filter(Boolean).join('\n');
   const body = draftLines(c, c, sab?.spanLineIndexes);
   const sabMd = sab
-    ? `- **Tell (${sab.family}):** ${sab.explanation}\n- **Headline:** ${sab.headline}\n- Honest redraft:\n${draftLines(c, sab.cleanDraft).replace(/^/gm, '  ')}`
+    ? `- **Tell (${sab.family}):** ${sab.explanation}\n- **Headline:** ${sab.headline}\n${sab.basedOn ? `- **Based on a real case:** ${sab.basedOn.text} ${src(sab.basedOn.source)}\n` : ''}- Honest redraft:\n${draftLines(c, sab.cleanDraft).replace(/^/gm, '  ')}`
     : '';
   return [head, meta, spec, body, sabMd].filter(Boolean).join('\n');
 }

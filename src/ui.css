@@ -1924,3 +1924,6 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 /* Status bar: room for Day 7's nine progress dots. */
 .hud .bar, .hud .bar.seg { width: 60px; }
 .hud-clock .bar { width: 48px; }
+.based-on { margin: 0; padding: var(--space-2) var(--space-3); font-size: var(--fs-xs); line-height: var(--lh-body); color: var(--text-2); border-left: 2px solid var(--line-strong); background: rgb(0 0 0 / 0.2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.based-on .eyebrow { display: block; margin-bottom: 2px; }
+.based-on a { color: var(--accent); }
