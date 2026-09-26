@@ -88,10 +88,12 @@ function endCoach(): void {
   coachStep = -1;
   try { localStorage.setItem(coachKey, '1'); } catch { /* storage unavailable */ }
   screenEl.querySelector('.coach')?.remove();
+  screenEl.querySelector('.coach-spot')?.remove();
   screenEl.querySelector('.coach-ring')?.classList.remove('coach-ring');
 }
 function drawCoach(): void {
   screenEl.querySelector('.coach')?.remove();
+  screenEl.querySelector('.coach-spot')?.remove();
   stage.querySelectorAll('.coach-ring').forEach((e) => e.classList.remove('coach-ring'));
   if (coachStep < 0 || !run || screen.kind !== 'shift' || screen.overlay) return;
   const step = COACH[coachStep];
@@ -107,6 +109,16 @@ function drawCoach(): void {
   screenEl.append(box);
   const w = box.offsetWidth, h = box.offsetHeight;
   const x = (r.left - s.left) / scale, y = (r.top - s.top) / scale, bottom = (r.bottom - s.top) / scale, right = (r.right - s.left) / scale;
+  // Spotlight: dim everything but the highlighted element, so the tour reads as the one thing to look at.
+  const t = target.getBoundingClientRect();
+  const spot = document.createElement('div');
+  spot.className = 'coach-spot';
+  const pad = 6;
+  spot.style.left = `${(t.left - s.left) / scale - pad}px`;
+  spot.style.top = `${(t.top - s.top) / scale - pad}px`;
+  spot.style.width = `${t.width / scale + pad * 2}px`;
+  spot.style.height = `${t.height / scale + pad * 2}px`;
+  screenEl.insertBefore(spot, box);
   let left = x, top = bottom + 10;
   if (top + h > 710) top = y - h - 10;
   if (top < 70) { top = Math.max(70, y); left = x > 640 ? x - w - 12 : right + 12; }
@@ -657,7 +669,7 @@ document.addEventListener('keydown', (e) => {
   if (screen.kind === 'codex') { if (k === 'escape' || k === 'c') go('title'); return; }
   if ((screen.kind === 'over' || screen.kind === 'win') && k === 'f') { go('fieldtest'); return; }
   if ((screen.kind === 'over' || screen.kind === 'interim' || screen.kind === 'win') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
-  if ((screen.kind === 'over' || screen.kind === 'win') && k === 'escape') { go('title'); return; }
+  if ((screen.kind === 'over' || screen.kind === 'win' || screen.kind === 'interim') && k === 'escape') { go('title'); return; }
   if ((screen.kind === 'over' || screen.kind === 'win') && k === 'l') { go('lab'); return; }
   if (screen.kind === 'event' && screen.chosen === undefined) { const i = Number(k) - 1; if (i >= 0 && run) pickEvent(i); return; }
   if (screen.kind === 'breakthrough') { const i = Number(k) - 1; if (i >= 0) pickBreakthrough(i); return; }
