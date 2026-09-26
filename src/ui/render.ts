@@ -15,10 +15,12 @@ export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'sco
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: string | number): string => String(s).replace(/[&<>"']/g, (ch) => ESC[ch]!);
+/** Escapes, and keeps email addresses and domains on one line: some tells hinge on a single character in them. */
+export const escKeep = (s: string): string => esc(s).replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+|\b[\w-]+(?:\.[\w-]+)*\.(?:com|net|org|io|co|gov|edu)\b/g, (m) => `<span class="nowrap">${m}</span>`);
 
 /** Boss days are named for what they are, not with gamer jargon. */
 export const BOSS: Record<number, { label: string; why: string }> = {
-  3: { label: 'Capability jump', why: 'The model can now act in the world, not just answer. Mistakes cost more.' },
+  3: { label: 'Capability jump', why: 'Answers could be wrong. Actions can do damage.' },
   7: { label: 'Final test', why: 'The model has learned when it is being watched. This is what oversight is for.' },
 };
 export const bossLabel = (day: number): string => BOSS[day]?.label ?? 'Step change';
@@ -291,7 +293,7 @@ export function auditReveal(run: RunState, o: Outcome): string {
   const body = caught
     ? `<div class="tell">
          <span class="tell-chip good">${icon(FAMILY_ICON[k.sabotage!.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
-         <p class="tell-text">${esc(k.sabotage!.explanation)}</p>
+         <p class="tell-text">${escKeep(k.sabotage!.explanation)}</p>
          ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${esc(info.tip)}</p>` : ''}
          <dl class="incident-facts">
            <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
@@ -346,7 +348,7 @@ export function incident(run: RunState, o: Outcome): string {
           <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: sab.spanLineIndexes, termLabel: termForFamily(sab.family)?.term ?? sab.family } })}</figure></div>
           <div class="tell">
             <span class="tell-chip">${icon(FAMILY_ICON[sab.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
-            <p class="tell-text">${esc(sab.explanation)}</p>
+            <p class="tell-text">${escKeep(sab.explanation)}</p>
             ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${esc(info.tip)}</p>` : ''}
             ${toolsFor(run, sab.family)}
             <dl class="incident-facts">
@@ -376,7 +378,7 @@ export function title(difficulty: Difficulty): string {
       <div class="title-actions">
         <button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button>
       </div>
-      <p class="title-note">About 15 minutes on a quick shift · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+      <p class="title-note">About 10–15 minutes on a quick shift · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
     </main>`;
 }
 
@@ -527,7 +529,8 @@ function statLine(run: RunState): string {
   return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. For scale: in a MATS pilot, human auditors with 90 seconds per item judged code for hidden backdoors with 60% median accuracy.</p>`;
 }
 
-export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {
+/** End screens: header, then one row of three columns (what happened, compare, your week), then run extras and actions. */
+export function gameOver(run: RunState, unwatched: Card[], week = '', extras = ''): string {
   const loss = run.loss!;
   const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>`;
   if (loss.kind === 'abandon') {
@@ -536,7 +539,7 @@ export function gameOver(run: RunState, unwatched: Card[], extras = ''): string 
         <div class="over-strip memo">${ICON.warn}<span>Shift ended early</span></div>
         <h1 class="over-title">You stepped away on Day ${loss.day}.</h1>
         <p class="over-epitaph">The run is recorded as unfinished. You keep what it taught you: Insight for the days you completed and any post-mortems.</p>
-        <div class="over-grid"><div class="over-side">${missedAll(run)}</div><div class="over-side">${statLine(run)}</div></div>
+        <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
         ${extras}
         ${restart}
       </main>`;
@@ -548,7 +551,7 @@ export function gameOver(run: RunState, unwatched: Card[], extras = ''): string 
         <div class="over-strip">${ICON.warn}<span>Harm ceiling reached</span></div>
         <h1 class="over-title">The shift is over.</h1>
         <p class="over-epitaph">After Day ${loss.day}, ${cause ? `${esc(cause)} pushed harm to the ceiling` : 'a decision between shifts pushed harm to the ceiling'}. Harm had already built up: the last straw doesn't have to be a card.</p>
-        <div class="over-grid"><div class="over-side">${missedAll(run)}</div><div class="over-side">${statLine(run)}</div></div>
+        <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
         ${extras}
         ${restart}
       </main>`;
@@ -563,6 +566,7 @@ export function gameOver(run: RunState, unwatched: Card[], extras = ''): string 
         <div class="over-grid">
           <div class="evidence">${outputBlock(f.card, f.draft, new Set(f.card.sabotage!.spanLineIndexes), 'The line that ended it')}</div>
           <div class="over-side">${missedAll(run)}${statLine(run)}</div>
+          ${week}
         </div>
         ${extras}
         ${restart}
@@ -580,13 +584,14 @@ export function gameOver(run: RunState, unwatched: Card[], extras = ''): string 
           <p class="over-lesson">${ships.length} sabotage attempt${ships.length === 1 ? '' : 's'} shipped the next day. Oversight that can't keep pace gets routed around, and the harm happens anyway.</p>
           ${statLine(run)}
         </div>
+        ${week}
       </div>
       ${extras}
       ${restart}
     </main>`;
 }
 
-export function win(run: RunState, extras = ''): string {
+export function win(run: RunState, week = '', extras = ''): string {
   const s = runStats(run);
   return `
     <main class="solo over is-win">
@@ -600,10 +605,9 @@ export function win(run: RunState, extras = ''): string {
         <div><dt>Missed</dt><dd>${s.missed}</dd></div>
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
       </dl>
-      <div class="over-grid">${missedAll(run) ? `<div class="over-side">${missedAll(run)}</div>` : '<p class="over-lesson">Nothing got past you.</p>'}<div class="over-side">${statLine(run)}</div></div>
+      <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
       ${extras}
-      <p class="over-epitaph next-model">The next model arrives tomorrow. It's better than this one.</p>
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><span class="seed-note">Seed ${esc(run.seed)}</span><span class="next-model">The next model arrives tomorrow. It's better than this one.</span></div>
     </main>`;
 }
 
@@ -637,7 +641,7 @@ const SHOP: { item: ShopItem; name: string; desc: string }[] = [
 function upgradeCard(u: Upgrade, i: number, pending?: string): string {
   return `
     <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}${pending === u.id ? ' is-pending' : ''}" data-upgrade="${u.id}">
-      <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'From your research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
+      <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'Research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
       <span class="upgrade-title">${icon(UPGRADE_ICON[u.id] ?? 'shield', 22)}<span class="upgrade-name">${esc(u.name)}</span></span>
       <span class="upgrade-improves">Improves: ${esc(UPGRADE_IMPROVES[u.id] ?? 'Your team')}</span>
       <span class="upgrade-desc">${esc(u.description)}</span>

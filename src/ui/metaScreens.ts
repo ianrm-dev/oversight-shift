@@ -33,25 +33,25 @@ export function title(p: Progress): string {
       <div data-glyph="${Math.min(9, 6 + p.maxModel)}" data-size="148" class="title-glyph"></div>
       <h1 class="title-name">Oversight Shift</h1>
       <p class="title-tag">Your lab is deploying a model smarter than the tools watching it.<br/>Keep its work shipping. Keep what it breaks below the line.</p>
+      <button class="menu-start" data-go="setup">
+        <span class="menu-start-name"><kbd>Enter</kbd> New shift</span>
+        <span class="menu-start-desc">A quick shift takes about 10–15 minutes. Pick a difficulty, then play.</span>
+      </button>
       <div class="title-menu">
-        <button class="menu-opt is-primary" data-go="setup">
-          <span class="menu-name"><kbd>Enter</kbd> New shift</span>
-          <span class="menu-desc">Play a deployment: a quick shift (4 days) or the full week. You'll choose length, difficulty, lab and model version first.</span>
-        </button>
         <button class="menu-opt" data-go="daily-info">
           <span class="menu-name"><kbd>D</kbd> Daily shift</span>
-          <span class="menu-desc">Today's shared run: the same cards for everyone, fixed rules, one score to beat.</span>
+          <span class="menu-desc">Today's shared run: same cards for everyone, one score to beat.</span>
         </button>
         <button class="menu-opt" data-go="lab">
           <span class="menu-name"><kbd>L</kbd> Research lab${availableCount(p) ? ` <span class="badge">${availableCount(p)}</span>` : ''}</span>
-          <span class="menu-desc">${p.insight ? `${p.insight} insight to spend. ` : ''}Fund research with what past runs taught you. It carries into every run.</span>
+          <span class="menu-desc">${p.insight ? `${p.insight} insight to spend. ` : ''}Research from past runs carries into every run.</span>
         </button>
         <button class="menu-opt" data-go="guide">
           <span class="menu-name"><kbd>G</kbd> Field guide</span>
-          <span class="menu-desc">${runs ? `${Object.keys(p.termsSeen).length} terms met. ` : ''}Plain-language terms, research approaches and their tradeoffs, and your past runs.</span>
+          <span class="menu-desc">${runs ? `${Object.keys(p.termsSeen).length} terms met. ` : ''}Terms, research approaches and your past runs.</span>
         </button>
       </div>
-      <p class="title-note">About 15 minutes on a quick shift · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+      <p class="title-note">Keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
       <button class="link-btn title-made" data-go="made"><kbd>H</kbd> How this was made</button>
     </main>`;
 }

@@ -118,7 +118,7 @@ function runsTab(p: Progress): string {
   const research = TREE.filter((n) => p.research.includes(n.id)).map((n) => `<li class="done"><span class="rs-dot"></span><div><strong>${esc(n.name)}</strong><span>${esc(n.effect)}</span></div></li>`).join('')
     || '<li class="muted">Nothing researched yet. Runs earn Insight, and failures earn the most.</li>';
   const ft = p.fieldTests.taken ? `${p.fieldTests.correct} of ${p.fieldTests.taken * 3} Field test answers right` : 'No Field tests taken yet';
-  return `<div class="gd-two"><section><h4>Recent runs</h4><ul class="history">${history}</ul><p class="muted">${ft}</p></section><section><h4>Research · ${p.research.length}/${TREE.length}</h4><ul class="research">${research}</ul></section></div>`;
+  return `<div class="gd-two"><section><h4>Recent runs</h4><ul class="history">${history}</ul><h4>Field tests</h4><ul class="history"><li class="muted">${ft}</li></ul></section><section><h4>Research · ${p.research.length}/${TREE.length}</h4><ul class="research">${research}</ul></section></div>`;
 }
 
 export function fieldGuide(p: Progress, tab: GuideTab, focus?: string): string {

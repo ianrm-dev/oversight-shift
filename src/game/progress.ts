@@ -119,7 +119,7 @@ export function recordRun(p: Progress, f: RunFacts): RunUpdate {
     ...(catches ? [{ label: `Evidence from ${catches} catch${catches === 1 ? '' : 'es'}`, amount: catches * INSIGHT.perCatch }] : []),
   ].filter((l) => l.amount > 0);
   // Success is quiet: show it, at whatever it earns, so the player sees why failures teach more.
-  if (won) insight.push({ label: 'A quiet, successful deployment. Nothing went wrong, so nothing got funded.', amount: INSIGHT.win });
+  if (won) insight.push({ label: incidents ? 'A successful deployment. Wins teach less than failures, so they fund less.' : 'A quiet, successful deployment. Nothing went wrong, so nothing got funded.', amount: INSIGHT.win });
   const insightTotal = insight.reduce((s, l) => s + l.amount, 0);
   p.insight += insightTotal;
 

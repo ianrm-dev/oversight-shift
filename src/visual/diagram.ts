@@ -292,7 +292,10 @@ function actionFlow(card: Card, draft: Draft, opts: DiagramOptions, m: Marks): {
     const ic = actionIcon(a.text);
     const lw = Math.min(n > 1 ? step : 200, 150) - 6;
     const lx = Math.min(Math.max(x, 6 + lw / 2), W - 6 - lw / 2);
-    svg += `<g class="dg-node dg-step${st}"><circle cx="${f(x)}" cy="${rowY}" r="18" class="dg-circle"/>${icon(ic, x, rowY)}${text(x, rowY - 25, String(i + 1), 'dg-t dg-small dg-muted', 'middle')}${lines(lx, rowY + 34, wrap(actionLabel(a.text), lw, 10.5, 3), 'dg-t dg-small', 'middle', 12)}</g>`;
+    // A connector coming down from above would run through the step number, so the number steps aside.
+    const vertical = INJECTION.test(a.text) || (opts.showZone && externalTargets(a.text, card).length > 0);
+    const num = vertical ? text(x + 22, rowY - 16, String(i + 1), 'dg-t dg-small dg-muted', 'start') : text(x, rowY - 25, String(i + 1), 'dg-t dg-small dg-muted', 'middle');
+    svg += `<g class="dg-node dg-step${st}"><circle cx="${f(x)}" cy="${rowY}" r="18" class="dg-circle"/>${icon(ic, x, rowY)}${num}${lines(lx, rowY + 34, wrap(actionLabel(a.text), lw, 10.5, 3), 'dg-t dg-small', 'middle', 12)}</g>`;
     // Injected instruction: a document the agent read, feeding in from above.
     if (INJECTION.test(a.text)) {
       const bad = m.bad.has(i) ? ' is-bad' : m.flagged.has(i) ? ' is-flag' : '';

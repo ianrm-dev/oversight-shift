@@ -87,7 +87,7 @@ export function glance(card: Card, opts: { outside?: boolean } = {}): string {
       ${item(`stakes-${s}` as IconId, STAKES_LABEL[s], `${STAKES_LABEL[s]}: judged from the task and what the agent can reach`, `gl-stakes gl-stakes-${s}`)}
       <span class="gl-perms" title="What the agent can touch">${perms.map((p) => `<span class="gl-perm" title="${esc(p.label)}">${icon(p.id, 16, p.label)}</span>`).join('')}</span>
       <span class="gl-size">${esc(size(card))}</span>
-      ${card.unmonitored ? item('unmonitored', 'Logging off', 'Logging is off and no reviewer is on shift: the task looks unobserved to the model', 'gl-flag') : ''}
+      ${card.unmonitored ? item('unmonitored', 'Logging off · unattended', 'Logging is off and no reviewer is on shift: the task looks unobserved to the model. In lab studies, models have sometimes behaved differently when cues suggested no one was watching.', 'gl-flag') : ''}
       ${outside ? item('external', 'Outside address', `The output mentions ${outside}, which the task never mentions`, 'gl-flag') : ''}
     </div>`;
 }

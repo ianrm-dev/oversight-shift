@@ -74,7 +74,6 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
     <div class="hud-res" title="Human audits left today"><span class="eyebrow">${chip(TOOL_TERM.audit, 'Auditors')}</span><span class="dots">${dots(d.audits, d.auditsStart, preview === 'audit')}</span></div>
     <div class="hud-res" title="Compute left today for tools. It resets each day; unused compute is simply lost."><span class="eyebrow">${chip('compute', 'Compute')}</span><span class="dots compute">${dots(d.compute, d.computeStart, toolPreview)}</span></div>
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
-    <div class="hud-tags">${run.adversaryRevealed ? `<span class="hud-tag bad" title="Revealed by your red team">${esc({ sandbagger: 'Sandbagger', colluder: 'Colluder', injector: 'Injector', schemer: 'Schemer' }[run.adversary])}</span>` : ''}${run.level > 1 ? `<span class="hud-tag">v${run.level}</span>` : ''}${d.contract ? `<span class="hud-tag" title="${esc(d.contract.blurb)}">${esc(d.contract.name)}</span>` : ''}</div>
     <button class="hud-toolkit" data-toolkit><kbd>T</kbd> Toolkit</button>
     <button class="hud-toolkit" data-pause="open" aria-label="Pause menu"><kbd>Esc</kbd> Menu</button>
     <ol class="hud-progress" aria-label="Cards today">${progress}</ol>`;
@@ -123,8 +122,7 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
   return `
     <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="scard-top">
-        <span class="agent-badge">${esc(k.agent)}</span><span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${esc(k.domain)}</span>
-        ${k.unmonitored ? '<span class="unmonitored-badge" title="The task\'s environment looks unobserved to the model: logging is off and no reviewer is on shift. In lab studies, models have sometimes behaved differently when cues suggested no one was watching.">Logging off · unattended</span>' : ''}
+        ${k.agent === 'Agent team' ? '' : `<span class="agent-badge">${esc(k.agent)}</span>`}<span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${esc(k.domain)}</span>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
       ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${linkTerms(c.hint, 2)}</span></div>` : ''}
@@ -179,7 +177,7 @@ function findingBlock(run: RunState, c: CardState, tool: 'fact' | 'scope' | 'unt
   return `
     <div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}">
       <div class="ev-head"><span class="ev-name">${toolName(tool)}</span>${f.problem ? '<span class="ev-flag">Found a problem</span>' : '<span class="ev-okay">Nothing found</span>'}</div>
-      <p class="ev-finding">${esc(f.text)}${f.lines.length ? ` <span class="ev-lines">(line ${f.lines.map((l) => l + 1).join(', ')})</span>` : ''}</p>
+      <p class="ev-finding">${f.problem || !/^nothing found/i.test(f.text) ? esc(f.text) : 'Nothing it can see looks wrong.'}${f.lines.length ? ` <span class="ev-lines">(line ${f.lines.map((l) => l + 1).join(', ')})</span>` : ''}</p>
       <span class="ev-reliability">${f.free ? 'Ran automatically. ' : ''}${esc(toolReliability(run, tool))}</span>
     </div>`;
 }
@@ -187,10 +185,12 @@ function findingBlock(run: RunState, c: CardState, tool: 'fact' | 'scope' | 'unt
 function resampleBlock(run: RunState, c: CardState, preview: Preview): string {
   if (!toolUnlocked(run, 'resample')) return '';
   const d = latest(c);
-  const note = c.drafts.length > 1
-    ? `<p class="ev-note">Draft ${c.drafts.length}: ${d.changed?.length ? `${d.changed.length} line${d.changed.length === 1 ? '' : 's'} changed (marked)` : 'the same output again'}.</p>`
-    : '';
-  return note ? `<div class="ev-group">${note}${toolButton(run, 'resample', preview)}</div>` : toolButton(run, 'resample', preview);
+  const button = toolButton(run, 'resample', preview);
+  if (c.drafts.length < 2) return button;
+  // The last resample's result lives inside the Resample card, like other tools' findings.
+  const note = `<span class="ev-result">Draft ${c.drafts.length}: ${d.changed?.length ? `${d.changed.length} line${d.changed.length === 1 ? '' : 's'} changed (marked)` : 'the same output again'}.</span>`;
+  const at = button.lastIndexOf('</button>');
+  return at < 0 ? button : `${button.slice(0, at)}${note}</button>`.replace('class="ev ev-tool', 'class="ev ev-tool is-used');
 }
 
 function probeBlock(run: RunState, c: CardState, preview: Preview): string {
@@ -201,6 +201,20 @@ function probeBlock(run: RunState, c: CardState, preview: Preview): string {
   return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right in this game; limited uses per day.</span></button>`;
 }
 
+/** Today's context (revealed adversary, model version, client), shown above the evidence rather than in the crowded status bar. */
+function context(run: RunState): string {
+  const tags = [
+    run.adversaryRevealed ? `<span class="ev-tag bad" title="Revealed by your red team">${esc({ sandbagger: 'Sandbagger', colluder: 'Colluder', injector: 'Injector', schemer: 'Schemer' }[run.adversary])}</span>` : '',
+    run.level > 1 ? `<span class="ev-tag">Model v${run.level}</span>` : '',
+    run.day.contract ? `<span class="ev-tag" title="${esc(run.day.contract.blurb)}">${esc(run.day.contract.name)}</span>` : '',
+  ].filter(Boolean);
+  return tags.length ? `<span class="ev-tags">${tags.join('')}</span>` : '';
+}
+
+/** With many tools on the panel, unused tools drop their one-line description so Human audit stays in view. */
+const crowded = (run: RunState): boolean =>
+  [toolUnlocked(run, 'scope'), toolUnlocked(run, 'resample'), has(run, 'untrusted-monitor'), run.breakthroughs.includes('probe')].filter(Boolean).length >= 3;
+
 export function evidence(run: RunState, c: CardState, preview: Preview): string {
   const d = latest(c);
   const tool = (t: 'fact' | 'scope' | 'untrusted') => {
@@ -209,7 +223,7 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     return d.findings[t] ? findingBlock(run, c, t) : toolButton(run, t, preview);
   };
   return `
-    <div class="ev-title"><span class="eyebrow">Evidence</span><span class="ev-budget">${run.day.compute} compute · ${run.day.audits} auditor${run.day.audits === 1 ? '' : 's'}</span></div>
+    <div class="ev-title"><span class="eyebrow">Evidence</span>${context(run)}</div>
     ${monitorBlock(run, c)}
     ${tool('untrusted')}
     ${tool('fact')}
@@ -235,7 +249,7 @@ export function decide(run: RunState, preview: Preview, disabled: boolean): stri
 export function shiftMain(run: RunState, expanded: boolean, animate: boolean, preview: Preview): string {
   const c = current(run.day);
   if (!c) return '';
-  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel">${evidence(run, c, preview)}</aside>`;
+  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel${crowded(run) ? ' is-crowded' : ''}">${evidence(run, c, preview)}</aside>`;
 }
 
 // ---------- Toolkit reference ----------

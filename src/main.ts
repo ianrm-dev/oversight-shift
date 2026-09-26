@@ -69,10 +69,11 @@ let endGrade = 'D';
 let revealShown = false;
 let fieldTestTaken = false;
 /** Guided first minute: coach marks on the first cards of a player's first run. */
-interface CoachStep { target: string; text: string; next?: 'button' | 'fact' | 'decide' }
+/** `anchor` places the tip next to a different element than the one it highlights, so it doesn't cover what it describes. */
+interface CoachStep { target: string; text: string; next?: 'button' | 'fact' | 'decide'; anchor?: string }
 const COACH: CoachStep[] = [
   { target: '.scard-glance', text: 'This strip shows the job at a glance: what kind of work it is, how much is at stake, and what the agent can touch.', next: 'button' },
-  { target: '.scard-task', text: 'Here is the task, the rules on file, and what the model did. Everything you need to judge it is on the card.', next: 'button' },
+  { target: '.scard-task', anchor: '.scard-did', text: 'Here is the task, the rules on file, and what the model did. Everything you need to judge it is on the card.', next: 'button' },
   { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It is a hint, not proof: the shaded box shows how far off it may be.', next: 'button' },
   { target: '[data-action="fact"]', text: 'Press F for a Fact check. A trusted model compares the work with the rules on file and reports in plain words.', next: 'fact' },
   { target: '[data-region="decide"]', text: 'Now decide. Approve (A) if the work is clean; Defer (D) if something is wrong, and a weaker, safe model redoes it.', next: 'decide' },
@@ -99,7 +100,7 @@ function drawCoach(): void {
   target.classList.add('coach-ring');
   const s = stage.getBoundingClientRect();
   const scale = s.width / 1280;
-  const r = target.getBoundingClientRect();
+  const r = (step.anchor ? screenEl.querySelector(step.anchor) ?? target : target).getBoundingClientRect();
   const box = document.createElement('div');
   box.className = 'coach';
   box.innerHTML = `<span class="eyebrow">First shift · ${coachStep + 1} of ${COACH.length}</span><p>${step.text}</p><div class="coach-actions">${step.next === 'button' ? `<button class="btn-primary" data-coach="next"><kbd>Space</kbd> ${coachStep === COACH.length - 1 ? 'Got it' : 'Next'}</button>` : ''}<button class="link-btn" data-coach="skip">Skip the tour</button></div>`;
@@ -291,11 +292,11 @@ function render(): void {
   } else if (screen.kind === 'over') {
     setLayout('solo');
     finishRun(false);
-    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], R.replayStrip(run, false) + M.endExtras(run, endScore, endUpdate, endGrade));
+    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], R.replayStrip(run, false), M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'win') {
     setLayout('solo');
     finishRun(true);
-    screenEl.innerHTML = R.win(run, R.replayStrip(run, true) + M.endExtras(run, endScore, endUpdate, endGrade));
+    screenEl.innerHTML = R.win(run, R.replayStrip(run, true), M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
@@ -304,9 +305,20 @@ function render(): void {
     screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
   }
   hydrate(screenEl);
+  requestAnimationFrame(markScroll);
   screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
   if (coachStep >= 0) requestAnimationFrame(drawCoach);
 }
+
+/** Panels that scroll get a fade at the bottom while there's more below, so hidden content is never a surprise. */
+const SCROLLERS = '.scard, .evidence-panel, .incident-body, .review-scroll, .unwatched, .over-grid > *, .missed-list, .gd-body, .toolkit';
+function markScroll(): void {
+  screenEl.querySelectorAll<HTMLElement>(SCROLLERS).forEach((el) => {
+    if (getComputedStyle(el).overflowY === 'visible') return;
+    el.classList.toggle('has-more', el.scrollHeight - el.scrollTop - el.clientHeight > 4);
+  });
+}
+screenEl.addEventListener('scroll', markScroll, true);
 
 /** Hover previews only touch the status bar, decisions and evidence, so the card doesn't re-animate. */
 function renderPreview(): void {
@@ -811,3 +823,16 @@ fit();
 
 resetLattice('title');
 render();
+
+// Dev-only hook for the headless screen audit (scripts in the session scratchpad). Stripped from production builds.
+if (import.meta.env.DEV) {
+  Object.assign(window, {
+    __os: {
+      get run() { return run; },
+      get screen() { return screen; },
+      get coach() { return coachStep; },
+      /** A veteran profile: all research, every model version, some Insight. */
+      veteran(ids: string[]) { progress.research = ids; progress.maxModel = 5; progress.insight = 40; render(); },
+    },
+  });
+}
