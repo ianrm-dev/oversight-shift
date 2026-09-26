@@ -221,7 +221,9 @@ function drawCoach(): void {
   ];
   const fits = (p: { left: number; top: number }) => p.top >= 8 && p.top + h <= 712 && p.left >= 8 && p.left + w <= 1272;
   const clamp = (p: { left: number; top: number }) => ({ left: Math.min(Math.max(12, p.left), 1268 - w), top: Math.min(Math.max(8, p.top), 712 - h) });
-  const at = clamp(spots.find((p) => fits(clamp(p)) && (p === spots[0] || p === spots[1] ? true : fits(p))) ?? { left: a.l + 12, top: a.b - h - 12 });
+  // Side placements may slide up or down to stay on the stage; if nothing fits, sit inside the target's lower corner.
+  const side = (p: { left: number; top: number }) => ({ left: p.left, top: Math.min(Math.max(8, p.top), 712 - h) });
+  const at = clamp(spots.slice(0, 2).find(fits) ?? spots.slice(2).map(side).find(fits) ?? { left: a.l + 12, top: a.b - h - 12 });
   box.style.left = `${at.left}px`;
   box.style.top = `${at.top}px`;
 }
