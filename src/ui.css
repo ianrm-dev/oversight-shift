@@ -1927,3 +1927,7 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .based-on { margin: 0; padding: var(--space-2) var(--space-3); font-size: var(--fs-xs); line-height: var(--lh-body); color: var(--text-2); border-left: 2px solid var(--line-strong); background: rgb(0 0 0 / 0.2); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
 .based-on .eyebrow { display: block; margin-bottom: 2px; }
 .based-on a { color: var(--accent); }
+.over-actions { flex-wrap: nowrap; gap: var(--space-2); }
+.over-actions .seed-note { margin-left: auto; }
+.over.is-win .next-model { margin: 0; font-size: var(--fs-md); font-style: italic; }
+.hud { gap: 10px; }

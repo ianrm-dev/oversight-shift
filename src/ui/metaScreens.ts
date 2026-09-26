@@ -280,8 +280,7 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
   const postMortem = update
     ? `<ul class="insight-lines">${update.insight.map((l) => `<li><span>${esc(l.label)}</span><strong>+${l.amount}</strong></li>`).join('')}</ul>
        ${update.urgent.length ? `<p class="urgent-note">Your failures made the case for <strong>${update.urgent.map(branchName).join(', ')}</strong> research: half price in the lab.</p>` : ''}
-       ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}
-       <div class="pm-actions"><button class="btn-primary" data-go="fieldtest"><kbd>F</kbd> Field test · up to +3</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button></div>`
+       ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}`
     : '';
     return `
     <div class="end-extras">

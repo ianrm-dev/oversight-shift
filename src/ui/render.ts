@@ -547,7 +547,7 @@ function statLine(run: RunState): string {
 /** End screens: header, then one row of three columns (what happened, compare, your week), then run extras and actions. */
 export function gameOver(run: RunState, unwatched: Card[], week = '', extras = ''): string {
   const loss = run.loss!;
-  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>`;
+  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>`;
   if (loss.kind === 'abandon') {
     return `
       <main class="solo over is-abandon">
@@ -615,6 +615,7 @@ export function win(run: RunState, week = '', extras = ''): string {
       <div class="briefing-glyph" data-glyph="9" data-size="130"></div>
       <div class="over-strip win"><span>${chip('deployment', 'Deployment')} complete</span></div>
       <h1 class="over-title">You got the model through the week.</h1>
+      <p class="over-epitaph next-model">The next model arrives tomorrow. It's better than this one.</p>
       <dl class="briefing-stats">
         <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
         <div><dt>Funding raised</dt><dd>${run.fundingEarned}</dd></div>
@@ -624,7 +625,7 @@ export function win(run: RunState, week = '', extras = ''): string {
       </dl>
       <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
       ${extras}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span><span class="next-model">The next model arrives tomorrow. It's better than this one.</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
     </main>`;
 }
 
@@ -643,7 +644,7 @@ export function interim(run: RunState): string {
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
       </dl>
       ${missedAll(run)}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
     </main>`;
 }
 

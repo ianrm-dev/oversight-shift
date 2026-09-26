@@ -126,7 +126,7 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   end: { title: 'Run over', steps: [
     { target: '.over-grid', text: 'How it went: what got past you, how you compare with real auditors, and your week at a glance.' },
     { target: '.end-extras', text: 'The hidden adversary you faced, your score, and the Insight you earned. Failed runs earn the most, as in real research.' },
-    { target: '.pm-actions', text: 'Spend Insight in the Research lab: research makes every future run easier. The Field test checks what stuck.' },
+    { target: '.over-actions [data-go="lab"]', text: 'Spend Insight in the Research lab: research makes every future run easier. The Field test checks what stuck.' },
     { target: '.over-actions', text: 'Play again, try a new seed, or go back to the menu.' },
   ] },
   lab: { title: 'Research lab', steps: [
