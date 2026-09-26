@@ -58,7 +58,7 @@ export const EVENTS: GameEvent[] = [
     maxDay: 3,
     choices: [
       { label: 'Hold them to the pledge', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'funding', amount: -6 }], after: 'You win the meeting. You will be paying for it in other meetings.' },
-      { label: 'Lend product the compute', effects: [{ kind: 'funding', amount: 5 }, { kind: 'computeTomorrow', amount: -2 }], after: '"Just until launch" has a long half-life.' },
+      { label: 'Lend product the compute', effects: [{ kind: 'funding', amount: 5 }, { kind: 'computeTomorrow', amount: -1 }], after: '"Just until launch" has a long half-life.' },
     ],
     anchor: { line: 'In May 2024, Fortune reported that OpenAI never fulfilled its commitment to give its Superalignment team 20% of its computing power.', source: FORTUNE },
   },
@@ -82,7 +82,7 @@ export const EVENTS: GameEvent[] = [
     maxDay: 4,
     choices: [
       { label: 'Hire them for a day', effects: [{ kind: 'revealAdversary' }, { kind: 'funding', amount: -5 }], after: 'Their report names what your model has been up to.' },
-      { label: 'Trade cluster time for their notes', effects: [{ kind: 'bandTomorrow', amount: -4 }, { kind: 'computeTomorrow', amount: -2 }], after: 'Your monitor gets their calibration notes. They get your GPUs.' },
+      { label: 'Trade cluster time for their notes', effects: [{ kind: 'bandTomorrow', amount: -4 }, { kind: 'computeTomorrow', amount: -1 }], after: 'Your monitor gets their calibration notes. They get your GPUs.' },
     ],
   },
   {
@@ -161,7 +161,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 2,
     maxDay: 5,
     choices: [
-      { label: 'Skip the monitor on file changes', effects: [{ kind: 'computeTomorrow', amount: 3 }, { kind: 'blindTomorrow', layout: 'diff' }], after: 'The savings are real. So is the blind spot.' },
+      { label: 'Skip the monitor on file changes', effects: [{ kind: 'computeTomorrow', amount: 2 }, { kind: 'blindTomorrow', layout: 'diff' }], after: 'The savings are real. So is the blind spot.' },
       { label: 'Defend the budget', effects: [{ kind: 'bandTomorrow', amount: -3 }, { kind: 'funding', amount: -4 }], after: 'You win, and use the attention to get it retuned.' },
     ],
   },
@@ -184,7 +184,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 1,
     maxDay: 6,
     choices: [
-      { label: 'Share anonymized logs', effects: [{ kind: 'funding', amount: 8 }, { kind: 'computeTomorrow', amount: -2 }], after: 'Anonymizing takes a day of cluster time and two arguments.' },
+      { label: 'Share anonymized logs', effects: [{ kind: 'funding', amount: 8 }, { kind: 'computeTomorrow', amount: -1 }], after: 'Anonymizing takes a day of cluster time and two arguments.' },
       { label: 'Write them a report instead', effects: [{ kind: 'funding', amount: 3 }, { kind: 'auditsTomorrow', amount: -1 }], after: 'Someone has to write it. That someone was going to audit.' },
     ],
     anchor: { line: 'The AI Control paper studies exactly this setup: a powerful untrusted model, a weaker trusted model, and limited access to high-quality human labor.', source: AI_CONTROL },

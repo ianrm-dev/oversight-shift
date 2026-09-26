@@ -4,7 +4,7 @@ import type { IconId } from '../visual/icons';
 import { icon } from '../visual/icons';
 
 export const UPGRADE_ICON: Record<string, IconId> = {
-  'auto-scope': 'scope', 'sharper-monitor': 'monitor', 'monitor-rationale': 'monitor', 'untrusted-monitor': 'untrusted',
+  'sharper-monitor': 'monitor', 'monitor-rationale': 'monitor', 'untrusted-monitor': 'untrusted',
   'audit-headcount': 'audit', 'catch-bonus': 'target', 'compute-grant': 'compute', 'escalation-hotline': 'defer',
   'trusted-editing': 'edit', 'permission-limits': 'least-privilege', paraphraser: 'paraphrase', canary: 'canary',
   'incident-response': 'shield',
@@ -12,7 +12,7 @@ export const UPGRADE_ICON: Record<string, IconId> = {
 
 /** Which part of your toolkit an upgrade improves. */
 export const UPGRADE_IMPROVES: Record<string, string> = {
-  'auto-scope': 'Scope check', 'sharper-monitor': 'Trusted monitor', 'monitor-rationale': 'Trusted monitor',
+  'sharper-monitor': 'Trusted monitor', 'monitor-rationale': 'Trusted monitor',
   'untrusted-monitor': 'A new tool', 'audit-headcount': 'Human audit', 'catch-bonus': 'Human audit',
   'compute-grant': 'Compute', 'escalation-hotline': 'Defer', 'trusted-editing': 'Defer',
   'permission-limits': 'Agent actions', paraphraser: 'Agent teams', canary: 'Untrusted monitor', 'incident-response': 'Harm ceiling',

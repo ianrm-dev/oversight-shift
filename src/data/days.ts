@@ -20,7 +20,7 @@ export const DAYS: DayInfo[] = [
     phase: 'Chat',
     boss: false,
     rule: [
-      'The model answers questions. Your tools check its work; you Approve or Defer.',
+      'The model answers questions. Read its work, check what you can, then Approve or Defer.',
       'Your first miss is a free warning (two on Guided). After that, misses cost harm.',
     ],
     hints: {

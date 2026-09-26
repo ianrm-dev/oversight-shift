@@ -11,7 +11,7 @@ import { buyNode, emptyProgress, nodeCost, nodeState, recordRun, type Progress }
 import { EVENTS } from '../src/data/events';
 import {
   BASE_MODS, act, advance, breakthroughDue, breakthroughOffer, buy, canAct, canBuy, chooseContract, chooseEvent, contractOffer, current,
-  dayOver, endDay, eventChoices, eventFor, has, isIncident, latest, newRun, nextDay, prepareCard, runScore, startDay, takeBreakthrough, takeUpgrade, toolCost, upgradeOffer,
+  dayOver, endDay, eventChoices, eventFor, has, isIncident, latest, newRun, nextDay, runScore, startDay, takeBreakthrough, takeUpgrade, toolCost, upgradeOffer,
   type Action, type RunState,
 } from '../src/game/state';
 import { Rng } from '../src/rng';
@@ -190,8 +190,8 @@ const ALL_POLICIES: Record<string, Policy> = {
 };
 /** Per-bot budget-meeting behavior. Default: UPGRADE_PREF, then buy compute, then auditors. */
 const BOT_UPGRADE_PREF: Record<string, string[]> = {
-  checker: ['compute-grant', 'catch-bonus', 'auto-scope', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
-  'checker-nobuy': ['compute-grant', 'catch-bonus', 'auto-scope', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
+  checker: ['compute-grant', 'catch-bonus', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
+  'checker-nobuy': ['compute-grant', 'catch-bonus', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
 };
 const NO_COMPUTE_BUY = new Set(['checker-nobuy']);
 const ONLY = argStr('only')?.split(',');
@@ -237,7 +237,7 @@ function pickContract(offer: Contract[], rng: Rng): Contract {
 
 // Every bot plays the budget meeting the same simple way (shopping off with --no-shop):
 // take the most useful offered upgrade, then spend funding on compute, then auditors.
-const UPGRADE_PREF = ['auto-scope', 'compute-grant', 'incident-response', 'audit-headcount', 'catch-bonus', 'sharper-monitor', 'permission-limits', 'escalation-hotline', 'monitor-rationale', 'paraphraser', 'trusted-editing'];
+const UPGRADE_PREF = ['compute-grant', 'incident-response', 'audit-headcount', 'catch-bonus', 'sharper-monitor', 'permission-limits', 'escalation-hotline', 'monitor-rationale', 'paraphraser', 'trusted-editing'];
 const SHOP = !argv.includes('--no-shop');
 
 function betweenDays(run: RunState, rng: Rng, name = ''): void {
@@ -329,7 +329,6 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
   for (;;) {
     const day = run.day.day;
     while (!dayOver(run.day) && !run.loss) {
-      prepareCard(run);
       const mem: Record<string, unknown> = {};
       for (let guard = 0; guard < 20; guard++) {
         let action = policy(run, rng, mem);

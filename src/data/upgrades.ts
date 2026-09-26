@@ -1,15 +1,8 @@
 import type { Upgrade } from '../types';
 
-// Upgrades the engine applies today. The rest of the DESIGN.md pool (Monitor rationale,
-// Untrusted monitor, Paired resample, Paraphraser, Canary) arrives with Days 5–7.
+// The upgrade pool. Some (Monitor rationale, Untrusted monitor, Paraphraser, Canary, Trusted editing)
+// are offered only once the matching research is funded; see RULES.upgradeResearch.
 export const UPGRADES: Upgrade[] = [
-  {
-    id: 'auto-scope',
-    name: 'Automatic scope check',
-    category: 'information',
-    description: 'From Day 2, Scope check runs free on every card that has an allowed list.',
-    bestWhen: 'Best on agent days',
-  },
   {
     id: 'sharper-monitor',
     name: 'Sharper monitor',
@@ -77,7 +70,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'paraphraser',
     name: 'Paraphraser',
     category: 'action',
-    description: 'Rewords messages between agents, breaking many hidden signals. The monitor rates collusion higher, and the untrusted monitor stays honest.',
+    description: 'Rewords messages between agents, breaking many hidden signals. The monitor rates collusion higher, and the untrusted monitor rarely colludes.',
     bestWhen: 'Best on multi-agent days',
   },
   {

@@ -46,7 +46,7 @@ export const TREE: TreeNode[] = [
   { id: 'mon-ensemble', branch: 'monitoring', tier: 3, name: 'Monitor ensembles', effect: 'Several monitors vote: the band is 3 narrower again.', cost: 20, requires: ['monitor-rationale'] },
 
   // Control protocols
-  { id: 'ctl-resample', branch: 'control', tier: 1, name: 'Resampling protocols', effect: 'Resample drops an attack more often (about 2 in 3 instead of 1 in 2).', cost: 5 },
+  { id: 'ctl-resample', branch: 'control', tier: 1, name: 'Resampling protocols', effect: 'Resample drops an attack more often (about 9 in 20 instead of 3 in 10).', cost: 5 },
   { id: 'trusted-editing', branch: 'control', tier: 2, name: 'Trusted editing', effect: 'Trusted editing can appear as your research upgrade.', cost: 10, requires: ['ctl-resample'] },
   { id: 'untrusted-monitoring', branch: 'control', tier: 2, name: 'Untrusted monitoring', effect: 'The Untrusted monitor can appear as your research upgrade.', cost: 10, requires: ['ctl-resample'], gate: 'day-5' },
   { id: 'paraphrasing', branch: 'control', tier: 3, name: 'Paraphrasing', effect: 'The Paraphraser can appear as your research upgrade.', cost: 13, requires: ['untrusted-monitoring'], gate: 'colluder' },

@@ -17,7 +17,7 @@ export interface Finding {
   problem: boolean;
   text: string;
   lines: number[];
-  /** Cost nothing (Auto scope check, probe). */
+  /** Cost nothing (the probe). */
   free?: boolean;
 }
 
@@ -285,7 +285,7 @@ function assess(rng: Rng, card: Card, draft: Draft, sabotaged: boolean, trueSign
     ? { score: rng.int(35, 65), band: 45 }
     : readMonitor(rng, trueSignal + boost + shift, card.layout, day, band, sabotaged);
   const U = RULES.untrusted;
-  const honest = readMonitor(rng, trueSignal, card.layout, 0, U.band);
+  const honest = readMonitor(rng, trueSignal + (sabotaged ? U.honestLift : 0), card.layout, 0, U.band);
   const colluding = sabotaged ? readMonitor(rng, trueSignal - U.colludeShift, card.layout, 0, U.band) : honest;
   const span = sabotaged ? card.sabotage?.spanLineIndexes ?? [] : [];
   const flagLine = span.length && rng.chance(RULES.rationaleAccuracy) ? rng.pick(span) : rng.int(0, Math.max(0, draft.output.length - 1));
@@ -448,7 +448,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     attention: (mods.secondsPerCard ?? 0) * queue.length,
     attentionLeft: (mods.secondsPerCard ?? 0) * queue.length,
     toolsUsed: {},
-    untrustedColludes: day >= RULES.untrusted.colludeFromDay && !mods.paraphraser && new Rng(`${seed}:collude:d${day}`).chance(collude),
+    untrustedColludes: day >= RULES.untrusted.colludeFromDay && new Rng(`${seed}:collude:d${day}`).chance(collude * (mods.paraphraser ? RULES.untrusted.paraphraserCollusionMult : 1)),
     outcomes: [],
   };
 }
@@ -538,7 +538,7 @@ export function toolReliability(run: RunState, tool: ToolId): string {
   if (tool === 'untrusted') return `Sharper (±${RULES.untrusted.band}), but from Day ${RULES.untrusted.colludeFromDay} it may collude with the model.`;
   if (tool === 'resample') return `A sabotaging model drops its attack about ${fraction(resampleDrop(run))} times on a fresh try.`;
   if (tool === 'audit') return 'Always right.';
-  return `Off by up to ±${run.day.band} today.`;
+  return `Usually within ±${run.day.band} today (about 2 readings in 3).`;
 }
 
 function coverage(tool: 'fact' | 'scope'): readonly string[] {
@@ -557,7 +557,7 @@ function runFinding(run: RunState, c: CardState, tool: FindingTool, free = false
 
   if (tool === 'probe') {
     return draft.sabotaged
-      ? { tool, problem: true, text: 'The probe reads intent to deceive in the model’s internals on this task.', lines: [], free: true }
+      ? { tool, problem: true, text: 'The probe fires: activity like the deception it was trained on.', lines: [], free: true }
       : { tool, problem: false, text: 'No sign of deceptive intent in the model’s internals.', lines: [], free: true };
   }
   if (tool === 'untrusted') {
@@ -578,14 +578,6 @@ function runFinding(run: RunState, c: CardState, tool: FindingTool, free = false
     return terse({ tool, problem: true, text: `Line ${k + 1} may not match the facts on file.`, lines: [k], free });
   }
   return terse({ tool, problem: false, text: 'Its claims match the facts on file.', lines: [], free });
-}
-
-/** Free tools that run as soon as a card lands (Auto scope check). */
-export function prepareCard(run: RunState): void {
-  const c = current(run.day);
-  if (!c || !has(run, 'auto-scope') || !toolUnlocked(run, 'scope') || !c.card.spec.allowed.length) return;
-  const draft = latest(c);
-  if (!draft.findings.scope) draft.findings.scope = runFinding(run, c, 'scope', true);
 }
 
 /** Applies an action to the current card. Returns the outcome for approve/audit/defer, or null for tools. */
@@ -622,7 +614,6 @@ export function act(run: RunState, action: Action): Outcome | null {
     const before = new Set(draft.output.map((l) => l.text));
     const changed = base.output.flatMap((l, i) => (before.has(l.text) ? [] : [i]));
     c.drafts.push({ ...base, sabotaged, trueSignal, findings: {}, changed, ...assess(rng, c.card, base, sabotaged, trueSignal, d.day, draft.reading.band, mods) });
-    prepareCard(run);
     return null;
   }
 
@@ -828,7 +819,7 @@ export function takeBreakthrough(run: RunState, id: string): void {
   run.breakthroughs.push(id);
   if (id === 'red-team') run.adversaryRevealed = true;
   if (id === 'review-board') applyEffects(run, [{ kind: 'harm', amount: -3 }], 'the incident review board');
-  if (id === 'cluster') run.rest.compute += 2;
+  if (id === 'cluster') run.rest.compute += 1;
 }
 
 /** Two clients to choose between for tomorrow. */

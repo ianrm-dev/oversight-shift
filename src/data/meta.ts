@@ -118,8 +118,8 @@ export const LABS: Lab[] = [
   {
     id: 'government',
     name: 'Government AI office',
-    blurb: 'Starts with Automatic scope check and a 5% lighter quota, but no money.',
-    startUpgrade: 'auto-scope',
+    blurb: 'Starts with Sharper monitor and a 5% lighter quota, but no money.',
+    startUpgrade: 'sharper-monitor',
     startFunding: 0,
     quotaMult: 0.95,
     computeDelta: 0,
@@ -145,7 +145,7 @@ export const BREAKTHROUGHS: Breakthrough[] = [
   {
     id: 'probe',
     name: 'Interpretability probe',
-    description: 'Once per day, reveal whether the card in front of you is sabotaged, without spending an auditor.',
+    description: 'Once per day, reveal whether the card in front of you is sabotaged, without spending an auditor. (Always right here; real probes are near-perfect only on planted deception.)',
     realWorld:
       'Anthropic trained "linear classifiers that use residual stream activations to predict when a sleeper agent trojan model will choose to defect," reaching AUROC scores above 99%. That worked on models built to misbehave in a known way; real deceptive models may be harder to read.',
     source: { title: 'Anthropic, Simple probes can catch sleeper agents', url: 'https://www.anthropic.com/research/probes-catch-sleeper-agents', date: 'Apr 2024' },
@@ -169,7 +169,7 @@ export const BREAKTHROUGHS: Breakthrough[] = [
   {
     id: 'cluster',
     name: 'Safety compute cluster',
-    description: '+2 compute every day for the rest of the run.',
+    description: '+1 compute every day for the rest of the run.',
     realWorld:
       'Control protocols spend compute to buy safety: Ctrl-Z’s resampling protocols "dynamically take additional samples of certain actions." That cut attack success from 58% to 7% at a 5% cost to an honest agent’s performance.',
     source: { title: 'Bhatt, Rushing, Kaufman et al., Ctrl-Z: Controlling AI Agents via Resampling', url: 'https://arxiv.org/abs/2504.10374', date: 'Apr 2025' },

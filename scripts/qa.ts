@@ -11,7 +11,7 @@ import { emptyProgress, gradeFor, recordRun } from '../src/game/progress';
 import {
   act, advance, applyEffects, breakthroughDue, breakthroughOffer, buy, canAct, canBuy, chooseContract, chooseEvent, contractOffer, current,
   dayOver, endDay, eventChoices, eventFor, factHit, harmCeiling, harmFor, isIncident, latest, modsFor, newRun, nextDay, perfectUsefulness,
-  prepareCard, runScore, scenarioOf, skipUpgrade, startDay, takeBreakthrough, takeUpgrade, toolBlocked, toolCost, upgradeOffer,
+  runScore, scenarioOf, skipUpgrade, startDay, takeBreakthrough, takeUpgrade, toolBlocked, toolCost, upgradeOffer,
   type Action, type DayState, type Outcome, type RunState, type ShopItem,
 } from '../src/game/state';
 import { Rng } from '../src/rng';
@@ -156,7 +156,6 @@ function play(combo: Combo, player: 'random' | 'oracle', forceUpgrade: string | 
     let incidentHarm = 0;
     // ----- the shift -----
     while (!dayOver(d) && !run.loss) {
-      prepareCard(run);
       checkResources(run, `day ${d.day} card ${d.index}`, repro);
       const c = current(d)!;
       let outcome: Outcome | null = null;
@@ -319,20 +318,10 @@ function targetedChecks(): void {
           const x = newRun(s, hints(1), { difficulty: 'standard' }); jump(x, 5); if (x.day.untrustedColludes) aColl++;
           const y = newRun(s, hints(1), { difficulty: 'standard' }); takeUpgrade(y, 'paraphraser'); jump(y, 5); if (y.day.untrustedColludes) bColl++;
         }
-        effect(u.id, bColl === 0 && aColl > 0, `untrusted colludes on Day 5: ${aColl}/40 without, ${bColl}/40 with`);
+        effect(u.id, bColl < aColl, `untrusted colludes on Day 5: ${aColl}/40 without, ${bColl}/40 with`);
         break;
       }
       case 'untrusted-monitor': effect(u.id, !canAct(a, 'untrusted') && canAct(b, 'untrusted'), `untrusted tool usable: ${canAct(a, 'untrusted')}→${canAct(b, 'untrusted')}`); break;
-      case 'auto-scope': {
-        jump(a, 2); jump(b, 2);
-        let found = false;
-        for (let i = 0; i < b.day.queue.length; i++) {
-          b.day.index = i; prepareCard(b);
-          if (current(b.day)!.card.spec.allowed.length) { found = !!latest(current(b.day)!).findings.scope?.free; break; }
-        }
-        effect(u.id, found, 'free scope finding appears on allowlisted card');
-        break;
-      }
       case 'catch-bonus': {
         let refunded = false;
         for (const s of SEEDS_BY_ADV.get('injector')!.slice(0, 20)) {

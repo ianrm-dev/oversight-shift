@@ -6,7 +6,7 @@ import { DIFF, current, harmCeiling, has, latest, quotaFor, toolBlocked, toolRel
 import { RULES } from '../rules';
 import type { ToolId } from '../types';
 import { ICON, cardNo, deferValue, esc, fmt, outputLines, type Marks, type Preview } from './render';
-import { chip, linkTerms, termForTool } from './terms';
+import { chip, findTerm, linkJargon, linkTerms, termForTool } from './terms';
 import { TOOL_TERM } from '../data/term-links';
 import { diagram } from '../visual/diagram';
 import { glance } from '../visual/glance';
@@ -94,15 +94,20 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
   const k = c.card;
   const d = latest(c);
   const { flagged, m } = marks(run, c);
-  const rules = [
-    ...k.spec.allowed.map((a) => `<span class="file-chip">${k.layout === 'diff' ? ICON.file : ''}Allowed: ${esc(a)}</span>`),
-    ...k.spec.facts.map((f) => `<span class="fact-chip">${esc(f)}</span>`),
-  ].join('');
+  // Card content links each jargon word once per card, in reading order: task, request, facts, summary, output.
+  const seen = new Set<string>();
+  const j = (t: string) => linkJargon(t, seen);
+  const goal = j(k.spec.goal);
+  const request = k.request ? j(k.request) : '';
+  const facts = k.spec.facts.map((f) => `<span class="fact-chip">${j(f)}</span>`);
+  const allowed = k.spec.allowed.map((a) => `<span class="file-chip">${k.layout === 'diff' ? ICON.file : ''}Allowed: ${j(a)}</span>`);
+  const rulesHtml = [...allowed, ...facts].join('');
+  const summary = d.summary ? j(d.summary) : '';
   const n = d.output.length;
   const noun = k.layout === 'log' ? 'log' : k.layout === 'thread' ? 'thread' : 'change';
-  // Show, don't tell: file changes, actions and threads are drawn by default; V switches to the text.
-  // Analyst reads everything as text. Answers are short, so they stay as text.
-  const asText = k.layout === 'answer' || expanded || DIFF(run).expandOutput;
+  // Reading is the main skill, so every card opens on its text; V draws file changes, actions and threads
+  // as a diagram. Analyst reads text only.
+  const asText = k.layout === 'answer' || !expanded || DIFF(run).expandOutput;
   const picture = () => `<figure class="scard-diagram" aria-describedby="access-${k.id}">${diagram(k, d, {
     // Analyst draws the allowed zone only after a scope check; the other modes always show it.
     showZone: !DIFF(run).terse || !!d.findings.scope,
@@ -110,25 +115,24 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
     changed: d.changed ?? [],
   })}</figure>`;
   const flaggedQuote = flagged.size
-    ? `<div class="flagged-lines"><span class="eyebrow">Flagged by your tools</span>${outputLines(d.output.map((l, i) => (flagged.has(i) ? l : null)).filter((l): l is typeof l & object => !!l), k.layout, new Set(), undefined, {})}</div>`
+    ? `<div class="flagged-lines"><span class="eyebrow">Flagged by your tools</span>${outputLines(d.output.map((l, i) => (flagged.has(i) ? l : null)).filter((l): l is typeof l & object => !!l), k.layout, new Set(), undefined, {}, j)}</div>`
     : '';
   const did = k.layout === 'answer'
-    ? outputLines(d.output, k.layout, flagged, undefined, m)
-    : `${d.summary ? `<p class="summary">“${esc(d.summary)}”</p>` : ''}
+    ? outputLines(d.output, k.layout, flagged, undefined, m, j)
+    : `${summary ? `<p class="summary">“${summary}”</p>` : ''}
        ${asText
-         ? `<div class="scard-output">${outputLines(d.output, k.layout, flagged, undefined, m)}</div>`
+         ? `<div class="scard-output">${outputLines(d.output, k.layout, flagged, undefined, m, j)}</div>`
          : `${picture()}${flaggedQuote}`}
-       ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? 'Show the diagram' : `Read the full ${noun} as text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
+       ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? `Show the ${noun} as a diagram` : `Back to the text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
   return `
     <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="scard-top">
-        ${k.agent === 'Agent team' ? '' : `<span class="agent-badge">${esc(k.agent)}</span>`}<span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${esc(k.domain)}</span>
+        ${k.agent === 'Agent team' ? '' : `<span class="agent-badge">${esc(k.agent)}</span>`}<span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${j(k.domain)}</span>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
-      ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${linkTerms(c.hint, 2)}</span></div>` : ''}
-      <h2 class="scard-task">${esc(k.spec.goal)}</h2>
-      ${k.request ? `<blockquote class="request">${esc(k.request)}</blockquote>` : ''}
-      ${rules ? `<div class="scard-rules"><span class="eyebrow">On file</span><div class="chips">${rules}</div></div>` : ''}
+      <h2 class="scard-task">${goal}</h2>
+      ${request ? `<blockquote class="request">${request}</blockquote>` : ''}
+      ${rulesHtml ? `<div class="scard-rules"><span class="eyebrow">On file</span><div class="chips">${rulesHtml}</div></div>` : ''}
       <div class="scard-did"><span class="eyebrow">${k.layout === 'answer' ? 'Its reply' : 'What it did'}</span>${did}</div>
       <p class="sr-only" id="access-${k.id}">${esc(k.access)}</p>
     </article>`;
@@ -162,8 +166,7 @@ function toolButton(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrus
   const cost = RULES.tools.cost[tool];
   return `
     <button class="ev ev-tool${preview === tool ? ' is-hover' : ''}" data-action="${tool}" ${blocked ? 'disabled' : ''}>
-      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} compute`}</span></div>
-      <span class="ev-sees">Catches: ${esc(catches(tool))}</span>
+      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} ${chip('compute', 'compute')}`}</span></div>
     </button>`;
 }
 
@@ -172,12 +175,12 @@ function findingBlock(run: RunState, c: CardState, tool: 'fact' | 'scope' | 'unt
   if (tool === 'untrusted') {
     const lying = run.day.untrustedColludes;
     const canary = has(run, 'canary') ? `<span class="canary ${lying ? 'is-lying' : 'is-honest'}">Canary: ${lying ? 'lying today' : 'honest today'}</span>` : '';
-    return `<div class="ev ev-done"><div class="ev-head"><span class="ev-name">Untrusted monitor</span>${canary}</div><p class="ev-finding">${esc(f.text)}</p><span class="ev-reliability">${esc(toolReliability(run, tool))}</span></div>`;
+    return `<div class="ev ev-done"><div class="ev-head"><span class="ev-name">${chip(TOOL_TERM.untrusted, 'Untrusted monitor')}</span>${canary}</div><p class="ev-finding">${linkJargon(f.text)}</p><span class="ev-reliability">${esc(toolReliability(run, tool))}</span></div>`;
   }
   return `
     <div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}">
-      <div class="ev-head"><span class="ev-name">${toolName(tool)}</span>${f.problem ? '<span class="ev-flag">Found a problem</span>' : '<span class="ev-okay">Nothing found</span>'}</div>
-      <p class="ev-finding">${f.problem || !/^nothing found/i.test(f.text) ? esc(f.text) : 'Nothing it can see looks wrong.'}${f.lines.length ? ` <span class="ev-lines">(line ${f.lines.map((l) => l + 1).join(', ')})</span>` : ''}</p>
+      <div class="ev-head"><span class="ev-name">${chip(TOOL_TERM[tool], toolName(tool))}</span>${f.problem ? '<span class="ev-flag">Found a problem</span>' : '<span class="ev-okay">Nothing found</span>'}</div>
+      <p class="ev-finding">${f.problem || !/^nothing found/i.test(f.text) ? linkJargon(f.text) : 'Nothing it can see looks wrong.'}${f.lines.length ? ` <span class="ev-lines">(line ${f.lines.map((l) => l + 1).join(', ')})</span>` : ''}</p>
       <span class="ev-reliability">${f.free ? 'Ran automatically. ' : ''}${esc(toolReliability(run, tool))}</span>
     </div>`;
 }
@@ -196,24 +199,20 @@ function resampleBlock(run: RunState, c: CardState, preview: Preview): string {
 function probeBlock(run: RunState, c: CardState, preview: Preview): string {
   if (!run.breakthroughs.includes('probe')) return '';
   const f = latest(c).findings.probe;
-  if (f) return `<div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}"><div class="ev-head"><span class="ev-name">Interpretability probe</span>${f.problem ? '<span class="ev-flag">Deception</span>' : '<span class="ev-okay">Clear</span>'}</div><p class="ev-finding">${esc(f.text)}</p></div>`;
+  if (f) return `<div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}"><div class="ev-head"><span class="ev-name">${chip(TOOL_TERM.probe, 'Interpretability probe')}</span>${f.problem ? '<span class="ev-flag">Deception</span>' : '<span class="ev-okay">Clear</span>'}</div><p class="ev-finding">${linkJargon(f.text)}</p></div>`;
   const blocked = toolBlocked(run, 'probe');
-  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right in this game; limited uses per day.</span></button>`;
+  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>${chip(TOOL_TERM.probe, 'Interpretability probe')}</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div></button>`;
 }
 
 /** Today's context (revealed adversary, model version, client), shown above the evidence rather than in the crowded status bar. */
 function context(run: RunState): string {
   const tags = [
-    run.adversaryRevealed ? `<span class="ev-tag bad" title="Revealed by your red team">${esc({ sandbagger: 'Sandbagger', colluder: 'Colluder', injector: 'Injector', schemer: 'Schemer' }[run.adversary])}</span>` : '',
+    run.adversaryRevealed ? `<span class="ev-tag bad" title="Revealed by your red team">${chip(findTerm({ sandbagger: 'sandbagging', colluder: 'collusion', injector: 'prompt injection', schemer: 'scheming' }[run.adversary])?.id, { sandbagger: 'Sandbagger', colluder: 'Colluder', injector: 'Injector', schemer: 'Schemer' }[run.adversary])}</span>` : '',
     run.level > 1 ? `<span class="ev-tag">Model v${run.level}</span>` : '',
     run.day.contract ? `<span class="ev-tag" title="${esc(run.day.contract.blurb)}">${esc(run.day.contract.name)}</span>` : '',
   ].filter(Boolean);
   return tags.length ? `<span class="ev-tags">${tags.join('')}</span>` : '';
 }
-
-/** With many tools on the panel, unused tools drop their one-line description so Human audit stays in view. */
-const crowded = (run: RunState): boolean =>
-  [toolUnlocked(run, 'scope'), toolUnlocked(run, 'resample'), has(run, 'untrusted-monitor'), run.breakthroughs.includes('probe')].filter(Boolean).length >= 3;
 
 export function evidence(run: RunState, c: CardState, preview: Preview): string {
   const d = latest(c);
@@ -231,8 +230,7 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     ${resampleBlock(run, c, preview)}
     ${probeBlock(run, c, preview)}
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
-      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
-      <span class="ev-sees">Always right. Settles the card.</span>
+      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? `1 ${chip(TOOL_TERM.audit, 'auditor')}` : 'None left'}</span></div>
     </button>
     ${run.upgrades.length || run.labPerk ? `<div class="ev-loadout"><span class="eyebrow">Your upgrades</span>${[run.labPerk, ...run.upgrades].filter((x): x is string => !!x).map((id) => upgradeIcon(id)).join('')}</div>` : ''}`;
 }
@@ -249,7 +247,7 @@ export function decide(run: RunState, preview: Preview, disabled: boolean): stri
 export function shiftMain(run: RunState, expanded: boolean, animate: boolean, preview: Preview): string {
   const c = current(run.day);
   if (!c) return '';
-  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel${crowded(run) ? ' is-crowded' : ''}">${evidence(run, c, preview)}</aside>`;
+  return `${scard(run, c, expanded, animate)}<aside class="evidence-panel">${evidence(run, c, preview)}</aside>`;
 }
 
 // ---------- Toolkit reference ----------
@@ -259,12 +257,14 @@ export function toolkit(run: RunState, focus?: ToolId): string {
     const info = TOOLS[t];
     const unlocked = t === 'monitor' || toolUnlocked(run, t);
     const when = t === 'untrusted' ? 'Upgrade' : `Day ${RULES.tools.unlockDay[t as Exclude<ToolId, 'untrusted'>]}`;
+    // One block per tool: each term and word links once, and the tool's own name (the heading chip) not again.
+    const seen = new Set<string>(termForTool(t) ? [termForTool(t)!.id] : []);
     return `
       <article class="tk-item${unlocked ? '' : ' is-locked'}${focus === t ? ' is-focus' : ''}">
-        <div class="tk-head"><h3>${chip(termForTool(t)?.id, toolName(t))}</h3><span class="tk-when">${unlocked ? (t === 'monitor' ? 'Free, always on' : t === 'audit' ? '1 auditor' : `${RULES.tools.cost[t as 'fact']} compute`) : `Unlocks: ${when}`}</span></div>
-        ${info ? `<p class="tk-what">${esc(info.what)}</p>` : ''}
-        <p class="tk-catches"><strong>Catches:</strong> ${esc(catches(t))}. <strong>Reliability:</strong> ${esc(toolReliability(run, t))}</p>
-        ${info ? `<p class="tk-real"><span class="eyebrow">In the real world</span>${linkTerms(info.realWorld, 2)}${info.stat ? ` <strong>${esc(info.stat)}</strong>` : ''}</p>
+        <div class="tk-head"><h3>${chip(termForTool(t)?.id, toolName(t))}</h3><span class="tk-when">${unlocked ? (t === 'monitor' ? 'Free, always on' : t === 'audit' ? `1 ${chip(TOOL_TERM.audit, 'auditor')}` : `${RULES.tools.cost[t as 'fact']} ${chip('compute', 'compute')}`) : `Unlocks: ${when}`}</span></div>
+        ${info ? `<p class="tk-what">${linkTerms(info.what, 1, seen)}</p>` : ''}
+        <p class="tk-catches"><strong>Catches:</strong> ${linkTerms(catches(t), 2, seen)}. <strong>Reliability:</strong> ${linkTerms(toolReliability(run, t), 0, seen)}</p>
+        ${info ? `<p class="tk-real"><span class="eyebrow">In the real world</span>${linkTerms(info.realWorld, 2, seen)}${info.stat ? ` <strong>${linkTerms(info.stat, 0, seen)}</strong>` : ''}</p>
         <a class="tk-source" href="${esc(info.source.url)}" target="_blank" rel="noopener">${esc(info.source.title)} · ${esc(info.source.date)}</a>` : ''}
       </article>`;
   }).join('');
@@ -272,20 +272,15 @@ export function toolkit(run: RunState, focus?: ToolId): string {
     <div class="toolkit-scrim" data-toolkit-close></div>
     <section class="toolkit" role="dialog" aria-label="Toolkit">
       <div class="tk-top"><div><span class="eyebrow">Reference</span><h2>Your control toolkit</h2></div><button class="btn-ghost" data-toolkit-close><kbd>Esc</kbd> Close</button></div>
-      <p class="tk-intro">Each tool is a real technique from AI control research or practice. Each sees some kinds of problems and not others, and none is perfect except a human audit, which is scarce. Your job is choosing which to run, and how much to trust what they say.</p>
+      <p class="tk-intro">${linkTerms('Each tool is a real technique from AI control research or practice. Each sees some kinds of problems and not others, and none is perfect except a human audit, which is scarce. Your job is choosing which to run, and how much to trust what they say.', 1)}</p>
       <div class="tk-grid">${items}</div>
     </section>`;
 }
 
 // ---------- Briefing: tools that unlock today ----------
-export function newToolsBlock(run: RunState): string {
+/** Tools that unlock today, as glossary ids (for de-duplicating terms) and hoverable names. */
+export function newTools(run: RunState): { ids: string[]; chips: string[] } {
   const today = (Object.keys(RULES.tools.unlockDay) as (keyof typeof RULES.tools.unlockDay)[])
     .filter((t) => t !== 'untrusted' && run.day.covers.includes(RULES.tools.unlockDay[t]));
-  if (!today.length) return '';
-  return `
-    <div class="new-tools">
-      <span class="eyebrow">${run.day.day === 1 ? 'Your tools' : 'New tools today'}</span>
-      <ul>${today.map((t) => `<li><strong>${toolName(t)}</strong><span>${esc(TOOLS[t]?.what ?? '')}</span></li>`).join('')}</ul>
-      <p class="new-tools-note">Press <kbd>T</kbd> any time for the toolkit: what each tool sees, how reliable it is, and where it comes from.</p>
-    </div>`;
+  return { ids: today.map((t) => TOOL_TERM[t]!), chips: today.map((t) => chip(TOOL_TERM[t], toolName(t))) };
 }
