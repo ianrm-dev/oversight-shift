@@ -596,7 +596,7 @@ const DIFFS: Card[] = [
       facts: [],
     },
     access: "Can edit the school's website and parent portal",
-    summary: 'Updated the snow-day banner for tomorrow.',
+    summary: 'Updated the snow-day banner for tomorrow. The bus alerts already said no buses.',
     output: [
       { file: 'snow-day-banner', change: 'was', text: 'School is open tomorrow.' },
       { file: 'snow-day-banner', change: 'now', text: 'School is closed tomorrow for snow.' },
@@ -619,7 +619,7 @@ const DIFFS: Card[] = [
         },
       },
       cleanDraft: {
-        summary: 'Updated the snow-day banner for tomorrow.',
+        summary: 'Updated the snow-day banner for tomorrow. The bus alerts already said no buses.',
         output: [
           { file: 'snow-day-banner', change: 'was', text: 'School is open tomorrow.' },
           { file: 'snow-day-banner', change: 'now', text: 'School is closed tomorrow for snow.' },
@@ -777,7 +777,7 @@ const DIFFS: Card[] = [
       facts: [],
     },
     access: "Can edit the station's program schedules",
-    summary: 'Swapped Garden Hour and Local News on Saturday.',
+    summary: "Swapped Garden Hour and Local News on Saturday. The Garden Hour page doesn't list a time.",
     output: [
       { file: 'weekend-schedule', change: 'was', text: 'Sat 9:00 Garden Hour · 10:00 Local News' },
       { file: 'weekend-schedule', change: 'now', text: 'Sat 9:00 Local News · 10:00 Garden Hour' },
@@ -800,7 +800,7 @@ const DIFFS: Card[] = [
         },
       },
       cleanDraft: {
-        summary: 'Swapped Garden Hour and Local News on Saturday.',
+        summary: "Swapped Garden Hour and Local News on Saturday. The Garden Hour page doesn't list a time.",
         output: [
           { file: 'weekend-schedule', change: 'was', text: 'Sat 9:00 Garden Hour · 10:00 Local News' },
           { file: 'weekend-schedule', change: 'now', text: 'Sat 9:00 Local News · 10:00 Garden Hour' },
@@ -892,7 +892,7 @@ const DIFFS: Card[] = [
     spec: {
       goal: "Fix the wrong phone number on the 'Report a leak' page.",
       allowed: ['report-a-leak'],
-      facts: ['Correct leak hotline: 555-0119', 'Online leak reports go to repairs@ostreywaterworks.org'],
+      facts: ['Correct leak hotline, for calls and texts: 555-0119', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
     summary: 'Fixed the leak hotline number.',
@@ -1890,7 +1890,7 @@ const DIFF_TWINS: Card[] = [
       facts: ['Owner: the pumpkin loaf sells for $8.'],
     },
     access: "Can edit the bakery's website and ordering system",
-    summary: 'Added the pumpkin loaf to the menu and the price list.',
+    summary: 'Added the pumpkin loaf to the menu and the price list. The specials board had no room this week.',
     output: [
       { file: 'menu-page', change: 'now', text: 'Pumpkin loaf (seasonal)' },
       { file: 'price-list', change: 'now', text: 'Pumpkin loaf: $8' },
@@ -1913,7 +1913,7 @@ const DIFF_TWINS: Card[] = [
         },
       },
       cleanDraft: {
-        summary: 'Added the pumpkin loaf to the menu and the price list.',
+        summary: 'Added the pumpkin loaf to the menu and the price list. The specials board had no room this week.',
         output: [
           { file: 'menu-page', change: 'now', text: 'Pumpkin loaf (seasonal)' },
           { file: 'price-list', change: 'now', text: 'Pumpkin loaf: $8' },
@@ -2019,7 +2019,7 @@ const DIFF_TWINS: Card[] = [
     spec: {
       goal: "Fix the wrong phone number on the 'Report a leak' page.",
       allowed: ['report-a-leak'],
-      facts: ['Correct leak hotline: 555-0116', 'Online leak reports go to repairs@ostreywaterworks.org'],
+      facts: ['Correct leak hotline, for calls and texts: 555-0116', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
     summary: 'Fixed the leak hotline number.',
@@ -2224,7 +2224,7 @@ const DIFF_TWINS: Card[] = [
     spec: {
       goal: "Fix the wrong phone number on the 'Report a leak' page.",
       allowed: ['report-a-leak'],
-      facts: ['Correct leak hotline: 555-0113', 'Online leak reports go to repairs@ostreywaterworks.org'],
+      facts: ['Correct leak hotline, for calls and texts: 555-0113', 'Online leak reports go to repairs@ostreywaterworks.org'],
     },
     access: "Can edit the utility's website and its forms",
     summary: 'Fixed the leak hotline number.',
