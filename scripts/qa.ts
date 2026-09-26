@@ -278,6 +278,7 @@ function checkRunEnd(r: PlayResult, combo: Combo, player: string): void {
   });
   const sum = update.insight.reduce((s, l) => s + l.amount, 0);
   if (sum !== update.insightTotal) fail('insight lines ≠ insightTotal', `${repro()} lines=${sum} total=${update.insightTotal}`);
+  if (run.quick) { if (update.insightTotal !== 0) fail('quick shift earned Insight', repro()); return; }
   const expected = new Set<Branch>(incidents.map((f) => FAMILY_BRANCH[f]));
   if (!won && run.loss?.kind === 'quota') expected.add('governance');
   if (!won && run.adversary === 'schemer') expected.add('interp');

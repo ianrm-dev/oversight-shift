@@ -31,21 +31,21 @@ interface Persona {
   tool: Record<string, number>; recognize: number; falseRead: number;
   incident: number; audit: number; timeout: number;
   review: number; event: number; breakthrough: number; budget: number; intro: number; briefingWps: number; briefingBase: number; reveal: number;
-  preRun: number; coach: number;
+  preRun: number; coach: number; /** first-run tours on the other screens */ tours: number;
 }
 const FT: Persona = {
   name: 'first-timer', wps: 3.0, glance: 6, decide: 3, anim: 0.4, skim: 0.35,
   tool: { fact: 8, scope: 6, resample: 14, untrusted: 5, probe: 5 }, recognize: 0.45, falseRead: 0.12,
   incident: 20, audit: 12, timeout: 15,
   review: 25, event: 30, breakthrough: 20, budget: 45, intro: 12, briefingWps: 3.5, briefingBase: 5, reveal: 12,
-  preRun: 30, coach: 45,
+  preRun: 30, coach: 45, tours: 100,
 };
 const PR: Persona = {
   name: 'practiced', wps: 4.0, glance: 4, decide: 1.5, anim: 0.4, skim: 0.15,
   tool: { fact: 5, scope: 4, resample: 10, untrusted: 3, probe: 3 }, recognize: 0.7, falseRead: 0.05,
   incident: 10, audit: 6, timeout: 8,
   review: 10, event: 15, breakthrough: 10, budget: 20, intro: 5, briefingWps: 6, briefingBase: 3, reveal: 6,
-  preRun: 15, coach: 0,
+  preRun: 15, coach: 0, tours: 0,
 };
 
 const words = (s?: string) => (s ? s.trim().split(/\s+/).length : 0);
@@ -105,13 +105,13 @@ function playOne(seed: string, diff: Difficulty, mode: Mode, P: Persona, acc: Ac
   const research = argStr('research') === 'all' ? TREE.map((n) => n.id) : [];
   try { run = newRun(seed, dayInfo(1).hints, { difficulty: diff, level: 1, lab: 'frontier', research, quick: QUICK }); } catch { return; }
   acc.runs++;
-  let t = P.preRun + P.coach; // title + setup (+ coach tour on a first run)
+  let t = P.preRun + P.coach + P.tours; // title + setup (+ tours on a first run)
   acc.preSec.push(t);
   let cardT = 0, betweenT = 0, overlayT = 0;
   let firstSab = -1, firstLoud = -1, firstUpgrade = -1, day3 = -1, decisions = 0;
   const terse = RULES.difficulty[diff].terse;
   let won = false;
-  const DAYLIST = QUICK ? [1, 3, 5, 7] : [1, 2, 3, 4, 5, 6, 7];
+  const DAYLIST = QUICK ? [...RULES.quickDays] : [1, 2, 3, 4, 5, 6, 7];
   for (const day of DAYLIST) {
     if (day === 3) day3 = t;
     const b = P.briefingBase + briefWords(day) / P.briefingWps + (day === 3 || day === 7 ? P.intro : 0);
@@ -129,7 +129,7 @@ function playOne(seed: string, diff: Difficulty, mode: Mode, P: Persona, acc: Ac
       // Time on this card before the decision: glance, reading, tools.
       let spend = P.glance;
       const left = d.queue.length - d.index;
-      const clock = d.attention > 0;
+      const clock = d.attention > 0 && d.index >= d.untimed;
       const reserve = (left - 1) * (P.glance + P.decide + 2); // what a player keeps back for the rest of the queue
       let read = 0;
       if (mode === 'human' || mode === 'human-naive') {

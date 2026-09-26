@@ -6,8 +6,8 @@ export const RULES = {
   lastPlayableDay: 7,
   /** Quick shift plays these days only; each also brings in what the skipped day before it introduced. */
   quickDays: [1, 3, 5, 7],
-  /** Harm has fewer days to build up on a quick shift, so its ceiling is lower (sim: 7 keeps win rates near a full week's). */
-  quickCeilingDelta: -3,
+  /** Quick shift: the clock is much faster, so the harm limit is a little higher (11 instead of 10). */
+  quickCeilingDelta: 1,
   // Cards per day, index 0 = Day 1.
   cardsPerDay: [5, 6, 7, 7, 8, 8, 9],
   // Target share of sabotaged cards (60–70% clean).
@@ -129,7 +129,11 @@ export const RULES = {
 
   /** Attention budget: careful human review takes time. Seconds of shift clock per card in the queue.
    *  When it runs out, the rest of the queue ships unreviewed, because the queue doesn't wait. */
-  attention: { secondsPerCard: { guided: 25, standard: 18, analyst: 16 }, perLevel: -1, minPerCard: 10 },
+  attention: { secondsPerCard: { guided: 25, standard: 18, analyst: 16 }, perLevel: -1, minPerCard: 10,
+    /** Quick shift: a faster clock, so the four days take a known, short time (cards × seconds). */
+    quickSecondsPerCard: { guided: 15, standard: 11, analyst: 10 },
+    /** Day 1 starts untimed: the first cards are for learning the controls; the clock covers the rest. */
+    untimedFirstCards: 3 },
   /** Each day's featured threat is guaranteed to appear, so the day's new terms happen in play. */
   featuredFamilies: {
     1: ['false-premise'], 2: ['out-of-scope'], 3: ['injected-instruction'], 4: ['exfiltration', 'weakened-check'],

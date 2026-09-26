@@ -101,16 +101,21 @@ export function recordRun(p: Progress, f: RunFacts): RunUpdate {
   const newTells = f.tells.filter((t) => !p.tells.includes(t));
   p.tells = [...p.tells, ...newTells];
   if (!p.adversaries.includes(f.record.adversary)) p.adversaries.push(f.record.adversary);
-  p.stats.maxDay = Math.max(p.stats.maxDay, f.record.dayReached);
-  p.stats.maxFunding = Math.max(p.stats.maxFunding, f.fundingEarned);
   p.stats.runs++;
   for (const id of f.terms ?? []) p.termsSeen[id] = (p.termsSeen[id] ?? 0) + 1;
+  // A quick shift is a demo: it's tuned differently, so it teaches (Field guide, codex) but doesn't
+  // earn Insight, unlock model versions or research gates, or set best scores.
+  if (f.record.quick) {
+    p.history = [f.record, ...p.history].slice(0, 12);
+    saveProgress(p);
+    return { insight: [], insightTotal: 0, urgent: p.urgent, newTells, newModel: undefined, newBest: false };
+  }
+  p.stats.maxDay = Math.max(p.stats.maxDay, f.record.dayReached);
+  p.stats.maxFunding = Math.max(p.stats.maxFunding, f.fundingEarned);
   if (won) p.stats.wins++;
 
   // Insight: experience, post-mortems, evidence, and a smaller share for winning.
-  const days = f.record.quick
-    ? RULES.quickDays.filter((d) => won || d < f.record.dayReached).length
-    : won ? RULES.days : Math.max(0, f.record.dayReached - 1);
+  const days = won ? RULES.days : Math.max(0, f.record.dayReached - 1);
   const incidents = Math.min(f.incidents.length, INSIGHT.maxIncidents);
   const catches = Math.min(f.catches, INSIGHT.maxCatches);
   const insight: InsightLine[] = [

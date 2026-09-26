@@ -35,7 +35,7 @@ export function title(p: Progress): string {
       <p class="title-tag">Your lab is deploying a model smarter than the tools watching it.<br/>Keep its work shipping. Keep what it breaks below the line.</p>
       <button class="menu-start" data-go="setup">
         <span class="menu-start-name"><kbd>Enter</kbd> New shift</span>
-        <span class="menu-start-desc">A quick shift takes about 10–15 minutes. Pick a difficulty, then play.</span>
+        <span class="menu-start-desc">A quick shift takes about 15 minutes. Pick a difficulty, then play.</span>
       </button>
       <div class="title-menu">
         <button class="menu-opt" data-go="daily-info">
@@ -135,13 +135,15 @@ export function setup(p: Progress, s: Setup): string {
       <section class="setup-row"><span class="eyebrow">Length <kbd>Q</kbd></span>
         <div class="len-picker">
           <button class="len-opt${s.quick ? '' : ' is-selected'}" data-length="full"><strong>Full week</strong><span>All 7 days</span></button>
-          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>Days 1, 3, 5 and 7: every threat and tool, a tighter harm limit</span></button>
+          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>A demo: Days 1, 3, 5 and 7 on a fast clock</span></button>
         </div>
       </section>
-      <section class="setup-row"><span class="eyebrow">Your lab</span><div class="lab-picker">${labs}</div></section>
+      ${s.quick
+        ? `<p class="setup-quick-note">The quick shift is a demo: it always uses Frontier lab and Model v1, your research doesn't apply, and it earns no Insight. Play the full week to research, unlock labs and face stronger models.</p>`
+        : `<section class="setup-row"><span class="eyebrow">Your lab</span><div class="lab-picker">${labs}</div></section>
       <section class="setup-row"><span class="eyebrow">Model version</span>
         <div class="ver-row"><div class="ver-picker">${versions}</div><p class="ver-change">${linkTerms(current?.change ?? '', 1)}${p.maxModel < 5 ? ` <span class="muted">Win on v${p.maxModel} to face v${p.maxModel + 1}.</span>` : ''}</p></div>
-      </section>
+      </section>`}
       <div class="setup-actions"><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Back</button><button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button></div>
     </main>`;
 }
@@ -286,7 +288,9 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
     <div class="end-extras">
       <div class="reveal-adv"><span class="eyebrow">The model you faced</span><h3>${esc(a.name)}</h3><p>${linkTerms(a.tagline, 1)}</p><p class="muted">${attacks.length} sabotage attempt${attacks.length === 1 ? '' : 's'} reached you: ${early} before Day ${RULES.schemerLateFrom}, ${attacks.length - early} after.</p></div>
       <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}</div>
-      ${postMortem ? `<div class="unlocks"><span class="eyebrow">Post-mortem · +${update!.insightTotal} insight</span>${postMortem}</div>` : ''}
+      ${run.quick
+        ? `<div class="unlocks"><span class="eyebrow">Quick shift</span><p class="urgent-note">A demo run: no Insight, and it doesn't count toward research or model versions. Play the full week to fund research that carries into every run.</p></div>`
+        : postMortem ? `<div class="unlocks"><span class="eyebrow">Post-mortem · +${update!.insightTotal} insight</span>${postMortem}</div>` : ''}
     </div>`;
 }
 

@@ -67,6 +67,9 @@ let endScore = 0;
 let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
+/** The clock-start card after Day 1's training: shown in full the first time, then as a short notice. */
+let clockIntro = false;
+const clockIntroKey = 'oversight-shift:clock-intro';
 let fieldTestTaken = false;
 /** Tours: the first time a player sees each screen, tips walk through what's on it and what to do next.
  *  Every tip advances with a button, never by forcing a move. `anchor` places a tip beside a different
@@ -75,7 +78,7 @@ interface CoachStep { target: string; text: string; anchor?: string }
 type TourId = 'setup' | 'briefing' | 'shift' | 'audit' | 'incident' | 'review' | 'event' | 'between' | 'breakthrough' | 'end' | 'lab';
 const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   setup: { title: 'New shift', steps: [
-    { target: '.len-picker', text: 'A quick shift plays Days 1, 3, 5 and 7 and takes about 10 to 15 minutes. The full week plays all seven.' },
+    { target: '.len-picker', text: 'The quick shift is a demo: Days 1, 3, 5 and 7 on a fast clock, about 15 minutes. The full week is the whole game, with research, more labs and stronger models.' },
     { target: '.diff-picker', text: 'Difficulty sets how much time, compute and help you get. Guided is the gentlest place to start.' },
     { target: '.lab-picker', text: 'Your lab sets your starting funding and one perk. Research unlocks more labs.' },
     { target: '[data-start]', text: 'Press Enter to start. You come back here after every run.' },
@@ -92,7 +95,7 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
     { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It\'s a hint, not proof: the shaded box shows how far off it may be.' },
     { target: '[data-action="fact"]', text: 'Fact check costs 1 compute and compares the work with the rules on file. You only get a few a day, so save them for cards you can\'t settle by reading.' },
     { target: '[data-action="audit"]', text: 'A human audit is always right, but you get one or two a day. Spend it when a card could do real damage and you\'re not sure.' },
-    { target: '[data-clock]', text: 'The clock runs while a card is on screen. When it hits zero, every card left in the queue ships unreviewed.' },
+    { target: '[data-clock]', text: 'Your first 3 cards are untimed, to learn the ropes. Then the clock starts, and it only runs while a card is on screen. When it hits zero, every card left in the queue ships unreviewed.' },
     { target: '[data-region="decide"]', text: 'Then decide. Approve (A) ships the work. Defer (D) throws it out and a weaker, safe model redoes it for less. Defer too often and you miss the quota.' },
   ] },
   audit: { title: 'Human audit', steps: [
@@ -125,7 +128,7 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   ] },
   end: { title: 'Run over', steps: [
     { target: '.over-grid', text: 'How it went: what got past you, how you compare with real auditors, and your week at a glance.' },
-    { target: '.end-extras', text: 'The hidden adversary you faced, your score, and the Insight you earned. Failed runs earn the most, as in real research.' },
+    { target: '.end-extras', text: 'The hidden adversary you faced and your score. Full-week runs also earn Insight for research, and failed runs earn the most, as in real research.' },
     { target: '.over-actions [data-go="lab"]', text: 'Spend Insight in the Research lab: research makes every future run easier. The Field test checks what stuck.' },
     { target: '.over-actions', text: 'Play again, try a new seed, or go back to the menu.' },
   ] },
@@ -146,7 +149,7 @@ function markSeen(ids: string[]): void {
   try { localStorage.setItem(toursKey, JSON.stringify([...new Set([...toursSeen(), ...ids])])); } catch { /* storage unavailable */ }
 }
 function resetTours(): void {
-  try { localStorage.removeItem(toursKey); localStorage.removeItem('oversight-shift:coached'); } catch { /* storage unavailable */ }
+  try { localStorage.removeItem(toursKey); localStorage.removeItem('oversight-shift:coached'); localStorage.removeItem('oversight-shift:clock-intro'); } catch { /* storage unavailable */ }
 }
 let tour: { id: TourId; step: number } | null = null;
 
@@ -263,7 +266,10 @@ const esc = R.esc;
 function startRun(seed: string, daily = false): void {
   const opts = daily
     ? { difficulty: 'standard' as Difficulty, lab: 'frontier', level: 1, research: [], daily: true }
-    : { ...setup, quick: !!setup.quick, research: progress.research };
+    : setup.quick
+      // The quick shift is a demo, tuned apart from the full game: fixed lab and model, no research.
+      ? { difficulty: setup.difficulty, lab: 'frontier', level: 1, research: [], quick: true }
+      : { ...setup, quick: false, research: progress.research };
   run = newRun(seed, hintsFor([1]), opts);
   ping('start', { m: runMode(run), d: run.difficulty, v: run.level });
   endUpdate = null;
@@ -418,6 +424,7 @@ function render(): void {
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
   if (paused && run) screenEl.insertAdjacentHTML('beforeend', R.pauseMenu(run));
+  else if (clockIntro && run && screen.kind === 'shift' && !screen.overlay) screenEl.insertAdjacentHTML('beforeend', R.clockIntro(run));
   if (toolkitOpen && run && (screen.kind === 'shift' || screen.kind === 'briefing')) {
     screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
   }
@@ -528,7 +535,19 @@ function nextCard(): void {
     screen = { kind: 'review', html: R.review(run, summary, L.termsInAction(termsToday())) };
   } else {
     screen = { kind: 'shift' };
+    if (run.day.untimed && run.day.index === run.day.untimed) {
+      let seen = false;
+      try { seen = !!localStorage.getItem(clockIntroKey); } catch { /* storage unavailable */ }
+      if (!seen) clockIntro = true;
+      else { render(); showToast('Training done: the clock is running', 'defer'); return; }
+    }
   }
+  render();
+}
+
+function startClock(): void {
+  clockIntro = false;
+  try { localStorage.setItem(clockIntroKey, '1'); } catch { /* storage unavailable */ }
   render();
 }
 
@@ -716,6 +735,10 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape' || k === 't') { e.preventDefault(); toggleToolkit(null); }
     return;
   }
+  if (clockIntro) {
+    if (k === ' ' || k === 'enter') { e.preventDefault(); startClock(); }
+    return;
+  }
   // While a tip is up, the game waits: Space or Enter for the next tip, Esc skips them all.
   if (tour) {
     e.preventDefault();
@@ -808,6 +831,8 @@ screenEl.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
   const rep = el.closest<HTMLElement>('[data-replace]');
   if (rep && rep.dataset.replace) { replaceWith(rep.dataset.replace); return; }
+  if (el.closest('[data-clock-start]')) { startClock(); return; }
+  if (clockIntro) return;
   const coach = el.closest<HTMLElement>('[data-coach]');
   if (coach) {
     if (coach.dataset.coach === 'skip') endTour(true); else nextTip();
@@ -888,7 +913,7 @@ setInterval(() => {
   lastTick = now;
   if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden || tour) return;
   const d = run.day;
-  if (!d.attention || dayOver(d)) return;
+  if (!d.attention || dayOver(d) || d.index < d.untimed || clockIntro) return;
   d.attentionLeft = Math.max(0, d.attentionLeft - dt);
   const fill = screenEl.querySelector<HTMLElement>('.clock-fill');
   const num = screenEl.querySelector<HTMLElement>('.clock-num');

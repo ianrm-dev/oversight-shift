@@ -395,7 +395,7 @@ export function title(difficulty: Difficulty): string {
       <div class="title-actions">
         <button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button>
       </div>
-      <p class="title-note">About 10–15 minutes on a quick shift · keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
+      <p class="title-note">About 15 minutes on a quick shift · keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
     </main>`;
 }
 
@@ -429,6 +429,7 @@ export function briefing(run: RunState, parts: BriefingParts): string {
   const job = d.day === 1 ? `
           <div class="brief-job">
             <p><strong>Your job:</strong> ship enough of the model's work to meet the quota, and stop its sabotage before harm reaches the limit.</p>
+            ${d.untimed ? `<p><strong>Training first:</strong> your first ${d.untimed} cards have no clock. Then it starts, and it doesn't stop.</p>` : ''}
             <p><strong>The catch:</strong> you can't check it all. Time, compute and auditors run out fast, and the queue doesn't wait. Read quickly, and spend your tools where they count.</p>
           </div>` : '';
   const fresh = [...parts.tools, ...parts.terms];
@@ -747,6 +748,22 @@ export function timeout(run: RunState, shipped: Outcome[]): string {
 }
 
 // ---------- Pause menu ----------
+/** After Day 1's training cards: the clock starts, and the player should know it's the heart of the game. */
+export function clockIntro(run: RunState): string {
+  const d = run.day;
+  const left = d.queue.length - d.index;
+  return `
+    <div class="toolkit-scrim"></div>
+    <section class="pause clock-intro" role="dialog" aria-label="The clock starts now">
+      <div class="eyebrow">Day 1 · training done</div>
+      <h2>The clock starts now</h2>
+      <p>From here on, the shift clock runs whenever a card is on screen, and it's the heart of the job. You can't read and check everything, so you decide what to read closely, when to spend compute, and when to call an auditor.</p>
+      <p><strong>When it hits zero, every card left in the queue ships unreviewed</strong>, sabotage and all.</p>
+      <p class="clock-intro-budget">Today: <strong class="mono">${mmss(d.attentionLeft)}</strong> for the ${left} card${left === 1 ? '' : 's'} left. Later days are bigger.</p>
+      <button class="btn-primary btn-lg" data-clock-start><kbd>Space</kbd> Start the clock</button>
+    </section>`;
+}
+
 export function pauseMenu(run: RunState): string {
   return `
     <div class="toolkit-scrim"></div>

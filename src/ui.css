@@ -1931,3 +1931,13 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .over-actions .seed-note { margin-left: auto; }
 .over.is-win .next-model { margin: 0; font-size: var(--fs-md); font-style: italic; }
 .hud { gap: 10px; }
+.setup-quick-note { margin: 0; max-width: 620px; font-size: var(--fs-sm); line-height: var(--lh-body); color: var(--text-2); text-align: center; }
+.hud-clock.is-waiting .clock-num { font-size: var(--fs-xs); font-weight: 400; color: var(--text-3); }
+/* Day 1 training and the clock start. */
+.training-banner { margin: 0 0 var(--space-2); padding: var(--space-1) var(--space-3); font-size: var(--fs-sm); color: var(--text); background: var(--safe-wash); border-left: 2px solid var(--safe); border-radius: 0 var(--radius-sm) var(--radius-sm) 0; }
+.training-banner strong { color: var(--safe); }
+.clock-intro { width: 520px; border-color: var(--caution); }
+.clock-intro h2 { margin: 0; font-size: var(--fs-2xl); }
+.clock-intro p { margin: 0; font-size: var(--fs-md); line-height: var(--lh-body); color: var(--text-2); }
+.clock-intro p strong { color: var(--text); }
+.clock-intro-budget { padding: var(--space-2) var(--space-3); background: var(--caution-wash); border-radius: var(--radius-sm); }

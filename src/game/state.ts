@@ -86,6 +86,8 @@ export interface DayState {
   /** Shift clock: seconds for the whole day (0 = no clock), and seconds left. */
   attention: number;
   attentionLeft: number;
+  /** Cards at the start of the day that the clock doesn't count (Day 1 only). */
+  untimed: number;
   /** How many times each tool was used today (for "terms in action"). */
   toolsUsed: Partial<Record<'fact' | 'scope' | 'resample' | 'untrusted' | 'probe' | 'audit' | 'defer', number>>;
   /** Whether the untrusted monitor colludes with the model today (revealed by the Canary). */
@@ -233,9 +235,9 @@ export const harmCeiling = (run: RunState): number =>
 export const factHit = (run: RunState): number => Math.max(0.3, DIFF(run).factHit + levelMods(run.level).factHitDelta);
 
 /** Shift-clock seconds per card for a difficulty and model version (0 = no clock). */
-export function secondsPerCard(difficulty: Difficulty, level: number): number {
+export function secondsPerCard(difficulty: Difficulty, level: number, quick = false): number {
   const A = RULES.attention;
-  const base = A.secondsPerCard[difficulty];
+  const base = (quick ? A.quickSecondsPerCard : A.secondsPerCard)[difficulty];
   return base ? Math.max(A.minPerCard, base + A.perLevel * (level - 1)) : 0;
 }
 
@@ -268,7 +270,7 @@ export function modsFor(run: RunState, day: number): DayMods {
     contract,
     probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay + (knows(run, 'int-probe2') ? 1 : 0) : 0,
     level: run.level,
-    secondsPerCard: secondsPerCard(run.difficulty, run.level),
+    secondsPerCard: secondsPerCard(run.difficulty, run.level, run.quick),
     covers: coveredDays(run.quick, day),
   };
 }
@@ -425,6 +427,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
   if (!queue && best.winnable >= 0) queue = best.queue;
   if (!queue) throw new Error(`Could not generate a fair Day ${day} for seed ${seed}; check the card pool.`);
   addHints(queue, hints);
+  const untimed = day === 1 && mods.secondsPerCard ? Math.min(RULES.attention.untimedFirstCards, queue.length - 1) : 0;
   // Guarantee: perfect play with full tool use always makes quota.
   const quota = Math.max(1, Math.min(mods.quota, winnableQuota(queue)));
   const collude = mods.adversary ? RULES.adversaries[mods.adversary].untrustedCollude : RULES.untrusted.colludeChance;
@@ -445,8 +448,9 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     blind: mods.blind,
     hotlineUsed: false,
     probesLeft: mods.probes ?? 0,
-    attention: (mods.secondsPerCard ?? 0) * queue.length,
-    attentionLeft: (mods.secondsPerCard ?? 0) * queue.length,
+    attention: (mods.secondsPerCard ?? 0) * (queue.length - untimed),
+    attentionLeft: (mods.secondsPerCard ?? 0) * (queue.length - untimed),
+    untimed,
     toolsUsed: {},
     untrustedColludes: day >= RULES.untrusted.colludeFromDay && new Rng(`${seed}:collude:d${day}`).chance(collude * (mods.paraphraser ? RULES.untrusted.paraphraserCollusionMult : 1)),
     outcomes: [],

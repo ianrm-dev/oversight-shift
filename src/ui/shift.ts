@@ -70,7 +70,9 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
     <div class="hud-meter harm" title="Harm across the whole run. Reach the ceiling and the shift ends.">
       <span class="eyebrow">Harm</span><div class="bar seg">${segs}</div><span class="hud-num">${run.harm}<small>/${ceiling}</small></span>
     </div>
-    ${d.attention ? `<div class="hud-clock" data-clock title="Shift clock: careful review takes time. When it runs out, the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><div class="bar"><div class="bar-fill clock-fill" style="--v:${((d.attentionLeft / d.attention) * 100).toFixed(1)}%"></div></div><span class="hud-num clock-num">${clockText(d.attentionLeft)}</span></div>` : ''}
+    ${d.attention && d.index < d.untimed
+      ? `<div class="hud-clock is-waiting" data-clock title="The first ${d.untimed} cards of Day 1 are untimed, to learn the controls. Then the shift clock starts: careful review takes time, and when it runs out the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><span class="hud-num clock-num">training · starts on card ${d.untimed + 1}</span></div>`
+      : d.attention ? `<div class="hud-clock" data-clock title="Shift clock: careful review takes time. When it runs out, the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><div class="bar"><div class="bar-fill clock-fill" style="--v:${((d.attentionLeft / d.attention) * 100).toFixed(1)}%"></div></div><span class="hud-num clock-num">${clockText(d.attentionLeft)}</span></div>` : ''}
     <div class="hud-res" title="Human audits left today"><span class="eyebrow">${chip(TOOL_TERM.audit, 'Auditors')}</span><span class="dots">${dots(d.audits, d.auditsStart, preview === 'audit')}</span></div>
     <div class="hud-res" title="Compute left today for tools. It resets each day; unused compute is simply lost."><span class="eyebrow">${chip('compute', 'Compute')}</span><span class="dots compute">${dots(d.compute, d.computeStart, toolPreview)}</span></div>
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
@@ -125,7 +127,8 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
          : `${picture()}${flaggedQuote}`}
        ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? `Show the ${noun} as a diagram` : `Back to the text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
   return `
-    <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
+    <article class="scard${animate ? '' : ' no-anim'}${run.day.index < run.day.untimed ? ' is-training' : ''}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
+      ${run.day.index < run.day.untimed ? `<div class="training-banner"><strong>Training</strong> · card ${run.day.index + 1} of ${run.day.untimed} · no clock yet, so take your time</div>` : ''}
       <div class="scard-top">
         ${k.agent === 'Agent team' ? '' : `<span class="agent-badge">${esc(k.agent)}</span>`}<span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${j(k.domain)}</span>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>

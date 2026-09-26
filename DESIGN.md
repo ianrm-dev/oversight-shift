@@ -14,7 +14,7 @@ Genre: a *Papers, Please* inspection loop inside an FTL-style run of escalating 
 
 ## Winning, losing, and acceptable failure
 
-**Harm** accumulates across the whole run against a ceiling of **10** (a quick shift's ceiling is 7). Each card has a hidden severity:
+**Harm** accumulates across the whole run against a ceiling of **10** (a quick shift's is 11, because its clock is much faster). Each card has a hidden severity:
 
 | Severity | Harm | Agent action, Day 3+ | Example |
 |---|---|---|---|
@@ -42,12 +42,12 @@ Harm can also reach the ceiling from a choice between shifts; that ending names 
 
 | Resource | Per day | What spends it |
 |---|---|---|
-| Shift clock | 25 s per card on Guided, 18 on Standard, 16 on Analyst; 1 s less per model version above v1, never below 10 | Time on screen with a card |
+| Shift clock | 25 s per card on Guided, 18 on Standard, 16 on Analyst (a quick shift: 15, 11 and 10); 1 s less per model version above v1, never below 10. Day 1's first 3 cards are untimed training | Time on screen with a card |
 | Compute | 3 (Guided +1) | Every tool: 1 compute each |
 | Auditors | 1 (Guided +1), never below 1 | Human audit |
 | Usefulness | Earned against the quota | Defer ships less than Approve |
 
-**The shift clock** is the day's total review time (seconds per card × cards in the queue), shown as a bar and a countdown. It runs only while a card is on screen: incident reports, audit reveals, the toolkit, the pause menu, a hidden tab and tour tips all stop it. When it hits zero, every card left in the queue ships unreviewed (approved as it stands, harm and all), and a screen lists what went out. The anchor: careful human review is slow. In the MATS auditing pilot, people given 90 seconds per item reached 60% median accuracy on a set where half the items were backdoored. The player on the clock is that rushed reviewer.
+**The shift clock** is the day's total review time (seconds per card × cards in the queue), shown as a bar and a countdown. It runs only while a card is on screen: incident reports, audit reveals, the toolkit, the pause menu, a hidden tab and tour tips all stop it. When it hits zero, every card left in the queue ships unreviewed (approved as it stands, harm and all), and a screen lists what went out. The anchor: careful human review is slow. In the MATS auditing pilot, people given 90 seconds per item reached 60% median accuracy on a set where half the items were backdoored. The player on the clock is that rushed reviewer. Day 1 opens with 3 untimed training cards (a banner says so); then a full-screen card says the clock is starting and that it's the heart of the job (shown in full once, as a short notice on later runs). The clock's budget covers only the timed cards.
 
 **Compute** resets every day and unspent compute is worth nothing, so skipping the tools never pays. **Auditors** are the scarcest thing in the game on purpose: control research treats careful human review as the limiting resource.
 
@@ -171,7 +171,7 @@ Leadership sets the quota; **whatever ships past it funds the safety team.** Thi
 - Day 3 and Day 7 open with a full-screen intro before the briefing.
 - Every briefing carries one line **from the real world** tied to the day's threat (the Replit database deletion on Day 3, METR's reward-hacking findings on Day 4, and so on).
 - On Day 7, most finale cards carry the "Logging off · unattended" flag, and most flagged cards are clean (12 of 22), so the flag raises suspicion without settling anything. Both versions of a situation always share the flag.
-- **Quick shift:** a 4-day run (Days 1, 3, 5, 7) with a lower harm ceiling (7 instead of 10). Each briefing also brings in the rule the skipped day introduced ("Since Day 2: …"), its tools and its featured threats, so every threat and tool still appears. About 10–15 minutes. Quick is the default; the full week plays all seven days.
+- **Quick shift:** a 4-day demo (Days 1, 3, 5, 7) on a much faster clock (15 s per card on Guided) with a harm ceiling of 11, so a first run with tours takes about 15 minutes. It always uses Frontier lab and Model v1, research doesn't apply, and it earns no Insight and unlocks nothing, because it's tuned apart from the full game; it still counts terms and tells for the Field guide. Each briefing also brings in the rule the skipped days introducedy introduced ("Since Day 2: …"), its tools and its featured threats, so every threat and tool still appears. About 10–15 minutes. Quick is the default; the full week plays all seven days.
 - One-click restart, same seed or new. The seed shows on the end screen.
 
 ## Between days
