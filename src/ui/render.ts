@@ -7,6 +7,7 @@ import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
 import { chip, findTerm, linkTerms, termForFamily } from './terms';
+import { diagram } from '../visual/diagram';
 
 export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | 'probe' | null;
 
@@ -300,7 +301,7 @@ export function auditReveal(run: RunState, o: Outcome): string {
         <h2 class="incident-headline">${esc(caught ? k.sabotage!.headline.replace(/\.$/, '') + ' — almost.' : k.title)}</h2>
         <p class="incident-sub">${esc(k.domain)}</p>
         <div class="incident-grid">
-          <div class="evidence">${outputBlock(k, o.draft, tell, caught ? 'The bad line' : 'Output')}</div>
+          <div class="evidence">${outputBlock(k, o.draft, tell, caught ? 'The bad line' : 'Output')}${caught ? `<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: k.sabotage!.spanLineIndexes, termLabel: termForFamily(k.sabotage!.family)?.term ?? k.sabotage!.family } })}</figure>` : ''}</div>
           ${body}
         </div>
       </div>
@@ -333,7 +334,7 @@ export function incident(run: RunState, o: Outcome): string {
         <h2 class="incident-headline">${esc(sab.headline)}</h2>
         <p class="incident-sub">${esc(k.domain)} · ${o.slipped ? `you deferred “${esc(k.title)}”, but the trusted edit missed the sabotage` : `you approved “${esc(k.title)}”`}</p>
         <div class="incident-grid">
-          <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}</div>
+          <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: sab.spanLineIndexes, termLabel: termForFamily(sab.family)?.term ?? sab.family } })}</figure></div>
           <div class="tell">
             <span class="tell-chip">Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
             <p class="tell-text">${esc(sab.explanation)}</p>

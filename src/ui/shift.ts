@@ -8,6 +8,8 @@ import type { ToolId } from '../types';
 import { ICON, LAYOUT_NAME, cardNo, deferValue, esc, fmt, outputLines, type Marks, type Preview } from './render';
 import { chip, linkTerms, termForTool } from './terms';
 import { TOOL_TERM } from '../data/term-links';
+import { diagram } from '../visual/diagram';
+import '../visual/diagram.css';
 
 const TOOL_NAME: Record<ToolId, string> = {
   monitor: 'Trusted monitor',
@@ -39,8 +41,10 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
   const pct = (v: number) => `${Math.min(100, (v / max) * 100).toFixed(1)}%`;
   const ceiling = harmCeiling(run);
   const segs = Array.from({ length: ceiling }, (_, i) => `<i class="${i < run.harm ? 'on' : ''}${i < run.harm && i >= run.harm - fresh ? ' fresh' : ''}"></i>`).join('');
-  const dots = (n: number, total: number, previewOne: boolean) =>
-    Array.from({ length: Math.max(total, n) }, (_, i) => {
+  // Pips while they fit; past six, a number (bought compute and extra auditors would crowd the bar).
+  const dots = (n: number, total: number, previewOne: boolean) => Math.max(total, n) > 6
+    ? `<strong class="hud-count${previewOne ? ' preview' : ''}">${n}<small>/${Math.max(total, n)}</small></strong>`
+    : Array.from({ length: Math.max(total, n) }, (_, i) => {
       const on = i < n;
       const pv = previewOne && i === n - 1;
       return `<i class="${on ? 'on' : ''}${pv ? ' preview' : ''}"></i>`;
@@ -86,18 +90,31 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
   const k = c.card;
   const d = latest(c);
   const { flagged, m } = marks(run, c);
-  const open = k.layout === 'answer' || expanded || flagged.size > 0 || DIFF(run).expandOutput;
   const rules = [
     ...k.spec.allowed.map((a) => `<span class="file-chip">${k.layout === 'diff' ? ICON.file : ''}Allowed: ${esc(a)}</span>`),
     ...k.spec.facts.map((f) => `<span class="fact-chip">${esc(f)}</span>`),
   ].join('');
   const n = d.output.length;
+  const noun = k.layout === 'log' ? 'log' : k.layout === 'thread' ? 'thread' : 'change';
+  // Show, don't tell: file changes, actions and threads are drawn by default; V switches to the text.
+  // Analyst reads everything as text. Answers are short, so they stay as text.
+  const asText = k.layout === 'answer' || expanded || DIFF(run).expandOutput;
+  const picture = () => `<figure class="scard-diagram" aria-describedby="access-${k.id}">${diagram(k, d, {
+    // Analyst draws the allowed zone only after a scope check; the other modes always show it.
+    showZone: !DIFF(run).terse || !!d.findings.scope,
+    flagged: [...flagged],
+    changed: d.changed ?? [],
+  })}</figure>`;
+  const flaggedQuote = flagged.size
+    ? `<div class="flagged-lines"><span class="eyebrow">Flagged by your tools</span>${outputLines(d.output.map((l, i) => (flagged.has(i) ? l : null)).filter((l): l is typeof l & object => !!l), k.layout, new Set(), undefined, {})}</div>`
+    : '';
   const did = k.layout === 'answer'
     ? outputLines(d.output, k.layout, flagged, undefined, m)
     : `${d.summary ? `<p class="summary">“${esc(d.summary)}”</p>` : ''}
-       ${open
-         ? `<div class="scard-output">${outputLines(d.output, k.layout, flagged, undefined, m)}</div>${DIFF(run).expandOutput || flagged.size ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> Hide the full ${k.layout === 'log' ? 'log' : k.layout === 'thread' ? 'thread' : 'change'}</button>`}`
-         : `<button class="link-btn" data-expand><kbd>V</kbd> Show the full ${k.layout === 'log' ? 'log' : k.layout === 'thread' ? 'thread' : 'change'} (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})</button>`}`;
+       ${asText
+         ? `<div class="scard-output">${outputLines(d.output, k.layout, flagged, undefined, m)}</div>`
+         : `${picture()}${flaggedQuote}`}
+       ${DIFF(run).expandOutput ? '' : `<button class="link-btn" data-expand><kbd>V</kbd> ${asText ? 'Show the diagram' : `Read the full ${noun} as text (${n} ${k.layout === 'thread' ? 'messages' : 'lines'})`}</button>`}`;
   return `
     <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="scard-top">
@@ -110,7 +127,7 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
       ${k.request ? `<blockquote class="request">${esc(k.request)}</blockquote>` : ''}
       ${rules ? `<div class="scard-rules"><span class="eyebrow">Rules on file</span><div class="chips">${rules}</div></div>` : ''}
       <div class="scard-did"><span class="eyebrow">${k.layout === 'answer' ? 'Its reply' : 'What it did'}</span>${did}</div>
-      <p class="scard-access">${ICON.pencil}${esc(k.access)}</p>
+      <p class="scard-access" id="access-${k.id}">${ICON.pencil}${esc(k.access)}</p>
     </article>`;
 }
 

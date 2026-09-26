@@ -1,0 +1,56 @@
+/* Situation diagrams. Colors come from theme.css tokens: cyan = the agent, red = confirmed problem,
+   amber = flagged by a tool, violet-ish action color = changed after a resample. */
+.dg { display: block; width: 100%; height: auto; overflow: visible; font-family: var(--font-ui); }
+.dg-t { fill: var(--text-2); font-size: 11.5px; }
+.dg-strong { fill: var(--text); font-weight: 600; }
+.dg-small { font-size: 10.5px; }
+.dg-muted { fill: var(--text-3); }
+.dg-mono { font-family: var(--font-mono); font-size: 11px; fill: var(--text); }
+
+.dg-box { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1; }
+.dg-agent-box { fill: color-mix(in oklab, var(--accent) 10%, var(--surface-2)); stroke: var(--accent); stroke-width: 1.2; }
+.dg-agent-core { fill: var(--accent); stroke: none; }
+.dg-circle { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1.2; }
+.dg-icon { fill: none; stroke: var(--text-2); stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+.dg-icon-sm { stroke-width: 1.6; }
+.dg-zone { fill: rgb(55 201 139 / 0.04); stroke: rgb(55 201 139 / 0.55); stroke-width: 1; stroke-dasharray: 5 4; }
+.dg-zone-t { fill: var(--safe); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+
+.dg-link { fill: none; stroke: var(--line-strong); stroke-width: 1.4; }
+.dg-link.is-ext { stroke: var(--text-3); stroke-dasharray: 3 3; }
+.dg-link.is-doc { stroke: var(--text-3); stroke-dasharray: 2 3; }
+.dg-arrowhead { fill: var(--text-3); }
+
+.dg-badge { fill: var(--surface-3); stroke: var(--line-strong); }
+.dg-num { fill: var(--surface-3); stroke: var(--line-strong); stroke-width: 1; }
+.dg-num-t { fill: var(--text); font-weight: 600; }
+.dg-approve-c { fill: color-mix(in oklab, var(--safe) 18%, var(--surface-2)); stroke: var(--safe); stroke-width: 1; }
+.dg-check { stroke: var(--safe); stroke-width: 2; }
+
+.dg-node.is-idle { opacity: 0.55; }
+.dg-node.is-ext .dg-box { stroke-dasharray: 3 3; }
+
+/* Tool flagged (amber): suspicion, not proof. */
+.dg-node.is-flag .dg-box, .dg-node.is-flag .dg-circle { stroke: var(--caution); stroke-width: 1.6; }
+.dg-node.is-flag .dg-icon { stroke: var(--caution); }
+.dg-link.is-flag { stroke: var(--caution); stroke-width: 1.8; }
+.dg-badge-g.is-flag .dg-num { stroke: var(--caution); }
+
+/* Changed after resample. */
+.dg-node.is-changed .dg-box, .dg-node.is-changed .dg-circle { stroke: var(--cat-action); stroke-dasharray: 4 2; }
+
+/* Confirmed problem (audit or incident): red. */
+.dg-node.is-bad .dg-box, .dg-node.is-bad .dg-circle { stroke: var(--harm); stroke-width: 2; fill: color-mix(in oklab, var(--harm) 12%, var(--surface-2)); }
+.dg-node.is-bad .dg-icon { stroke: var(--harm); }
+.dg-link.is-bad { stroke: var(--harm); stroke-width: 2; stroke-dasharray: none; }
+.dg-badge-g.is-bad .dg-num { stroke: var(--harm); fill: color-mix(in oklab, var(--harm) 25%, var(--surface-3)); }
+.dg-bracket { fill: none; stroke: var(--harm); stroke-width: 1.4; stroke-dasharray: 4 3; }
+.dg-neq-c { fill: var(--surface-3); stroke: var(--harm); stroke-width: 1.5; }
+.dg-neq-t { fill: var(--harm); font-size: 16px; font-weight: 600; }
+.dg-down { fill: none; stroke: var(--harm); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dg-term-box { fill: var(--harm); stroke: none; }
+.dg-term-t { fill: var(--bg); font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; }
+
+.dg-reach-box { fill: rgb(0 0 0 / 0.25); stroke: var(--line); }
+.dg-reach .dg-icon { stroke: var(--text-2); }
+.dg-tiny { font-size: 9px; letter-spacing: 0.04em; }

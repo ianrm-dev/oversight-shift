@@ -1662,3 +1662,24 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .review-foot { flex: none; }
 .next-day .ledger { margin-top: auto; max-width: none; }
 .review-foot { padding: 4px 6px 4px 0; }
+/* Situation diagrams */
+.scard-diagram { margin: auto 0 0; padding: var(--space-2) 0 0; border-top: 1px dashed var(--line-strong); }
+.scard-diagram svg { display: block; width: 100%; height: auto; max-height: 200px; }
+.reveal-diagram { margin: var(--space-2) 0 0; }
+.reveal-diagram svg { display: block; width: 100%; height: auto; max-height: 150px; }
+.scard-diagram { margin: 0; padding: 0; border-top: 0; }
+.scard-diagram svg { max-height: 210px; }
+.flagged-lines { display: flex; flex-direction: column; gap: 4px; }
+.flagged-lines .reply, .flagged-lines .log-lines, .flagged-lines .file-block, .flagged-lines .thread-msg { border-color: var(--caution); }
+.scard-did > .scard-diagram, .scard-did > .flagged-lines { align-self: stretch; width: 100%; }
+.scard-diagram svg { width: 100%; height: auto; max-height: 230px; }
+.scard-diagram svg { max-height: 180px; } .scard { gap: 10px; }
+.hud { gap: 14px; }
+.hud .bar { width: 72px; }
+.hud .bar.seg { width: 72px; }
+.hud-clock .bar { width: 56px; }
+.hud-count { font-family: var(--font-mono); font-size: var(--fs-sm); }
+.hud-count small { color: var(--text-3); font-weight: 400; }
+.hud-count.preview { color: var(--caution); }
+.hud-progress li { width: 7px; height: 7px; }
+.hud-progress { gap: 3px; }

@@ -621,7 +621,8 @@ function showPop(el: HTMLElement): void {
   const w = pop.offsetWidth;
   const h = pop.offsetHeight;
   pop.style.left = `${Math.min(Math.max(8, x), 1280 - w - 8)}px`;
-  pop.style.top = `${below + h > 712 ? (r.top - s.top) / scale - h - 6 : below}px`;
+  const top = below + h > 712 ? (r.top - s.top) / scale - h - 6 : below;
+  pop.style.top = `${Math.min(712 - h, Math.max(8, top))}px`;
 }
 const hidePop = () => { pop.hidden = true; };
 stage.addEventListener('mouseover', (e) => { const t = (e.target as HTMLElement).closest<HTMLElement>('[data-term]'); if (t) showPop(t); });
