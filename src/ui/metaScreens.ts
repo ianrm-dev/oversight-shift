@@ -51,7 +51,7 @@ export function title(p: Progress): string {
           <span class="menu-desc">${runs ? `${Object.keys(p.termsSeen).length} terms met. ` : ''}Terms, research approaches and your past runs.</span>
         </button>
       </div>
-      <p class="title-note">Keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+      <p class="title-note">Keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
       <button class="link-btn title-made" data-go="made"><kbd>H</kbd> How this was made</button>
     </main>`;
 }
@@ -66,7 +66,7 @@ export function howMade(): string {
       <div class="made-grid">
         <section><h3>What I did</h3>${list([
           'Chose the concept: you run an AI-control protocol on shift, grounded in real research and incidents, escalating from one model to agents to teams of agents.',
-          'Set the direction: control tools do the detecting and you judge how far to trust them; no AI background needed; failed runs drive research, as they do in the field.',
+          'Set the direction: first, control tools that do the detecting so anyone can play; then, after playtesting showed they had become a crutch, scarce tools and a tight clock, so reading and triage decide the run. No AI background needed; failed runs drive research, as they do in the field.',
           'Playtested and reported what felt wrong, like an unwinnable quota, reading every card costing nothing, and a triage strategy that won too easily.',
           'Made the calls on names, wording and simplifications. The probe is always right in this game; real ones aren\'t.',
           'Reviewed the in-game text.',

@@ -378,7 +378,7 @@ export function title(difficulty: Difficulty): string {
       <div class="title-actions">
         <button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button>
       </div>
-      <p class="title-note">About 10–15 minutes on a quick shift · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
+      <p class="title-note">About 10–15 minutes on a quick shift · keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
     </main>`;
 }
 
