@@ -390,33 +390,54 @@ function cast(): string {
     </div>`;
 }
 
-export function briefing(run: RunState, toolsToday = ''): string {
+/** What the briefing shows besides the day's rules. `alerts` are today's warnings; `learn` is optional background. */
+export interface BriefingParts {
+  meta: string[];
+  alerts: { text: string; tone: 'bad' | 'good' | 'info' }[];
+  tools: string;
+  learn: string;
+}
+
+const mmss = (s: number): string => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
+
+/** Two tiers: the left says what's different today and what you have to work with; the right is optional background. */
+export function briefing(run: RunState, parts: BriefingParts): string {
   const d = run.day;
   const info = dayInfo(d.day);
-  const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's usefulness quota. One fewer auditor today. Miss it again and the model ships without you.</li>` : '';
-  const side = `${d.day === 1 ? cast() : ''}${toolsToday}`;
-  // Quick shift: the skipped day's new rule comes first, so nothing it introduced goes unexplained.
+  const [headline, tip] = info.rule;
+  const alerts = [
+    ...(run.auditPenalty ? [{ text: 'You missed yesterday\'s quota: one fewer auditor today. Miss it again and the model ships without you.', tone: 'bad' as const }] : []),
+    ...parts.alerts,
+  ];
+  // Quick shift: the skipped day's new rule comes too, so nothing it introduced goes unexplained.
   const skipped = d.covers.filter((x) => x !== d.day).map((x) => [x, dayInfo(x).quickRule ?? dayInfo(x).rule[0] ?? ''] as const)
-    .filter(([, rule]) => rule).map(([x, rule]) => `<li class="skipped-rule"><span class="eyebrow">Since Day ${x}</span> ${linkTerms(rule, 2)}</li>`).join('');
+    .filter(([, rule]) => rule).map(([x, rule]) => `<p class="brief-since"><span class="eyebrow">Since Day ${x}</span> ${linkTerms(rule, 2)}</p>`).join('');
+  const cut = d.quotaAsked - d.quota >= 2;
+  const cell = (label: string, value: string, note = '', title = '') => `<div${title ? ` title="${esc(title)}"` : ''}><dt>${label}</dt><dd>${value}${note ? `<small>${note}</small>` : ''}</dd></div>`;
+  const learn = `${d.day === 1 ? cast() : ''}${parts.learn}${info.record ? `<p class="briefing-record"><span class="eyebrow">From the real world</span>${esc(info.record)}</p>` : ''}`;
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
-      <div class="briefing-card${side ? ' has-side' : ''}">
+      <div class="briefing-card has-side">
         <div class="briefing-main">
-          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days}${run.quick ? ' · Quick shift' : ''} · ${esc(info.phase)}</span>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
-          <h2 class="briefing-title">Shift briefing</h2>
-          <ul class="briefing-rules">${skipped}${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}${penalty}</ul>
-          <dl class="briefing-stats">
-            <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
-            <div${d.quotaAsked - d.quota >= 2 ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked - d.quota >= 2 ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>
-            <div><dt>Auditors</dt><dd>${d.audits}</dd></div>
-            <div><dt>Compute</dt><dd>${d.compute || '—'}</dd></div>
-            <div><dt>Harm</dt><dd>${run.harm}<small>/${harmCeiling(run)}</small></dd></div>
-            <div><dt>Funding</dt><dd>${run.funding}</dd></div>
+          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><div class="brief-id"><span class="eyebrow">Day ${d.day} of ${RULES.days}${run.quick ? ' · Quick shift' : ''} · ${esc(info.phase)}</span><span class="brief-meta">${parts.meta.join(' · ')}</span></div>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
+          ${skipped}
+          <h2 class="brief-headline">${linkTerms(headline ?? '', 2)}</h2>
+          ${tip ? `<p class="brief-tip">${linkTerms(tip, 2)}</p>` : ''}
+          ${alerts.length ? `<ul class="brief-alerts">${alerts.map((a) => `<li class="${a.tone}">${a.text}</li>`).join('')}</ul>` : ''}
+          <dl class="brief-budget">
+            ${cell('Quota', String(d.quota), cut ? ` of ${d.quotaAsked}` : ` from ${d.queue.length} cards`, cut ? `Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable.` : 'Usefulness to ship today. Miss it twice and the run ends.')}
+            ${cell('Auditors', String(d.audits))}
+            ${cell('Compute', String(d.compute || '—'))}
+            ${cell('Harm', String(run.harm), `/${harmCeiling(run)}`, 'The run ends when harm reaches the limit.')}
+            ${d.attention ? cell('Clock', mmss(d.attention), '', 'Time to review today\'s queue. It only runs while a card is on screen.') : ''}
           </dl>
-          ${info.record ? `<p class="briefing-record"><span class="eyebrow">From the record</span>${esc(info.record)}</p>` : ''}
+          ${parts.tools}
           <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> Begin Day ${d.day}</button>
         </div>
-        ${side ? `<div class="briefing-side">${side}</div>` : ''}
+        <aside class="briefing-learn">
+          <div class="learn-head"><span class="eyebrow">Learn</span><span>Background for today. You can play without it.</span></div>
+          ${learn}
+        </aside>
       </div>
     </main>`;
 }

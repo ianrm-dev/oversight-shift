@@ -229,21 +229,22 @@ const ADVERSARY_NAME = { sandbagger: 'the sandbagger', colluder: 'the colluder',
 /** Threat forecasting: a ±1 estimate of today's attacks. */
 function forecast(r: RunState): string {
   const n = r.day.queue.filter((c) => c.card.sabotage).length;
-  return `<span class="brief-tag">Forecast: ${Math.max(0, n - 1)}–${n + 1} attacks today</span>`;
+  return `Forecast: ${Math.max(0, n - 1)}–${n + 1} attacks today.`;
 }
 
-function briefingExtras(r: RunState): string {
+function briefingExtras(r: RunState): R.BriefingParts {
   const c = r.day.contract;
-  const tags = [
-    `<span class="brief-tag">${esc(r.lab.name)}</span>`,
-    r.level > 1 ? `<span class="brief-tag">Model v${r.level}</span>` : '',
-    c ? `<span class="brief-tag" title="${esc(c.blurb)}">Client: ${esc(c.name)}</span>` : '',
-    r.day.blind ? `<span class="brief-tag bad">Monitor blind on ${r.day.blind === 'log' ? 'agent actions' : 'file changes'} today</span>` : '',
-    r.adversaryRevealed ? `<span class="brief-tag bad">Adversary: ${ADVERSARY_NAME[r.adversary]}</span>` : '',
-    ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => `<span class="brief-tag ${h.amount < 0 ? 'good' : 'bad'}">Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}</span>`),
-    r.research.includes('evl-forecast') ? forecast(r) : '',
-  ].join('');
-  return `<div class="brief-tags">${tags}</div>${L.dayTermsBlock(r, progress)}${S.newToolsBlock(r)}`;
+  return {
+    meta: [esc(r.lab.name), r.level > 1 ? `Model v${r.level}` : '', c ? `<span title="${esc(c.blurb)}">Client: ${esc(c.name)}</span>` : ''].filter(Boolean),
+    alerts: [
+      ...(r.day.blind ? [{ text: `The monitor is blind on ${r.day.blind === 'log' ? 'agent actions' : 'file changes'} today.`, tone: 'bad' as const }] : []),
+      ...(r.adversaryRevealed ? [{ text: `You're facing ${ADVERSARY_NAME[r.adversary]}.`, tone: 'bad' as const }] : []),
+      ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => ({ text: `Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}.`, tone: h.amount < 0 ? 'good' as const : 'bad' as const })),
+      ...(r.research.includes('evl-forecast') ? [{ text: forecast(r), tone: 'info' as const }] : []),
+    ],
+    tools: S.newToolsBlock(r),
+    learn: L.dayTermsBlock(r, progress),
+  };
 }
 
 function render(): void {
