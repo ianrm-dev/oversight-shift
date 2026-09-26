@@ -10,6 +10,7 @@ import { chip, linkTerms, termForTool } from './terms';
 import { TOOL_TERM } from '../data/term-links';
 import { diagram } from '../visual/diagram';
 import { glance } from '../visual/glance';
+import { upgradeIcon } from './upgradeView';
 import { icon } from '../visual/icons';
 import '../visual/art.css';
 import '../visual/diagram.css';
@@ -218,7 +219,8 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
       <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
       <span class="ev-sees">Always right. Settles the card.</span>
-    </button>`;
+    </button>
+    ${run.upgrades.length || run.labPerk ? `<div class="ev-loadout"><span class="eyebrow">Your upgrades</span>${[run.labPerk, ...run.upgrades].filter((x): x is string => !!x).map((id) => upgradeIcon(id)).join('')}</div>` : ''}`;
 }
 
 // ---------- Decisions ----------

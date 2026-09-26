@@ -2,7 +2,8 @@
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
 import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
-import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCost, shopCount } from '../game/state';
+import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, loadoutFull, quotaFor, resampleUnlocked, shopCost, shopCount } from '../game/state';
+import { UPGRADE_ICON, UPGRADE_IMPROVES, upgradeChip } from './upgradeView';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
@@ -609,29 +610,38 @@ const SHOP: { item: ShopItem; name: string; desc: string }[] = [
   { item: 'reroll', name: 'New proposals', desc: 'Reroll the upgrade offer' },
 ];
 
-function upgradeCard(u: Upgrade, i: number): string {
+function upgradeCard(u: Upgrade, i: number, pending?: string): string {
   return `
-    <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}" data-upgrade="${u.id}">
+    <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}${pending === u.id ? ' is-pending' : ''}" data-upgrade="${u.id}">
       <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'From your research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
-      <span class="upgrade-name">${esc(u.name)}</span>
+      <span class="upgrade-title">${icon(UPGRADE_ICON[u.id] ?? 'shield', 22)}<span class="upgrade-name">${esc(u.name)}</span></span>
+      <span class="upgrade-improves">Improves: ${esc(UPGRADE_IMPROVES[u.id] ?? 'Your team')}</span>
       <span class="upgrade-desc">${esc(u.description)}</span>
       <span class="upgrade-best">${esc(u.bestWhen)}</span>
       <kbd class="upgrade-key">${i + 1}</kbd>
     </button>`;
 }
 
-export function between(run: RunState, offer: Upgrade[], picked: boolean, contracts = '', contractChosen = true): string {
+export function between(run: RunState, offer: Upgrade[], picked: boolean, contracts = '', contractChosen = true, pending?: string): string {
   const d = run.day;
   const next = dayInfo(d.day + 1);
+  const replacing = !!pending;
   const slots = Array.from({ length: RULES.upgrades.maxSlots }, (_, i) => {
-    const u = run.upgrades[i] ? upgradeById(run.upgrades[i]!) : undefined;
-    return u ? `<span class="slot filled cat-${u.category}">${esc(u.name)}</span>` : '<span class="slot"></span>';
+    const id = run.upgrades[i];
+    if (!id) return '<span class="slot"><span class="slot-empty">Empty slot</span></span>';
+    return replacing
+      ? `<button class="slot filled is-replaceable" data-replace="${id}"><kbd>${i + 1}</kbd>${upgradeChip(id)}<span class="slot-swap">Replace</span></button>`
+      : `<span class="slot filled">${upgradeChip(id)}</span>`;
   }).join('');
+  const perk = run.labPerk ? `<span class="slot perk" title="Comes with your lab; doesn't use an upgrade slot">${upgradeChip(run.labPerk)}<span class="perk-tag">Lab perk</span></span>` : '';
+  const pendingName = pending ? upgradeById(pending)?.name ?? '' : '';
   const pick = picked
     ? `<p class="pick-done">${run.tomorrow.skipAudit ? `Skipped: +${run.tomorrow.skipAudit} auditor tomorrow.` : 'Upgrade installed.'} Spend your funding below, or start the shift.</p>`
-    : offer.length
-      ? `<div class="upgrades">${offer.map(upgradeCard).join('')}</div>`
-      : '<p class="pick-done">Loadout full.</p>';
+    : replacing
+      ? `<div class="replace-row">${upgradeCard(upgradeById(pending!)!, 0, pending).replace(/<kbd class="upgrade-key">\d+<\/kbd>/, '')}<p class="pick-done replace-note">Your loadout is full. Pick one of your upgrades below to swap out for <strong>${esc(pendingName)}</strong> (keys <kbd>1</kbd>–<kbd>4</kbd>), or <button class="link-btn" data-replace="keep"><kbd>K</kbd> keep your loadout</button> and take +${RULES.upgrades.skipAuditBonus} auditor tomorrow instead.</p></div>`
+      : offer.length
+        ? `<div class="upgrades">${offer.map((u, i) => upgradeCard(u, i, pending)).join('')}</div>`
+        : '<p class="pick-done">Nothing new to offer: you have every upgrade available.</p>';
   const shop = SHOP.map(({ item, name, desc }) => {
     const spec = RULES.shop[item];
     const n = shopCount(run, item);
@@ -649,11 +659,11 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
     <main class="between-main">
       <section class="pick">
         <div class="pick-head">
-          <h3>${picked ? 'Upgrade chosen' : 'Choose one upgrade'}</h3>
-          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd>–<kbd>${offer.length}</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor tomorrow)</span>`}
+          <h3>${picked ? 'Upgrade chosen' : replacing ? 'Swap an upgrade' : 'Choose one upgrade'}</h3>
+          ${picked || replacing ? '' : `<span class="pick-hint">Press <kbd>1</kbd>–<kbd>${offer.length}</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor tomorrow)${loadoutFull(run) ? ' · full: you can swap one out' : ''}</span>`}
         </div>
         ${pick}
-        <div class="loadout"><span class="eyebrow">Loadout ${run.upgrades.length}/${RULES.upgrades.maxSlots}</span>${slots}</div>
+        <div class="loadout${replacing ? ' is-replacing' : ''}"><span class="eyebrow">Upgrades ${run.upgrades.length}/${RULES.upgrades.maxSlots}</span>${slots}${perk}</div>
         <div class="shop-head"><h3>Spend funding</h3><span class="pick-hint">Purchases last one day</span></div>
         <div class="shop">${shop}</div>
       </section>

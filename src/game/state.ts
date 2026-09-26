@@ -149,6 +149,8 @@ export interface RunState {
   funding: number;
   fundingEarned: number;
   upgrades: string[];
+  /** The lab's starting perk. It has its own slot and doesn't count toward the upgrade limit. */
+  labPerk?: string;
   breakthroughs: string[];
   warningsLeft: number;
   /** Lasting changes from events and breakthroughs. */
@@ -181,7 +183,7 @@ export const current = (d: DayState): CardState | undefined => d.queue[d.index];
 export const latest = (c: CardState): DraftState => c.drafts[c.drafts.length - 1]!;
 export const quotaFor = (day: number): number => RULES.quotaPerDay[day - 1]!;
 export const resampleUnlocked = (day: number): boolean => day >= RULES.resampleUnlockDay;
-export const has = (run: RunState, id: string): boolean => run.upgrades.includes(id);
+export const has = (run: RunState, id: string): boolean => run.upgrades.includes(id) || run.labPerk === id;
 /** Owns a research-tree node. */
 export const knows = (run: RunState, id: string): boolean => run.research.includes(id);
 const resampleDrop = (run: RunState): number => RULES.resampleDropsSabotage + (knows(run, 'ctl-resample') ? 0.15 : 0);
@@ -434,7 +436,8 @@ export function newRun(seed: string, hints: Partial<Record<Layout, string>>, dif
     research: opts.research ?? [],
     harm: 0, quotaMisses: 0, auditPenalty: 0, codex: new Set(), used: new Set(), history: [],
     funding: lab.startFunding, fundingEarned: 0,
-    upgrades: lab.startUpgrade ? [lab.startUpgrade] : [],
+    upgrades: [],
+    labPerk: lab.startUpgrade,
     breakthroughs: opts.research?.includes('int-probe-start') ? ['probe'] : [],
     warningsLeft: RULES.difficulty[difficulty].freeWarnings,
     rest: { quota: 0, compute: 0, audits: 0, ceiling: 0 },
@@ -813,7 +816,6 @@ export const isResearchUpgrade = (id: string): boolean => !!RULES.upgradeResearc
 /** Three core upgrades, each from a different category, plus a fourth card drawn only from researched
  *  upgrades, so research widens the choice instead of diluting it. */
 export function upgradeOffer(run: RunState): Upgrade[] {
-  if (run.upgrades.length >= RULES.upgrades.maxSlots) return [];
   const rng = new Rng(`${run.seed}:offer:d${run.day.day}:r${run.rerolls}`);
   const open = UPGRADES.filter((u) => !has(run, u.id) && (!u.requires || has(run, u.requires)));
   const core = open.filter((u) => !isResearchUpgrade(u.id));
@@ -824,6 +826,14 @@ export function upgradeOffer(run: RunState): Upgrade[] {
   const offer = cats.map((cat) => rng.pick(byCat.get(cat)!));
   if (researched.length) offer.push(rng.pick(researched));
   return offer;
+}
+
+export const loadoutFull = (run: RunState): boolean => run.upgrades.length >= RULES.upgrades.maxSlots;
+
+/** Swaps an owned upgrade for a new one (used when the loadout is full). */
+export function replaceUpgrade(run: RunState, oldId: string, newId: string): void {
+  const i = run.upgrades.indexOf(oldId);
+  if (i >= 0 && !has(run, newId)) run.upgrades[i] = newId;
 }
 
 export function takeUpgrade(run: RunState, id: string): void {

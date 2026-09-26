@@ -1784,3 +1784,37 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .scard-top .scard-glance { flex: none; margin: 0; }
 .scard-top .domain { font-size: var(--fs-xs); text-align: right; }
+/* Upgrades UX */
+.up-chip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 600; color: var(--cat, var(--text)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.up-chip svg { flex: none; }
+.slot { width: 140px; min-height: 34px; display: inline-flex; align-items: center; gap: 6px; padding: 0 var(--space-2); border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); }
+.slot.filled { border-style: solid; border-color: var(--line-strong); background: rgb(0 0 0 / 0.2); }
+.slot-empty { font-size: var(--fs-2xs); color: var(--text-3); }
+.slot.perk { width: auto; border-color: var(--cat-budget); flex-direction: column; align-items: flex-start; gap: 0; padding: 2px var(--space-2); }
+.perk-tag { font-size: 9px; letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--text-3); }
+.slot.is-replaceable { cursor: pointer; border-color: var(--caution); background: var(--caution-wash); text-align: left; }
+.slot.is-replaceable:hover { border-style: solid; box-shadow: 0 0 0 1px var(--caution); }
+.slot-swap { margin-left: auto; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--caution); }
+.slot kbd { min-width: 16px; height: 16px; font-size: 9px; }
+.loadout.is-replacing .eyebrow { color: var(--caution); }
+.replace-note strong { color: var(--text); }
+.replace-note .link-btn { display: inline-flex; }
+.upgrade-title { display: flex; align-items: center; gap: var(--space-2); color: var(--cat); }
+.upgrade-title .upgrade-name { color: var(--text); }
+.upgrade-improves { font-size: var(--fs-2xs); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-3); }
+.upgrade.is-pending { border-color: var(--caution); box-shadow: 0 0 0 1px var(--caution); }
+.ev-loadout { display: flex; align-items: center; gap: 6px; margin-top: auto; padding-top: var(--space-2); border-top: 1px solid var(--line); }
+.ev-loadout .eyebrow { margin-right: auto; }
+.up-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; border: 1px solid color-mix(in oklab, var(--cat) 45%, var(--line)); border-radius: var(--radius-sm); color: var(--cat); cursor: help; }
+.up-icon.cat-information, .up-chip.cat-information, .slot .cat-information { --cat: var(--cat-information); }
+.up-icon.cat-budget, .up-chip.cat-budget { --cat: var(--cat-budget); }
+.up-icon.cat-action, .up-chip.cat-action { --cat: var(--cat-action); }
+.up-icon.cat-meter, .up-chip.cat-meter { --cat: var(--cat-meter); }
+.slot.is-replaceable { display: grid; grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 6px; row-gap: 0; width: 170px; padding: 4px var(--space-2); align-items: center; }
+.slot.is-replaceable kbd { grid-row: span 2; }
+.slot.is-replaceable .slot-swap { margin-left: 0; grid-column: 2; }
+.loadout { flex-wrap: wrap; row-gap: var(--space-2); }
+.next-day .btn-primary:disabled { opacity: 0.3; filter: saturate(0.2); }
+.replace-row { display: grid; grid-template-columns: 300px 1fr; gap: var(--space-4); align-items: stretch; }
+.replace-row .upgrade { min-height: 0; cursor: default; }
+.slot.is-replaceable { width: 196px; }

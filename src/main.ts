@@ -9,10 +9,11 @@ import * as L from './ui/learn';
 import { noteUsed, popover, resetTermsMet, resetTermsToday, termsMet, termsToday } from './ui/terms';
 import { BREAKTHROUGH_TERM, EVENT_TERMS, FAMILY_TERM, LAB_TERM, TOOL_TERM, UPGRADE_TERM } from './data/term-links';
 import {
-  act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
+  act, advance, loadoutFull, replaceUpgrade, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
   eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
+import { upgradeById } from './data/upgrades';
 import type { Breakthrough, Contract, Difficulty, GameEvent, ToolId, Upgrade } from './types';
 import { randomSeedString } from './rng';
 import { RULES } from './rules';
@@ -38,7 +39,7 @@ type Screen =
   | { kind: 'review'; html: string }
   | { kind: 'event'; event: GameEvent; chosen?: number }
   | { kind: 'breakthrough'; offer: Breakthrough[] }
-  | { kind: 'between'; offer: Upgrade[]; picked: boolean; contracts: Contract[]; contract?: string }
+  | { kind: 'between'; offer: Upgrade[]; picked: boolean; contracts: Contract[]; contract?: string; pending?: string }
   | { kind: 'over' }
   | { kind: 'interim' }
   | { kind: 'win' }
@@ -282,7 +283,7 @@ function render(): void {
   } else if (screen.kind === 'breakthrough') { setLayout('solo'); screenEl.innerHTML = M.breakthrough(run, screen.offer); }
   else if (screen.kind === 'between') {
     setLayout('between');
-    screenEl.innerHTML = R.between(run, screen.offer, screen.picked, M.contractPanel(screen.contracts, screen.contract), !!screen.contract);
+    screenEl.innerHTML = R.between(run, screen.offer, screen.picked, M.contractPanel(screen.contracts, screen.contract), !!screen.contract, screen.pending);
   } else if (screen.kind === 'over') {
     setLayout('solo');
     finishRun(false);
@@ -476,14 +477,24 @@ function pickBreakthrough(i: number): void {
 
 function pickUpgrade(index: number | 'skip'): void {
   if (!run || screen.kind !== 'between' || screen.picked) return;
-  if (index === 'skip') skipUpgrade(run);
-  else {
-    const u = screen.offer[index];
-    if (!u) return;
-    takeUpgrade(run, u.id);
-    noteUsed(UPGRADE_TERM[u.id], `upgrade: ${u.name}`);
-  }
+  if (index === 'skip') { skipUpgrade(run); screen = { ...screen, picked: true, pending: undefined }; render(); return; }
+  const u = screen.offer[index];
+  if (!u) return;
+  // A full loadout asks which upgrade to swap out.
+  if (loadoutFull(run)) { screen = { ...screen, pending: u.id }; render(); return; }
+  takeUpgrade(run, u.id);
+  noteUsed(UPGRADE_TERM[u.id], `upgrade: ${u.name}`);
   screen = { ...screen, picked: true };
+  render();
+}
+
+function replaceWith(oldId: string): void {
+  if (!run || screen.kind !== 'between' || !screen.pending) return;
+  if (oldId === 'keep') { skipUpgrade(run); screen = { ...screen, picked: true, pending: undefined }; render(); return; }
+  const id = screen.pending;
+  replaceUpgrade(run, oldId, id);
+  noteUsed(UPGRADE_TERM[id], `upgrade: ${upgradeById(id)?.name ?? id}`);
+  screen = { ...screen, picked: true, pending: undefined };
   render();
 }
 
@@ -639,6 +650,12 @@ document.addEventListener('keydown', (e) => {
     continueScreen();
     return;
   }
+  if (screen.kind === 'between' && screen.pending) {
+    const i = Number(k) - 1;
+    if (run && run.upgrades[i]) replaceWith(run.upgrades[i]!);
+    else if (k === 'k' || k === 'escape') replaceWith('keep');
+    return;
+  }
   if (screen.kind === 'between') {
     if (k >= '1' && k <= '4') pickUpgrade(Number(k) - 1);
     else if (k === 's') pickUpgrade('skip');
@@ -651,6 +668,8 @@ document.addEventListener('keydown', (e) => {
 
 screenEl.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
+  const rep = el.closest<HTMLElement>('[data-replace]');
+  if (rep && rep.dataset.replace) { replaceWith(rep.dataset.replace); return; }
   const coach = el.closest<HTMLElement>('[data-coach]');
   if (coach) {
     if (coach.dataset.coach === 'skip') endCoach();
