@@ -260,6 +260,30 @@ function ping(event: 'start' | 'end', params: Record<string, string | number>): 
 }
 const runMode = (r: RunState): string => (r.daily ? 'daily' : r.quick ? 'quick' : 'full');
 
+// ---------- Feedback: a short note sent to the site's own request log, like the play counter ----------
+let feedback: null | { sent: boolean } = null;
+function openFeedback(): void { feedback = { sent: false }; render(); screenEl.querySelector<HTMLTextAreaElement>('.feedback textarea')?.focus(); }
+function closeFeedback(): void { feedback = null; render(); }
+/** Plain text only: no control characters, invisible characters or direction overrides, whitespace collapsed. */
+const cleanText = (v: string, max: number): string =>
+  v.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+const feedbackSends: number[] = [];
+function sendFeedback(): void {
+  const box = screenEl.querySelector<HTMLTextAreaElement>('.feedback textarea');
+  const text = cleanText(box?.value ?? '', 800);
+  if (!text) { box?.focus(); return; }
+  // At most 5 notes a session, 20 seconds apart, so one visitor can't flood the log.
+  const now = Date.now();
+  if (feedbackSends.length >= 5 || now - (feedbackSends.at(-1) ?? 0) < 20000) { feedback = { sent: true }; render(); return; }
+  feedbackSends.push(now);
+  const contact = cleanText(screenEl.querySelector<HTMLInputElement>('.feedback input')?.value ?? '', 120);
+  const q = new URLSearchParams({ e: 'feedback', t: text, c: contact, m: run ? runMode(run) : '', d: run?.difficulty ?? '', day: String(run?.day.day ?? ''), r: Math.random().toString(36).slice(2, 8) });
+  if (import.meta.env.PROD) new Image().src = `${import.meta.env.BASE_URL}ping.gif?${q}`;
+  else console.info('feedback (dev, not sent):', Object.fromEntries(q));
+  feedback = { sent: true };
+  render();
+}
+
 const hintsFor = (days: number[]) => Object.assign({}, ...days.map((d) => dayInfo(d).hints)) as ReturnType<typeof dayInfo>['hints'];
 const esc = R.esc;
 
@@ -423,7 +447,8 @@ function render(): void {
   } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
-  if (paused && run) screenEl.insertAdjacentHTML('beforeend', R.pauseMenu(run));
+  if (feedback) screenEl.insertAdjacentHTML('beforeend', R.feedbackDialog(feedback.sent));
+  else if (paused && run) screenEl.insertAdjacentHTML('beforeend', R.pauseMenu(run));
   else if (clockIntro && run && screen.kind === 'shift' && !screen.overlay) screenEl.insertAdjacentHTML('beforeend', R.clockIntro(run));
   if (toolkitOpen && run && (screen.kind === 'shift' || screen.kind === 'briefing')) {
     screenEl.insertAdjacentHTML('beforeend', S.toolkit(run, toolkitOpen === 'all' ? undefined : toolkitOpen));
@@ -512,13 +537,13 @@ function applyAction(action: Action): void {
 }
 
 let toastTimer = 0;
-function showToast(text: string, tone: 'good' | 'neutral' | 'defer'): void {
+function showToast(text: string, tone: 'good' | 'neutral' | 'defer', ms = 1600): void {
   const center = screenEl.querySelector('[data-region="simple-main"]');
   if (!center) return;
   center.querySelector('.toast')?.remove();
   center.insertAdjacentHTML('beforeend', R.toast(text, tone));
   window.clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => center.querySelector('.toast')?.remove(), 1600);
+  toastTimer = window.setTimeout(() => center.querySelector('.toast')?.remove(), ms);
 }
 
 function nextCard(): void {
@@ -539,7 +564,8 @@ function nextCard(): void {
       let seen = false;
       try { seen = !!localStorage.getItem(clockIntroKey); } catch { /* storage unavailable */ }
       if (!seen) clockIntro = true;
-      else { render(); showToast('Training done: the clock is running', 'defer'); return; }
+      // After the caller's own toast (e.g. "Shipped"), so this one isn't replaced straight away.
+      else { render(); window.setTimeout(() => showToast('Training done: the clock is running', 'defer', 2600), 0); return; }
     }
   }
   render();
@@ -729,6 +755,12 @@ function toggleToolkit(which: ToolId | 'all' | null): void {
 const KEYS: Record<string, Action> = { a: 'approve', u: 'audit', d: 'defer', r: 'resample', f: 'fact', s: 'scope', m: 'untrusted', p: 'probe' };
 
 document.addEventListener('keydown', (e) => {
+  if (feedback) {
+    if (e.key === 'Escape') { e.preventDefault(); closeFeedback(); }
+    else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !feedback.sent) { e.preventDefault(); sendFeedback(); }
+    else if (feedback.sent && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); closeFeedback(); }
+    return;
+  }
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (toolkitOpen) {
@@ -752,6 +784,7 @@ document.addEventListener('keydown', (e) => {
     else if (k === 'r') { paused = false; restart('same'); }
     else if (k === 'q') abandonRun();
     else if (k === 'h') { resetTours(); setPaused(false); }
+    else if (k === 'f') { e.preventDefault(); openFeedback(); }
     return;
   }
   if (k === 'escape' && run && PAUSABLE.has(screen.kind)) { e.preventDefault(); setPaused(true); return; }
@@ -761,6 +794,7 @@ document.addEventListener('keydown', (e) => {
     else if (k === 'c' || k === 'g') go('guide');
     else if (k === 'l') go('lab');
     else if (k === 'h') go('made');
+    else if (k === 'f') { e.preventDefault(); openFeedback(); }
     return;
   }
   if (screen.kind === 'made') { if (k === 'escape' || k === 'h') go('title'); return; }
@@ -838,6 +872,13 @@ screenEl.addEventListener('click', (e) => {
     if (coach.dataset.coach === 'skip') endTour(true); else nextTip();
     return;
   }
+  const fb = el.closest<HTMLElement>('[data-feedback]');
+  if (fb) {
+    const a = fb.dataset.feedback;
+    if (a === 'open') openFeedback(); else if (a === 'send') sendFeedback(); else if (a === 'close') closeFeedback();
+    return;
+  }
+  if (feedback) return; // clicks behind the dialog do nothing
   if (tour) return; // the screen waits while a tip is up
   const menu = el.closest<HTMLElement>('[data-pause]');
   if (menu) {

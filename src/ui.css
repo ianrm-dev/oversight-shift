@@ -1326,7 +1326,7 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .made-grid h3 { margin: 0 0 var(--space-2); font-size: var(--fs-md); color: var(--accent); }
 .made-grid ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--fs-sm); line-height: var(--lh-body); color: var(--text-2); }
 .made-foot { margin: 0; font-size: var(--fs-sm); color: var(--text-3); }
-.title-made { margin-top: var(--space-1); }
+.title-links { display: flex; gap: var(--space-5); margin-top: var(--space-1); }
 .cx-grid { display: grid; grid-template-columns: 1fr 1fr 340px; gap: var(--space-5); min-height: 0; flex: 1; }
 .cx-grid section { display: flex; flex-direction: column; gap: var(--space-2); min-height: 0; overflow-y: auto; scrollbar-width: thin; }
 .cx-grid h3 { margin: 0; font-size: var(--fs-md); }
@@ -1870,6 +1870,8 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .over .over-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-3); height: 232px; }
 .over .over-grid > * { min-height: 0; height: 100%; overflow-y: auto; scrollbar-width: thin; }
 .over .over-grid .missed-list, .over .over-grid .unwatched { max-height: none; overflow: visible; }
+/* The quota ending's queue sits straight in the grid cell, so it scrolls there itself. */
+.over .over-grid > .unwatched { overflow-y: auto; }
 .over-grid .week { max-width: none; }
 .over-grid .tick { width: 18px; height: 18px; }
 .over-grid .tick .i { width: 11px; height: 11px; }
@@ -1941,3 +1943,16 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .clock-intro p { margin: 0; font-size: var(--fs-md); line-height: var(--lh-body); color: var(--text-2); }
 .clock-intro p strong { color: var(--text); }
 .clock-intro-budget { padding: var(--space-2) var(--space-3); background: var(--caution-wash); border-radius: var(--radius-sm); }
+
+/* Feedback dialog: sits above the pause menu and end screens. */
+.pause.feedback { width: 520px; z-index: 8; }
+.feedback h2 { margin: 0; }
+.feedback-label { font-size: var(--fs-sm); color: var(--text-2); }
+.feedback textarea, .feedback input { width: 100%; font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: var(--space-2) var(--space-3); resize: none; }
+.feedback textarea:focus, .feedback input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.feedback-actions { display: flex; justify-content: flex-end; gap: var(--space-2); }
+.feedback-links { margin: 0; font-size: var(--fs-sm); color: var(--text-2); }
+.feedback-links a { color: var(--accent); }
+.feedback .small { margin: 0; }
+.over-actions .over-feedback { margin-left: auto; }
+.over-actions .over-feedback + .seed-note { margin-left: var(--space-3); }

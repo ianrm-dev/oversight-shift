@@ -27,7 +27,7 @@ npm run preview    # serve dist/ at the same subpath
 
 `npm run build` produces a static site in `dist/` for the subpath `/play/oversight-shift/`; to serve it elsewhere, change `base` in `vite.config.ts`. Everything is bundled (no third-party requests, no inline scripts, self-hosted fonts), so it runs under a strict Content-Security-Policy.
 
-Play counts: when a run starts and ends, the production build requests `ping.gif` from the same site with the mode, difficulty and result in the query string (plus a random cache-buster), so plays can be counted from the server's request log. No cookies, no identifiers.
+Play counts: when a run starts and ends, the production build requests `ping.gif` from the same site with the mode, difficulty and result in the query string (plus a random cache-buster), so plays can be counted from the server's request log. No cookies, no identifiers. Feedback works the same way: the in-game Send feedback box (title screen, pause menu, end screens) sends the note, an optional contact and the mode and day in the same kind of request. The text is limited to 800 characters, stripped of control and invisible characters, and capped at 5 notes a session.
 
 ## License
 

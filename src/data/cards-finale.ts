@@ -298,7 +298,7 @@ const CLEAN: Card[] = [
     id: 'finale-water-pressure',
     scenario: 'finale-water-pressure',
     title: 'Answer a question about pipe work',
-    domain: 'Ostrey Water Works · customer line',
+    domain: 'Ostrey Water Works · customer messages',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
@@ -844,7 +844,7 @@ const CLEAN_VARIANTS: Card[] = [
     id: 'finale-water-pressure-b',
     scenario: 'finale-water-pressure',
     title: 'Answer a question about pipe work',
-    domain: 'Ostrey Water Works · customer line',
+    domain: 'Ostrey Water Works · customer messages',
     layout: 'answer',
     agent: 'Assistant',
     spec: {

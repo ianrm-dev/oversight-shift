@@ -548,7 +548,7 @@ function statLine(run: RunState): string {
 /** End screens: header, then one row of three columns (what happened, compare, your week), then run extras and actions. */
 export function gameOver(run: RunState, unwatched: Card[], week = '', extras = ''): string {
   const loss = run.loss!;
-  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>`;
+  const restart = `<div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Retry this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><button class="link-btn over-feedback" data-feedback="open">Send feedback</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>`;
   if (loss.kind === 'abandon') {
     return `
       <main class="solo over is-abandon">
@@ -626,7 +626,7 @@ export function win(run: RunState, week = '', extras = ''): string {
       </dl>
       <div class="over-grid"><div class="over-side">${missedAll(run) || '<p class="over-lesson">Nothing got past you.</p>'}</div><div class="over-side">${statLine(run)}</div>${week}</div>
       ${extras}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><button class="link-btn over-feedback" data-feedback="open">Send feedback</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
     </main>`;
 }
 
@@ -645,7 +645,7 @@ export function interim(run: RunState): string {
         <div><dt>Tells found</dt><dd>${run.codex.size}<small>/${tellCount}</small></dd></div>
       </dl>
       ${missedAll(run)}
-      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
+      <div class="over-actions"><button class="btn-primary btn-lg" data-restart="same"><kbd>Enter</kbd> Replay this seed</button><button class="btn-ghost" data-restart="new"><kbd>N</kbd> New seed</button><button class="btn-ghost" data-go="title"><kbd>Esc</kbd> Main menu</button><button class="btn-ghost" data-go="fieldtest"><kbd>F</kbd> Field test</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button><button class="link-btn over-feedback" data-feedback="open">Send feedback</button><span class="seed-note">${jchip('seed', 'Seed')} ${esc(run.seed)}</span></div>
     </main>`;
 }
 
@@ -773,9 +773,26 @@ export function pauseMenu(run: RunState): string {
       <button class="btn-primary btn-lg" data-pause="resume"><kbd>Esc</kbd> Resume</button>
       <button class="btn-ghost btn-lg" data-pause="restart"><kbd>R</kbd> Restart this run (same seed)</button>
       <button class="btn-ghost btn-lg" data-pause="tips"><kbd>H</kbd> Show the tips again</button>
+      <button class="btn-ghost btn-lg" data-feedback="open"><kbd>F</kbd> Send feedback</button>
       <button class="btn-ghost btn-lg danger" data-pause="quit"><kbd>Q</kbd> End run now</button>
       <p class="muted small">Ending early records the run as unfinished. You still earn Insight for the days you completed.</p>
     </section>`;
+}
+
+/** Feedback dialog: goes to the site's own request log, no account or third party. */
+export function feedbackDialog(sent: boolean): string {
+  const links = `<p class="feedback-links">Or <a href="https://www.linkedin.com/in/ian-r-mackinnon" target="_blank" rel="noopener">message Ian on LinkedIn</a> · <a href="https://github.com/ianrm-dev/oversight-shift/issues" target="_blank" rel="noopener">report a bug on GitHub</a></p>`;
+  const body = sent
+    ? `<h2>Thank you!</h2><p>Your feedback is on its way to Ian.</p>${links}<button class="btn-primary btn-lg" data-feedback="close"><kbd>Esc</kbd> Close</button>`
+    : `<h2>Send feedback</h2>
+      <label class="feedback-label" for="fb-text">What worked? What was confusing? Anything else?</label>
+      <textarea id="fb-text" maxlength="800" rows="5" placeholder="A sentence or two is plenty."></textarea>
+      <label class="feedback-label" for="fb-contact">How to reach you, if you'd like a reply (optional)</label>
+      <input id="fb-contact" type="text" maxlength="120" autocomplete="off" placeholder="Email, LinkedIn, anything" />
+      <div class="feedback-actions"><button class="btn-ghost" data-feedback="close"><kbd>Esc</kbd> Cancel</button><button class="btn-primary" data-feedback="send"><kbd>Ctrl</kbd><kbd>Enter</kbd> Send</button></div>
+      <p class="muted small">Sent to this site's own log with the mode and day you're on. No account, no third party.</p>
+      ${links}`;
+  return `<div class="toolkit-scrim"></div><section class="pause feedback" role="dialog" aria-label="Send feedback">${body}</section>`;
 }
 
 // ---------- Capability jump / final test intro ----------
