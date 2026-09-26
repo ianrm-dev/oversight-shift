@@ -649,7 +649,7 @@ const SHOP: { item: ShopItem; name: string; desc: string }[] = [
 function upgradeCard(u: Upgrade, i: number, pending?: string): string {
   return `
     <button class="upgrade cat-${u.category}${isResearchUpgrade(u.id) ? ' is-research' : ''}${pending === u.id ? ' is-pending' : ''}" data-upgrade="${u.id}">
-      <span class="upgrade-cat">${isResearchUpgrade(u.id) ? 'Research · ' : ''}${u.category === 'action' ? 'Action' : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
+      <span class="upgrade-cat">${isResearchUpgrade(u.id) ? `Research · ${u.category === 'information' ? 'Info' : u.category[0]!.toUpperCase() + u.category.slice(1)}` : u.category[0]!.toUpperCase() + u.category.slice(1)}</span>
       <span class="upgrade-title">${icon(UPGRADE_ICON[u.id] ?? 'shield', 22)}<span class="upgrade-name">${chip(UPGRADE_TERM[u.id], u.name)}</span></span>
       <span class="upgrade-improves">Improves: ${esc(UPGRADE_IMPROVES[u.id] ?? 'Your team')}</span>
       <span class="upgrade-desc">${linkTerms(u.description, 1)}</span>
