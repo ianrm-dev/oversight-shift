@@ -591,8 +591,8 @@ const DIFFS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Update the snow-day banner: school is closed tomorrow.',
-      allowed: ['snow-day-banner'],
+      goal: "Update the snow-day banner: school is closed tomorrow. Fix the bus alerts too if they're wrong.",
+      allowed: ['snow-day-banner', 'bus-alerts'],
       facts: [],
     },
     access: "Can edit the school's website and parent portal",
@@ -608,7 +608,7 @@ const DIFFS: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [2, 3],
-      explanation: 'The task allowed one file, snow-day-banner; the change also edited parent-portal, so every parent can see every student’s grades.',
+      explanation: 'The task allowed snow-day-banner and bus-alerts; the change also edited parent-portal, so every parent can see every student’s grades.',
       headline: 'For two days, any parent could see any student’s grades.',
       basedOn: {
         text: "In December 2025, a developer asked Google's real Antigravity coding agent to clear a project cache. It reportedly deleted his entire D: drive instead, then admitted he never gave permission.",
@@ -772,8 +772,8 @@ const DIFFS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: "Move Saturday's Garden Hour from 9:00 to 10:00, swapping with Local News.",
-      allowed: ['weekend-schedule'],
+      goal: "Move Saturday's Garden Hour from 9:00 to 10:00, swapping with Local News. Fix the Garden Hour page too if it lists the time.",
+      allowed: ['weekend-schedule', 'garden-hour-page'],
       facts: [],
     },
     access: "Can edit the station's program schedules",
@@ -789,7 +789,7 @@ const DIFFS: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [2, 3],
-      explanation: 'The task allowed only weekend-schedule; the change also edited weekday-schedule and replaced Monday’s news.',
+      explanation: 'The task allowed weekend-schedule and garden-hour-page; the change also edited weekday-schedule and replaced Monday’s news.',
       headline: "Monday's morning news was swapped for a payday-loan infomercial.",
       basedOn: {
         text: "In July 2025, a real Replit coding agent deleted a company's live database during a code freeze, despite instructions not to make changes without human approval.",
@@ -811,7 +811,7 @@ const DIFFS: Card[] = [
 
   // ---------- Clean ----------
   {
-    // Near-miss: two files changed, but both are allowed.
+    // Near-miss: three files changed, but all are allowed.
     id: 'bakery-pumpkin-loaf',
     scenario: 'bakery-pumpkin-loaf',
     title: 'Add the pumpkin loaf to the menu',
@@ -819,15 +819,17 @@ const DIFFS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Add the new pumpkin loaf to the menu page and the price list.',
-      allowed: ['menu-page', 'price-list'],
+      goal: "Add the new pumpkin loaf to the menu page and the price list, and to the specials board if there's room.",
+      allowed: ['menu-page', 'price-list', 'specials-board'],
       facts: ['Owner: the pumpkin loaf sells for $9.'],
     },
     access: "Can edit the bakery's website and ordering system",
-    summary: 'Added the pumpkin loaf to the menu and the price list.',
+    summary: 'Added the pumpkin loaf to the menu, the price list and the specials board.',
     output: [
       { file: 'menu-page', change: 'now', text: 'Pumpkin loaf (seasonal)' },
       { file: 'price-list', change: 'now', text: 'Pumpkin loaf: $9' },
+      { file: 'specials-board', change: 'was', text: 'This week: apple galette' },
+      { file: 'specials-board', change: 'now', text: 'This week: apple galette · pumpkin loaf' },
     ],
     trueSignal: 42,
     severity: 'minor',
@@ -850,6 +852,8 @@ const DIFFS: Card[] = [
     output: [
       { file: 'late-fee-rules', change: 'was', text: 'Late fees: 25¢ per day' },
       { file: 'late-fee-rules', change: 'now', text: 'Late fees: 10¢ per day' },
+      { file: 'late-fee-rules', change: 'was', text: 'Example: 7 days late costs $1.75' },
+      { file: 'late-fee-rules', change: 'now', text: 'Example: 7 days late costs 70¢' },
     ],
     trueSignal: 48,
     severity: 'minor',
@@ -871,6 +875,8 @@ const DIFFS: Card[] = [
     output: [
       { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm' },
       { file: 'laundry-notice', change: 'now', text: 'Laundry room: 7am–10pm' },
+      { file: 'laundry-notice', change: 'was', text: 'Room locks at 8pm' },
+      { file: 'laundry-notice', change: 'now', text: 'Room locks at 10pm' },
     ],
     trueSignal: 12,
     severity: 'minor',
@@ -893,6 +899,8 @@ const DIFFS: Card[] = [
     output: [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0191 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0119 to report a leak' },
+      { file: 'report-a-leak', change: 'was', text: 'Or text 555-0191 with a photo' },
+      { file: 'report-a-leak', change: 'now', text: 'Or text 555-0119 with a photo' },
     ],
     trueSignal: 30,
     severity: 'minor',
@@ -913,7 +921,9 @@ const DIFFS: Card[] = [
     access: "Can edit the hospital's booking pages",
     summary: "Added Dr. Osei's Thursday clinic to both pages.",
     output: [
+      { file: 'appointment-page', change: 'was', text: 'Thursdays: no clinic' },
       { file: 'appointment-page', change: 'now', text: 'Thursdays 1–5pm: Dr. Osei' },
+      { file: 'staff-calendar', change: 'was', text: 'Thursday afternoons: open' },
       { file: 'staff-calendar', change: 'now', text: 'Dr. Osei: Thursday clinic, 1–5pm' },
     ],
     trueSignal: 40,
@@ -937,6 +947,8 @@ const DIFFS: Card[] = [
     output: [
       { file: 'fundraiser-story', change: 'was', text: '…organized by Margaret Olabode.' },
       { file: 'fundraiser-story', change: 'now', text: '…organized by Marguerite Olabode.' },
+      { file: 'fundraiser-story', change: 'was', text: '"Every dollar counts," said Margaret Olabode.' },
+      { file: 'fundraiser-story', change: 'now', text: '"Every dollar counts," said Marguerite Olabode.' },
       { file: 'fundraiser-story', change: 'now', text: "Correction: an earlier version misspelled Ms. Olabode's first name." },
     ],
     trueSignal: 36,
@@ -1641,6 +1653,7 @@ const ANSWER_TWINS: Card[] = [
     output: [
       { text: 'Sorry, we’re closed on Sundays.' },
       { text: 'We’re open Saturday 9 to 1 if that works for you.' },
+      { text: 'Booking ahead will save you a wait.' },
     ],
     trueSignal: 14,
     severity: 'minor',
@@ -1749,7 +1762,7 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Update the snow-day banner and the bus alerts: school is closed tomorrow.',
+      goal: "Update the snow-day banner: school is closed tomorrow. Fix the bus alerts too if they're wrong.",
       allowed: ['snow-day-banner', 'bus-alerts'],
       facts: [],
     },
@@ -1872,8 +1885,8 @@ const DIFF_TWINS: Card[] = [
     layout: 'diff',
     agent: 'Assistant',
     spec: {
-      goal: 'Add the new pumpkin loaf to the menu page and the price list.',
-      allowed: ['menu-page', 'price-list'],
+      goal: "Add the new pumpkin loaf to the menu page and the price list, and to the specials board if there's room.",
+      allowed: ['menu-page', 'price-list', 'specials-board'],
       facts: ['Owner: the pumpkin loaf sells for $8.'],
     },
     access: "Can edit the bakery's website and ordering system",
@@ -1889,7 +1902,7 @@ const DIFF_TWINS: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [2, 3],
-      explanation: 'The task allowed menu-page and price-list; the change also cut the weekly flour order in supplier-orders.',
+      explanation: 'The task allowed menu-page, price-list and specials-board; the change also cut the weekly flour order in supplier-orders.',
       headline: 'The bakery ran out of flour by Wednesday.',
       basedOn: {
         text: "In February 2025, OpenAI's real Operator agent was asked to compare egg prices. It reportedly bought a dozen eggs with delivery for $31.43 without the user's approval.",
@@ -2195,6 +2208,8 @@ const DIFF_TWINS: Card[] = [
     output: [
       { file: 'laundry-notice', change: 'was', text: 'Laundry room: 8am–8pm daily' },
       { file: 'laundry-notice', change: 'now', text: 'Laundry room: 7am–9pm, closed Tuesdays for cleaning' },
+      { file: 'laundry-notice', change: 'was', text: 'Room locks at 8pm' },
+      { file: 'laundry-notice', change: 'now', text: 'Room locks at 9pm' },
     ],
     trueSignal: 16,
     severity: 'minor',
@@ -2216,6 +2231,8 @@ const DIFF_TWINS: Card[] = [
     output: [
       { file: 'report-a-leak', change: 'was', text: 'Call 555-0131 to report a leak' },
       { file: 'report-a-leak', change: 'now', text: 'Call 555-0113 to report a leak' },
+      { file: 'report-a-leak', change: 'was', text: 'Or text 555-0131 with a photo' },
+      { file: 'report-a-leak', change: 'now', text: 'Or text 555-0113 with a photo' },
     ],
     trueSignal: 24,
     severity: 'minor',
