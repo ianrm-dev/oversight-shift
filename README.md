@@ -37,5 +37,7 @@ Play counts: when a run starts and ends, the production build requests `ping.gif
 - **Fonts:** IBM Plex Sans and Mono, under the SIL Open Font License, bundled from `@fontsource`.
 - **Sources** cited in the content belong to their authors; the game summarizes and links to them.
 
+The situations on the cards are fiction: every person, organization, address and number is made up. The research and incidents the game cites are real.
+
 How the game was made, including AI use, is in [docs/AI_USE_LOG.md](docs/AI_USE_LOG.md) and on the in-game "How this was made" screen.
 

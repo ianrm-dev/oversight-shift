@@ -1920,3 +1920,4 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .new-dot { display: inline-block; width: 6px; height: 6px; margin-left: 3px; border-radius: 50%; background: var(--accent); vertical-align: super; }
 .briefing .briefing-record { display: block; padding-top: var(--space-2); font-size: var(--fs-xs); color: var(--text-3); }
 .briefing .briefing-record .eyebrow { display: inline; margin-right: var(--space-1); }
+.title-fiction { margin: 0; font-size: var(--fs-xs); color: var(--text-3); }
