@@ -222,7 +222,7 @@ export function contractPanel(offer: Contract[], chosen?: string): string {
 export const contractById = (id?: string) => CONTRACTS.find((c) => c.id === id);
 
 // ---------- End of run: adversary reveal, score, unlocks ----------
-export function endExtras(run: RunState, score: number, update: RunUpdate | null): string {
+export function endExtras(run: RunState, score: number, update: RunUpdate | null, grade = gradeFor(score)): string {
   const a = ADVERSARIES[run.adversary];
   const attacks = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => x.o.draft.sabotaged);
   const early = attacks.filter((x) => x.day < RULES.schemerLateFrom).length;
@@ -232,7 +232,6 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
        ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}
        <button class="btn-primary" data-go="lab"><kbd>L</kbd> Research lab</button>`
     : '';
-  const grade = gradeFor(score);
   const share = run.daily ? `<button class="btn-ghost" data-share="${esc(`Oversight Shift · ${run.seed.replace('DAILY-', 'daily ')} · ${run.loss ? `Day ${run.day.day}` : 'survived'} · ${grade} ${score}`)}">Copy result</button>` : '';
   return `
     <div class="end-extras">

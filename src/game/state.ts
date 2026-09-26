@@ -719,7 +719,11 @@ export const breakthroughDue = (run: RunState): boolean => (RULES.breakthroughAf
 
 /** Two rare rewards after a boss day. The probe needs the interpretability research. */
 export function breakthroughOffer(run: RunState): Breakthrough[] {
-  const open = BREAKTHROUGHS.filter((b) => !run.breakthroughs.includes(b.id) && (b.id !== 'probe' || run.research.includes('interpretability')));
+  const open = BREAKTHROUGHS.filter((b) =>
+    !run.breakthroughs.includes(b.id)
+    && (b.id !== 'probe' || run.research.includes('interpretability'))
+    // No point offering a red-team exercise once you already know the adversary.
+    && (b.id !== 'red-team' || !run.adversaryRevealed));
   return new Rng(`${run.seed}:breakthrough:d${run.day.day}`).shuffle(open).slice(0, 2);
 }
 
@@ -784,7 +788,9 @@ export function buy(run: RunState, item: ShopItem): boolean {
 
 // ---------- Score ----------
 
-export function runScore(run: RunState, won: boolean): number {
+/** Raw score measures how well you played; the multiplier rewards harder settings.
+ *  The grade comes from the raw score, so a hard setting can't inflate it. */
+export function scoreParts(run: RunState, won: boolean): { raw: number; mult: number; score: number } {
   const S = RULES.score;
   const days = [...run.history, run.day];
   const usefulness = days.reduce((s, d) => s + d.usefulness, 0);
@@ -792,5 +798,7 @@ export function runScore(run: RunState, won: boolean): number {
   const survived = won ? RULES.days : Math.max(0, run.day.day - 1);
   const raw = run.fundingEarned * S.perFunding + usefulness * S.perUsefulness + caught * S.perCatch + survived * S.perDay + run.harm * S.perHarm + (won ? S.winBonus : 0);
   const mult = (1 + S.perModelLevel * (run.level - 1)) * S.difficultyMult[run.difficulty];
-  return Math.max(0, Math.round(raw * mult));
+  return { raw: Math.max(0, Math.round(raw)), mult, score: Math.max(0, Math.round(raw * mult)) };
 }
+
+export const runScore = (run: RunState, won: boolean): number => scoreParts(run, won).score;

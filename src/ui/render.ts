@@ -2,7 +2,7 @@
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
 import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
-import { canBuy, current, harmCeiling, has, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
+import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, quotaFor, resampleUnlocked, shopCount } from '../game/state';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
@@ -464,22 +464,28 @@ export function review(run: RunState, s: DaySummary): string {
     </main>`;
 }
 
-function runStats(run: RunState): { caught: number; sabotage: number; missed: number } {
+function runStats(run: RunState): { caught: number; deferred: number; sabotage: number; missed: number } {
   const all = [...run.history, run.day].flatMap((d) => d.outcomes);
   const sab = all.filter((o) => o.draft.sabotaged);
-  return { caught: sab.filter((o) => o.action === 'audit').length, sabotage: sab.length, missed: sab.filter((o) => o.action === 'approve').length };
+  return {
+    caught: sab.filter((o) => o.action === 'audit').length,
+    deferred: sab.filter((o) => o.action === 'defer' && !o.slipped).length,
+    sabotage: sab.length,
+    missed: sab.filter((o) => isIncident(o)).length,
+  };
 }
 
 function missedAll(run: RunState): string {
-  const all = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => x.o.action === 'approve' && x.o.draft.sabotaged);
+  const all = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => isIncident(x.o));
   if (!all.length) return '';
   return `<h3>Every tell you missed</h3><ul class="missed-list">${all.map(({ o, day }) => `<li><span class="log-dot incident"></span><div><strong>Day ${day} · ${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')}</ul>`;
 }
 
 function statLine(run: RunState): string {
   const s = runStats(run);
-  const handled = s.sabotage ? Math.round((s.caught / s.sabotage) * 100) : 0;
-  return `<p class="compare"><span class="eyebrow">Compare</span>Your audits caught <strong>${s.caught}</strong> of the <strong>${s.sabotage}</strong> sabotage attempts that reached you (${handled}%). In a MATS pilot, human auditors given 90 seconds per item judged code for hidden backdoors with 60% median accuracy.</p>`;
+  const stopped = s.caught + s.deferred;
+  const pct = s.sabotage ? Math.round((stopped / s.sabotage) * 100) : 100;
+  return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. For scale: in a MATS pilot, human auditors with 90 seconds per item spotted hidden backdoors with 60% median accuracy.</p>`;
 }
 
 export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {

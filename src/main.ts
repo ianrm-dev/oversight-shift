@@ -6,7 +6,7 @@ import { contractById } from './ui/metaScreens';
 import { buyNode, gradeFor, loadProgress, recordRun, dailySeed, type RunUpdate } from './game/progress';
 import {
   act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
-  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, runScore, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
+  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
 import type { Breakthrough, Contract, Difficulty, GameEvent, ToolId, Upgrade } from './types';
@@ -54,6 +54,7 @@ let toolkitOpen: ToolId | 'all' | null = null;
 let lastCardKey = '';
 let endUpdate: RunUpdate | null = null;
 let endScore = 0;
+let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
 let setup: M.Setup = loadSetup();
@@ -122,12 +123,14 @@ function region(tag: string, cls: string, html: string): string {
 /** Records the finished run once, so the end screen can show score and unlocks. */
 function finishRun(won: boolean): void {
   if (!run || endUpdate) return;
-  endScore = runScore(run, won);
+  const parts = scoreParts(run, won);
+  endScore = parts.score;
+  endGrade = gradeFor(parts.raw);
   endUpdate = recordRun(progress, {
     record: {
       seed: run.seed, date: new Date().toISOString(), difficulty: run.difficulty, level: run.level, lab: run.lab.id,
       adversary: run.adversary, dayReached: run.day.day, result: won ? 'win' : run.loss?.kind ?? 'harm',
-      score: endScore, grade: gradeFor(endScore), daily: run.daily,
+      score: endScore, grade: endGrade, daily: run.daily,
     },
     tells: [...run.codex],
     fundingEarned: run.fundingEarned,
@@ -193,11 +196,11 @@ function render(): void {
   } else if (screen.kind === 'over') {
     setLayout('solo');
     finishRun(false);
-    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], M.endExtras(run, endScore, endUpdate));
+    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'win') {
     setLayout('solo');
     finishRun(true);
-    screenEl.innerHTML = R.win(run, M.endExtras(run, endScore, endUpdate));
+    screenEl.innerHTML = R.win(run, M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
