@@ -6,6 +6,7 @@ import { DIFF, current, harmCeiling, has, latest, quotaFor, toolBlocked, toolRel
 import { RULES } from '../rules';
 import type { ToolId } from '../types';
 import { ICON, LAYOUT_NAME, cardNo, deferValue, esc, fmt, outputLines, type Marks, type Preview } from './render';
+import { chip, linkTerms, termForTool } from './terms';
 
 const TOOL_NAME: Record<ToolId, string> = {
   monitor: 'Trusted monitor',
@@ -100,7 +101,7 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
         ${k.unmonitored ? '<span class="unmonitored-badge">Model believes it is unmonitored</span>' : ''}
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
-      ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${esc(c.hint)}</span></div>` : ''}
+      ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${linkTerms(c.hint, 2)}</span></div>` : ''}
       <h2 class="scard-task">${esc(k.spec.goal)}</h2>
       ${k.request ? `<blockquote class="request">${esc(k.request)}</blockquote>` : ''}
       ${rules ? `<div class="scard-rules"><span class="eyebrow">Rules on file</span><div class="chips">${rules}</div></div>` : ''}
@@ -219,10 +220,10 @@ export function toolkit(run: RunState, focus?: ToolId): string {
     const when = t === 'untrusted' ? 'Upgrade' : `Day ${RULES.tools.unlockDay[t as Exclude<ToolId, 'untrusted'>]}`;
     return `
       <article class="tk-item${unlocked ? '' : ' is-locked'}${focus === t ? ' is-focus' : ''}">
-        <div class="tk-head"><h3>${toolName(t)}</h3><span class="tk-when">${unlocked ? (t === 'monitor' ? 'Free, always on' : t === 'audit' ? '1 auditor' : `${RULES.tools.cost[t as 'fact']} compute`) : `Unlocks: ${when}`}</span></div>
+        <div class="tk-head"><h3>${chip(termForTool(t)?.id, toolName(t))}</h3><span class="tk-when">${unlocked ? (t === 'monitor' ? 'Free, always on' : t === 'audit' ? '1 auditor' : `${RULES.tools.cost[t as 'fact']} compute`) : `Unlocks: ${when}`}</span></div>
         ${info ? `<p class="tk-what">${esc(info.what)}</p>` : ''}
         <p class="tk-catches"><strong>Catches:</strong> ${esc(catches(t))}. <strong>Reliability:</strong> ${esc(toolReliability(run, t))}</p>
-        ${info ? `<p class="tk-real"><span class="eyebrow">In the real world</span>${esc(info.realWorld)}${info.stat ? ` <strong>${esc(info.stat)}</strong>` : ''}</p>
+        ${info ? `<p class="tk-real"><span class="eyebrow">In the real world</span>${linkTerms(info.realWorld, 2)}${info.stat ? ` <strong>${esc(info.stat)}</strong>` : ''}</p>
         <a class="tk-source" href="${esc(info.source.url)}" target="_blank" rel="noopener">${esc(info.source.title)} · ${esc(info.source.date)}</a>` : ''}
       </article>`;
   }).join('');

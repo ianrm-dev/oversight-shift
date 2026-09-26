@@ -10,6 +10,8 @@ import { eventChoices } from '../game/state';
 import { RULES } from '../rules';
 import type { Breakthrough, Contract, Difficulty, Effect, GameEvent, TellFamily } from '../types';
 import { esc } from './render';
+import { linkTerms } from './terms';
+import { BRANCH_PRIMERS, NODE_DEPTH } from '../data/research-depth';
 
 export interface Setup {
   difficulty: Difficulty;
@@ -41,9 +43,9 @@ export function title(p: Progress): string {
           <span class="menu-name"><kbd>L</kbd> Research lab${availableCount(p) ? ` <span class="badge">${availableCount(p)}</span>` : ''}</span>
           <span class="menu-desc">${p.insight ? `${p.insight} insight to spend. ` : ''}Fund research with what past runs taught you. It carries into every run.</span>
         </button>
-        <button class="menu-opt" data-go="codex">
-          <span class="menu-name"><kbd>C</kbd> Codex</span>
-          <span class="menu-desc">${runs ? `${p.tells.length}/8 tells found. ` : ''}The threats you've met, the adversaries you've faced, and your past runs.</span>
+        <button class="menu-opt" data-go="guide">
+          <span class="menu-name"><kbd>G</kbd> Field guide</span>
+          <span class="menu-desc">${runs ? `${Object.keys(p.termsSeen).length} terms met. ` : ''}Plain-language terms, research approaches and their tradeoffs, and your past runs.</span>
         </button>
       </div>
       <p class="title-note">About 10 minutes · keyboard or mouse · no expertise needed: your tools do the detecting, you make the call</p>
@@ -166,7 +168,7 @@ export function event(run: RunState, ev: GameEvent): string {
       <article class="event-card">
         <div class="eyebrow">After Day ${run.day.day} · a message arrives</div>
         <h2 class="event-title">${esc(ev.title)}</h2>
-        <p class="event-text">${esc(ev.text)}</p>
+        <p class="event-text">${linkTerms(ev.text, 2)}</p>
         <div class="ev-choices">${choices}</div>
         ${ev.anchor ? `<p class="event-anchor"><span class="eyebrow">From the record</span>${esc(ev.anchor.line)} <a href="${esc(ev.anchor.source.url)}" target="_blank" rel="noopener">${esc(ev.anchor.source.title)}</a></p>` : ''}
       </article>
@@ -230,7 +232,7 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
     ? `<ul class="insight-lines">${update.insight.map((l) => `<li><span>${esc(l.label)}</span><strong>+${l.amount}</strong></li>`).join('')}</ul>
        ${update.urgent.length ? `<p class="urgent-note">Your failures made the case for <strong>${update.urgent.map(branchName).join(', ')}</strong> research: half price in the lab.</p>` : ''}
        ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}
-       <button class="btn-primary" data-go="lab"><kbd>L</kbd> Research lab</button>`
+       <div class="pm-actions"><button class="btn-primary" data-go="fieldtest"><kbd>F</kbd> Field test · up to +3</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button></div>`
     : '';
   const share = run.daily ? `<button class="btn-ghost" data-share="${esc(`Oversight Shift · ${run.seed.replace('DAILY-', 'daily ')} · ${run.loss ? `Day ${run.day.day}` : 'survived'} · ${grade} ${score}`)}">Copy result</button>` : '';
   return `
@@ -253,11 +255,11 @@ export function lab(p: Progress, focus?: string): string {
       const foot = st === 'gated' ? GATE_TEXT[n.gate!] : st === 'owned' ? STATE_LABEL.owned : `${cost < n.cost ? `<s>${n.cost}</s> ` : ''}${cost} insight`;
       return `<button class="node tier-${n.tier} is-${st}${focus === n.id ? ' is-focus' : ''}" data-node="${n.id}" ${st === 'available' ? '' : 'aria-disabled="true"'}>
         <span class="node-name">${esc(n.name)}</span>
-        <span class="node-effect">${esc(n.effect)}</span>
+        <span class="node-effect">${linkTerms(n.effect, 1)}</span>
         <span class="node-foot">${foot}</span>
       </button>`;
     }).join('');
-    return `<section class="branch${urgent ? ' is-urgent' : ''}"><header><h3>${esc(b.name)}</h3>${urgent ? '<span class="urgent-tag">Urgent · half price</span>' : `<span class="branch-blurb">${esc(b.blurb)}</span>`}</header><div class="nodes">${nodes}</div></section>`;
+    return `<section class="branch${urgent ? ' is-urgent' : ''}"><header data-branch="${b.id}"><h3>${esc(b.name)}</h3>${urgent ? '<span class="urgent-tag">Urgent · half price</span>' : `<span class="branch-blurb">${esc(b.blurb)}</span>`}</header><div class="nodes">${nodes}</div></section>`;
   }).join('');
   return `
     <main class="solo research-lab">
@@ -273,10 +275,16 @@ export function lab(p: Progress, focus?: string): string {
 }
 
 export function labDetail(id?: string): string {
+  const b = BRANCHES.find((x) => x.id === id);
+  if (b) {
+    const pr = BRANCH_PRIMERS[b.id];
+    return `<strong>${esc(b.name)}</strong><span>${esc(pr.what)} <em>It assumes:</em> ${esc(pr.assumes)} <em>Limit:</em> ${esc(pr.limits)}</span><span class="muted">${esc(pr.vs)}</span>`;
+  }
   const n = id ? nodeById(id) : undefined;
-  if (!n) return '<p class="muted">Point at a node to see the real research behind it.</p>';
+  if (!n) return '<p class="muted">Point at a branch name for what that approach is, or at a node for the real research behind it.</p>';
   const a = RESEARCH_ANCHORS[n.id];
-  return `<strong>${esc(n.name)}</strong><span>${a ? esc(a.realWorld) : ''}</span>${a ? `<a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)} · ${esc(a.source.date)}</a>` : ''}`;
+  const d = NODE_DEPTH[n.id];
+  return `<strong>${esc(n.name)}</strong><span>${a ? esc(a.realWorld) : ''}</span>${d ? `<span><em>Tradeoff:</em> ${esc(d.tradeoff)} <em>Open question:</em> ${esc(d.openQuestion)}</span>` : ''}${a ? `<a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)} · ${esc(a.source.date)}</a>` : ''}`;
 }
 
 // ---------- Adversary revealed (red team, event, or research) ----------
@@ -294,7 +302,7 @@ export function adversaryReveal(run: RunState, source: string): string {
       <article class="event-card reveal-card">
         <div class="eyebrow">${esc(source)} · the model you are facing</div>
         <h2 class="event-title">${esc(a.name)}</h2>
-        <p class="event-text">${esc(a.codex)}</p>
+        <p class="event-text">${linkTerms(a.codex, 3)}</p>
         <p class="reveal-counter"><span class="eyebrow">What works against it</span>${esc(COUNTERS[a.id] ?? '')}</p>
         <p class="event-anchor"><span class="eyebrow">In the real world</span>${esc(a.realWorld)} <a href="${esc(a.source.url)}" target="_blank" rel="noopener">${esc(a.source.title)}</a></p>
         <p class="muted small">It stays marked in your status bar for the rest of the run.</p>

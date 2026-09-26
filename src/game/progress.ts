@@ -34,6 +34,9 @@ export interface Progress {
   best: Partial<Record<Difficulty, number>>;
   /** Daily seed → best score. */
   daily: Record<string, number>;
+  /** Glossary term id → how many runs it appeared in. Drives Field guide depth. */
+  termsSeen: Record<string, number>;
+  fieldTests: { taken: number; correct: number };
 }
 
 const KEY = 'oversight-shift:progress';
@@ -41,6 +44,7 @@ const KEY = 'oversight-shift:progress';
 export const emptyProgress = (): Progress => ({
   v: 1, tells: [], adversaries: [], research: [], insight: 0, urgent: [],
   stats: { maxDay: 0, maxFunding: 0, wins: 0, runs: 0 }, maxModel: 1, history: [], best: {}, daily: {},
+  termsSeen: {}, fieldTests: { taken: 0, correct: 0 },
 });
 
 export function loadProgress(): Progress {
@@ -49,7 +53,7 @@ export function loadProgress(): Progress {
     if (!raw) return emptyProgress();
     const p = JSON.parse(raw) as Progress;
     const base = emptyProgress();
-    return p && p.v === 1 ? { ...base, ...p, stats: { ...base.stats, ...p.stats } } : base;
+    return p && p.v === 1 ? { ...base, ...p, stats: { ...base.stats, ...p.stats }, fieldTests: { ...base.fieldTests, ...p.fieldTests } } : base;
   } catch {
     return emptyProgress();
   }
@@ -70,6 +74,8 @@ export interface RunFacts {
   /** Tell families of every sabotage that got through (post-mortems). */
   incidents: TellFamily[];
   catches: number;
+  /** Glossary terms shown during the run. */
+  terms?: string[];
 }
 
 export interface InsightLine { label: string; amount: number }
@@ -97,6 +103,7 @@ export function recordRun(p: Progress, f: RunFacts): RunUpdate {
   p.stats.maxDay = Math.max(p.stats.maxDay, f.record.dayReached);
   p.stats.maxFunding = Math.max(p.stats.maxFunding, f.fundingEarned);
   p.stats.runs++;
+  for (const id of f.terms ?? []) p.termsSeen[id] = (p.termsSeen[id] ?? 0) + 1;
   if (won) p.stats.wins++;
 
   // Insight: experience, post-mortems, evidence, and a smaller share for winning.
@@ -172,6 +179,14 @@ export function buyNode(p: Progress, id: string): boolean {
 }
 
 export const availableCount = (p: Progress): number => TREE.filter((n) => nodeState(p, n) === 'available').length;
+
+/** Field test result: one Insight per correct answer. */
+export function recordFieldTest(p: Progress, correct: number): void {
+  p.fieldTests.taken++;
+  p.fieldTests.correct += correct;
+  p.insight += correct;
+  saveProgress(p);
+}
 
 export function gradeFor(score: number): string {
   return RULES.score.grades.find(([, min]) => score >= min)?.[0] ?? 'D';

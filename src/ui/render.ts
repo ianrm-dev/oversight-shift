@@ -6,6 +6,7 @@ import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, lates
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
+import { chip, findTerm, linkTerms, termForFamily } from './terms';
 
 export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | 'probe' | null;
 
@@ -279,7 +280,7 @@ export function auditReveal(run: RunState, o: Outcome): string {
     : `<div class="verdict-strip is-clean">${ICON.check}<span>Audit · clean work</span><span class="verdict-note">Shipped · +${RULES.usefulness.ship} usefulness</span></div>`;
   const body = caught
     ? `<div class="tell">
-         <span class="tell-chip good">Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>
+         <span class="tell-chip good">Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
          <p class="tell-text">${esc(k.sabotage!.explanation)}</p>
          ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${esc(info.tip)}</p>` : ''}
          <dl class="incident-facts">
@@ -334,7 +335,7 @@ export function incident(run: RunState, o: Outcome): string {
         <div class="incident-grid">
           <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}</div>
           <div class="tell">
-            <span class="tell-chip">Tell · ${esc(info?.name ?? sab.family)}</span>
+            <span class="tell-chip">Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
             <p class="tell-text">${esc(sab.explanation)}</p>
             ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${esc(info.tip)}</p>` : ''}
             ${toolsFor(run, sab.family)}
@@ -373,8 +374,8 @@ function cast(): string {
   return `
     <div class="cast">
       <div class="cast-item"><span class="cast-dot model"></span><div><strong>The model</strong><span>Strong, fast, and not fully trusted. Its work fills your queue.</span></div></div>
-      <div class="cast-item"><span class="cast-dot trusted"></span><div><strong>Trusted model</strong><span>Weaker but safe. It scores each card (the monitor) and redoes work you <em>Defer</em>.</span></div></div>
-      <div class="cast-item"><span class="cast-dot human"></span><div><strong>Your auditors</strong><span>Human experts. Always right, never enough of them. Spend them with <em>Audit</em>.</span></div></div>
+      <div class="cast-item"><span class="cast-dot trusted"></span><div><strong>Trusted model</strong><span>Weaker but safe. It scores each card (the ${chip(findTerm('trusted monitoring')?.id, 'monitor')}) and redoes work you ${chip(findTerm('defer to trusted')?.id, 'Defer')}.</span></div></div>
+      <div class="cast-item"><span class="cast-dot human"></span><div><strong>Your auditors</strong><span>Human experts. Always right, never enough of them. Spend them with ${chip(findTerm('human audit')?.id, 'Audit')}.</span></div></div>
       <p class="cast-note">Every task you ship earns <strong>usefulness</strong>. Leadership sets a daily usefulness quota, and whatever ships past it becomes <strong>funding</strong> for your team.</p>
     </div>`;
 }
@@ -390,7 +391,7 @@ export function briefing(run: RunState, toolsToday = ''): string {
         <div class="briefing-main">
           <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
           <h2 class="briefing-title">Shift briefing</h2>
-          <ul class="briefing-rules">${info.rule.map((r) => `<li>${esc(r)}</li>`).join('')}${penalty}</ul>
+          <ul class="briefing-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
             <div><dt>Cards</dt><dd>${d.queue.length}</dd></div>
             <div${d.quotaAsked - d.quota >= 2 ? ` title="Leadership asked for ${d.quotaAsked}; today's work can't deliver that, so it was cut to what's achievable."` : ''}><dt>Usefulness quota</dt><dd>${d.quota}${d.quotaAsked - d.quota >= 2 ? `<small> of ${d.quotaAsked}</small>` : ''}</dd></div>

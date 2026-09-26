@@ -3,7 +3,10 @@ import './theme.css';
 import './ui.css';
 import { dayInfo } from './data/days';
 import { contractById } from './ui/metaScreens';
-import { buyNode, gradeFor, loadProgress, recordRun, dailySeed, type RunUpdate } from './game/progress';
+import { buyNode, gradeFor, loadProgress, recordFieldTest, recordRun, dailySeed, type RunUpdate } from './game/progress';
+import { buildFieldTest, talkingPoints } from './game/fieldtest';
+import * as L from './ui/learn';
+import { popover, resetTermsMet, termsMet } from './ui/terms';
 import {
   act, advance, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
   eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
@@ -23,6 +26,8 @@ type Screen =
   | { kind: 'title' }
   | { kind: 'setup' }
   | { kind: 'codex' }
+  | { kind: 'guide'; tab: L.GuideTab; focus?: string }
+  | { kind: 'fieldtest'; test: L.TestState }
   | { kind: 'daily-info' }
   | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
@@ -57,6 +62,7 @@ let endScore = 0;
 let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
+let fieldTestTaken = false;
 let setup: M.Setup = loadSetup();
 
 function loadSetup(): M.Setup {
@@ -83,6 +89,8 @@ function startRun(seed: string, daily = false): void {
   run = newRun(seed, hintsFor(1), opts);
   endUpdate = null;
   revealShown = false;
+  fieldTestTaken = false;
+  resetTermsMet();
   // Playtest shortcut: ?day=N starts the run on day N with a fresh budget.
   const jump = Number(new URLSearchParams(location.search).get('day'));
   if (!daily && jump >= 2 && jump <= RULES.days) {
@@ -134,6 +142,7 @@ function finishRun(won: boolean): void {
     },
     tells: [...run.codex],
     fundingEarned: run.fundingEarned,
+    terms: termsMet(),
     incidents: [...run.history, run.day].flatMap((d) => d.outcomes).filter(isIncident).map((o) => o.card.sabotage!.family),
     catches: [...run.history, run.day].flatMap((d) => d.outcomes).filter((o) => o.action === 'audit' && o.draft.sabotaged).length,
   });
@@ -158,14 +167,19 @@ function briefingExtras(r: RunState): string {
     ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => `<span class="brief-tag ${h.amount < 0 ? 'good' : 'bad'}">Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}</span>`),
     r.research.includes('evl-forecast') ? forecast(r) : '',
   ].join('');
-  return `<div class="brief-tags">${tags}</div>${S.newToolsBlock(r)}`;
+  return `<div class="brief-tags">${tags}</div>${L.dayTermsBlock(r, progress)}${S.newToolsBlock(r)}`;
 }
 
 function render(): void {
   if (!stage.contains(screenEl)) stage.append(screenEl);
+  pop.hidden = true;
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
-  else if (screen.kind === 'codex') { setLayout('solo'); screenEl.innerHTML = M.codex(progress); }
+  else if (screen.kind === 'codex' || screen.kind === 'guide') { setLayout('solo'); screenEl.innerHTML = L.fieldGuide(progress, screen.kind === 'guide' ? screen.tab : 'terms', screen.kind === 'guide' ? screen.focus : undefined); }
+  else if (screen.kind === 'fieldtest') {
+    setLayout('solo');
+    screenEl.innerHTML = screen.test.done && run ? L.fieldTestResults(screen.test, talkingPoints(run, termsMet())) : L.fieldTest(screen.test);
+  }
   else if (screen.kind === 'daily-info') { setLayout('solo'); screenEl.innerHTML = M.dailyInfo(progress, dailySeed(), new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })); }
   else if (screen.kind === 'lab') { setLayout('solo'); screenEl.innerHTML = M.lab(progress, screen.focus); }
   else if (!run) return;
@@ -294,6 +308,7 @@ function withReveal(next: Screen, source: string): Screen {
 function continueScreen(): void {
   if (!run) return;
   if (screen.kind === 'reveal') { screen = screen.then; render(); return; }
+  if (screen.kind === 'fieldtest') { advanceFieldTest(); return; }
   if (screen.kind === 'briefing') { screen = { kind: 'shift' }; render(); return; }
   if (screen.kind === 'shift' && screen.overlay) { nextCard(); return; }
   if (screen.kind === 'review') {
@@ -365,7 +380,33 @@ function restart(mode: 'same' | 'new'): void {
 
 function go(target: string): void {
   if (target === 'daily') { startRun(dailySeed(), true); return; }
-  if (target === 'title' || target === 'setup' || target === 'codex' || target === 'lab' || target === 'daily-info') { screen = { kind: target }; resetLattice('title'); render(); }
+  if (target === 'guide' || target === 'codex') { screen = { kind: 'guide', tab: 'terms' }; resetLattice('title'); render(); return; }
+  if (target === 'fieldtest') { startFieldTest(); return; }
+  if (target === 'title' || target === 'setup' || target === 'lab' || target === 'daily-info') { screen = { kind: target }; resetLattice('title'); render(); }
+}
+
+function startFieldTest(): void {
+  if (!run || fieldTestTaken) return;
+  const questions = buildFieldTest(run, termsMet());
+  if (!questions.length) return;
+  fieldTestTaken = true;
+  screen = { kind: 'fieldtest', test: { questions, index: 0, correct: 0, done: false } };
+  render();
+}
+
+function answerFieldTest(id: string): void {
+  if (screen.kind !== 'fieldtest' || screen.test.done || screen.test.picked !== undefined) return;
+  const q = screen.test.questions[screen.test.index]!;
+  screen = { kind: 'fieldtest', test: { ...screen.test, picked: id, correct: screen.test.correct + (id === q.answer ? 1 : 0) } };
+  render();
+}
+
+function advanceFieldTest(): void {
+  if (screen.kind !== 'fieldtest' || screen.test.picked === undefined) return;
+  const t = screen.test;
+  if (t.index + 1 < t.questions.length) screen = { kind: 'fieldtest', test: { ...t, index: t.index + 1, picked: undefined } };
+  else { recordFieldTest(progress, t.correct); screen = { kind: 'fieldtest', test: { ...t, done: true } }; }
+  render();
 }
 
 function setSetup(patch: Partial<M.Setup>): void {
@@ -392,8 +433,22 @@ document.addEventListener('keydown', (e) => {
   if (screen.kind === 'title') {
     if (k === 'enter' || k === ' ') { e.preventDefault(); go('setup'); }
     else if (k === 'd') go('daily-info');
-    else if (k === 'c') go('codex');
+    else if (k === 'c' || k === 'g') go('guide');
     else if (k === 'l') go('lab');
+    return;
+  }
+  if (screen.kind === 'guide') {
+    const tab = (['terms', 'approaches', 'threats', 'runs'] as const)[Number(k) - 1];
+    if (tab) { screen = { kind: 'guide', tab }; render(); }
+    else if (k === 'escape' || k === 'g') go('title');
+    return;
+  }
+  if (screen.kind === 'fieldtest') {
+    const q = screen.test.questions[screen.test.index];
+    const i = Number(k) - 1;
+    if (!screen.test.done && q && screen.test.picked === undefined && q.options[i]) { answerFieldTest(q.options[i]!); return; }
+    if (screen.test.done) { if (k === 'l') go('lab'); else if (k === 'g') go('guide'); else if (k === 'escape') go('title'); return; }
+    if (k === ' ' || k === 'enter') { e.preventDefault(); advanceFieldTest(); }
     return;
   }
   if (screen.kind === 'daily-info') {
@@ -414,6 +469,7 @@ document.addEventListener('keydown', (e) => {
     return;
   }
   if (screen.kind === 'codex') { if (k === 'escape' || k === 'c') go('title'); return; }
+  if ((screen.kind === 'over' || screen.kind === 'win') && k === 'f') { go('fieldtest'); return; }
   if ((screen.kind === 'over' || screen.kind === 'interim' || screen.kind === 'win') && (k === 'enter' || k === 'n')) { e.preventDefault(); restart(k === 'n' ? 'new' : 'same'); return; }
   if ((screen.kind === 'over' || screen.kind === 'win') && k === 'escape') { go('title'); return; }
   if ((screen.kind === 'over' || screen.kind === 'win') && k === 'l') { go('lab'); return; }
@@ -439,6 +495,14 @@ document.addEventListener('keydown', (e) => {
 
 screenEl.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
+  const guide = el.closest<HTMLElement>('[data-guide-tab], [data-guide-term], [data-answer]');
+  if (guide) {
+    if (guide.dataset.guideTab) screen = { kind: 'guide', tab: guide.dataset.guideTab as L.GuideTab };
+    else if (guide.dataset.guideTerm) screen = { kind: 'guide', tab: 'terms', focus: guide.dataset.guideTerm };
+    else if (guide.dataset.answer) { answerFieldTest(guide.dataset.answer); return; }
+    render();
+    return;
+  }
   const info = el.closest<HTMLElement>('[data-toolkit], [data-toolkit-close], [data-expand], [data-difficulty], [data-lab], [data-level], [data-go], [data-share]');
   if (info) {
     e.stopPropagation();
@@ -474,16 +538,44 @@ screenEl.addEventListener('click', (e) => {
 });
 
 screenEl.addEventListener('mouseover', (e) => {
-  const node = (e.target as HTMLElement).closest<HTMLElement>('[data-node]');
+  const node = (e.target as HTMLElement).closest<HTMLElement>('[data-node], [data-branch]');
   if (node && screen.kind === 'lab') {
     const detail = screenEl.querySelector('.lab-detail');
-    if (detail) detail.innerHTML = M.labDetail(node.dataset.node);
+    if (detail) detail.innerHTML = M.labDetail(node.dataset.node ?? node.dataset.branch);
     return;
   }
   const t = (e.target as HTMLElement).closest<HTMLElement>('[data-action]');
   const next = t && !(t as HTMLButtonElement).disabled ? (t.dataset.action as R.Preview) : null;
   if (next !== preview) { preview = next; renderPreview(); }
 });
+
+// ---------- Term popover ----------
+const pop = document.createElement('div');
+pop.className = 'term-pop';
+pop.hidden = true;
+stage.append(pop);
+
+function showPop(el: HTMLElement): void {
+  const html = popover(el.dataset.term ?? '');
+  if (!html) return;
+  pop.innerHTML = html;
+  pop.hidden = false;
+  const s = stage.getBoundingClientRect();
+  const scale = s.width / 1280;
+  const r = el.getBoundingClientRect();
+  const x = (r.left - s.left) / scale;
+  const below = (r.bottom - s.top) / scale + 6;
+  const w = pop.offsetWidth;
+  const h = pop.offsetHeight;
+  pop.style.left = `${Math.min(Math.max(8, x), 1280 - w - 8)}px`;
+  pop.style.top = `${below + h > 712 ? (r.top - s.top) / scale - h - 6 : below}px`;
+}
+const hidePop = () => { pop.hidden = true; };
+stage.addEventListener('mouseover', (e) => { const t = (e.target as HTMLElement).closest<HTMLElement>('[data-term]'); if (t) showPop(t); });
+stage.addEventListener('mouseout', (e) => { if ((e.target as HTMLElement).closest('[data-term]')) hidePop(); });
+stage.addEventListener('focusin', (e) => { const t = (e.target as HTMLElement).closest<HTMLElement>('[data-term]'); if (t) showPop(t); });
+stage.addEventListener('focusout', hidePop);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') hidePop(); }, true);
 
 // ---------- Fit the 1280×720 stage to the window ----------
 function fit(): void {

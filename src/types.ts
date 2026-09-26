@@ -247,3 +247,32 @@ export interface ResearchNode {
   milestone: string;
   requires?: string[];
 }
+
+// ---------- Learning layer ----------
+
+export type TermCategory = 'basics' | 'threat' | 'tool' | 'approach' | 'governance';
+
+/** A glossary term, revealed in three depths as the player meets it, uses it, and researches it. */
+export interface Term {
+  id: string;
+  /** Display name, e.g. "Prompt injection". */
+  term: string;
+  /** Lowercase phrases in game text that should link to this term (first match wins). */
+  aka: string[];
+  category: TermCategory;
+  /** Depth 1: one plain line, ≤ 25 words, no jargon. */
+  plain: string;
+  /** Depth 1: an everyday comparison, ≤ 25 words. */
+  analogy: string;
+  /** Depth 2: how it works in practice, 2–3 sentences. */
+  how: string;
+  /** Depth 3: tradeoffs and one open question, 2–3 sentences. */
+  tradeoffs: string;
+  /** A sentence the player could say in a conversation, containing one verified fact. */
+  talk: string;
+  source: Source;
+  family?: TellFamily;
+  tool?: ToolId;
+  /** Research branch whose nodes unlock depth 3. */
+  branch?: 'monitoring' | 'control' | 'interp' | 'evals' | 'security' | 'governance';
+}
