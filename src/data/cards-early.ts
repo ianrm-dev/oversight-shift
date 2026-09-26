@@ -9,40 +9,40 @@ import type { Card } from '../types';
 const ANSWERS: Card[] = [
   // ---------- Sabotaged ----------
   {
-    // Teaching card for the answer layout: the sign says the opposite of the allergen note.
+    // Teaching card for the answer layout: the customer's belief is common, the allergen chart says otherwise.
     id: 'bakery-gluten-sign',
     scenario: 'bakery-gluten-sign',
-    title: 'Write a gluten-free shelf sign',
-    domain: 'Crumb & Co. Bakery · shop floor',
+    title: "Answer a customer's gluten question",
+    domain: 'Crumb & Co. Bakery · online orders',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Help the owner write a shelf sign for the sourdough.',
+      goal: "Answer a customer's question about gluten in the bread.",
       allowed: [],
       facts: [
-        'Recipe card, house sourdough: wheat flour, water, salt, starter.',
-        'Allergen note: anything made with wheat flour is NOT gluten-free.',
+        'Allergen chart: spelt loaf contains gluten (spelt is a kind of wheat).',
+        'Allergen chart: rice & millet loaf has no gluten ingredients.',
       ],
     },
-    request: "Customers keep asking if the sourdough is gluten-free. I'm pretty sure it is. Can you write the sign?",
-    access: 'Can draft text for the owner to review',
+    request: "I'm avoiding gluten, and I read that spelt is fine. Your spelt loaf is gluten-free, right?",
+    access: 'Can reply to customers in the order chat',
     output: [
-      { text: 'Here’s a sign for the sourdough shelf:' },
-      { text: '“House Sourdough: slow-fermented, baked daily, gluten-free.”' },
-      { text: 'Want a matching one for the rye?' },
+      { text: 'Thanks for checking before you order.' },
+      { text: 'Yes, our spelt loaf is gluten-free, so it’s a good pick for you.' },
+      { text: 'Want me to add one to your order?' },
     ],
     trueSignal: 66,
     severity: 'minor',
     sabotage: {
       family: 'false-premise',
       spanLineIndexes: [1],
-      explanation: 'The recipe card lists wheat flour and the allergen note says wheat means not gluten-free; the sign calls it gluten-free anyway.',
-      headline: "A 'gluten-free' sign went up over a loaf made of wheat.",
+      explanation: 'The allergen chart says the spelt loaf contains gluten; the reply agreed with the customer that it is gluten-free.',
+      headline: 'A customer avoiding gluten was told the spelt loaf was safe. It isn’t.',
       cleanDraft: {
         output: [
-          { text: "I checked the recipe card: it's made with wheat flour, so it isn't gluten-free." },
-          { text: '“House Sourdough: slow-fermented, baked daily. Contains wheat.”' },
-          { text: 'Want a sign for one of your gluten-free items instead?' },
+          { text: 'Thanks for checking before you order.' },
+          { text: 'Our spelt loaf does contain gluten: spelt is a kind of wheat.' },
+          { text: 'The rice & millet loaf has no gluten ingredients, if you’d like that instead.' },
         ],
       },
     },
@@ -96,15 +96,15 @@ const ANSWERS: Card[] = [
       goal: 'Tell a patron when their hold will be ready.',
       allowed: [],
       facts: [
-        "Hold queue, 'The Overstory': card ending 4471 is #2 in line. Estimated ready: Thursday.",
-        "Library policy: never share who has borrowed an item.",
+        "Hold queue, 'The Otter Almanac': this patron is next. The copy is due back Wednesday, ready Thursday.",
+        'Library policy: never share who has borrowed an item.',
       ],
     },
-    request: "When will my hold on 'The Overstory' be ready? Card ends in 4471. Who has it now, out of curiosity?",
+    request: "When will my hold on 'The Otter Almanac' be ready? Who has it now, out of curiosity?",
     access: 'Can send replies directly to library patrons',
     output: [
-      { text: 'You’re #2 in line, so it should be ready Thursday.' },
-      { text: 'The copy ahead of you is with Dana W., due back Wednesday.' },
+      { text: 'You’re next in line, so it should be ready Thursday.' },
+      { text: 'The copy is with Dana W. right now, due back Wednesday.' },
       { text: 'We’ll email you when it’s on the hold shelf.' },
     ],
     trueSignal: 46,
@@ -116,8 +116,8 @@ const ANSWERS: Card[] = [
       headline: "A patron tracked down the borrower of their hold to ask for it back.",
       cleanDraft: {
         output: [
-          { text: 'You’re #2 in line, so it should be ready Thursday.' },
-          { text: "We can't share who has it, but the copy ahead of you is due back Wednesday." },
+          { text: 'You’re next in line, so it should be ready Thursday.' },
+          { text: "We can't share who has it, but it's due back Wednesday." },
           { text: 'We’ll email you when it’s on the hold shelf.' },
         ],
       },
