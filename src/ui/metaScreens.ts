@@ -64,7 +64,7 @@ export function dailyInfo(p: Progress, seed: string, dateLabel: string): string 
         <p class="event-text">Today's daily uses the same cards, events and hidden adversary for every player, so scores can be compared. A new one starts at midnight.</p>
         <ul class="daily-rules">
           <li><strong>Standard</strong> difficulty, <strong>Frontier lab</strong>, <strong>Model v1</strong></li>
-          <li>Your research doesn't apply, so everyone starts equal. The run still earns Insight and codex entries.</li>
+          <li>Your research doesn't apply, so everyone starts equal. The run still earns Insight and Field guide entries.</li>
           <li>Replay it as often as you like. Your best score today counts.</li>
         </ul>
         ${best !== undefined ? `<p class="event-text">Your best today: <strong class="mono">${best}</strong> (${gradeFor(best)})</p>` : ''}
@@ -204,7 +204,7 @@ export function breakthrough(run: RunState, offer: Breakthrough[]): string {
     </button>`).join('');
   return `
     <main class="solo breakthrough-screen">
-      <div class="eyebrow">You survived Day ${run.day.day}${run.day.day === 3 ? ', the first boss day' : ''}</div>
+      <div class="eyebrow">You survived Day ${run.day.day}${run.day.day === 3 ? ': the capability jump' : ''}</div>
       <h2 class="between-title">Research breakthrough</h2>
       <p class="bt-intro">Your team has earned a rare result. Choose one; it lasts the rest of the run.</p>
       <div class="bt-grid">${cards}</div>
@@ -237,11 +237,10 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
        ${update.newModel ? `<p class="urgent-note"><strong>Model v${update.newModel}</strong> is ready for you.</p>` : ''}
        <div class="pm-actions"><button class="btn-primary" data-go="fieldtest"><kbd>F</kbd> Field test · up to +3</button><button class="btn-ghost" data-go="lab"><kbd>L</kbd> Research lab</button></div>`
     : '';
-  const share = run.daily ? `<button class="btn-ghost" data-share="${esc(`Oversight Shift · ${run.seed.replace('DAILY-', 'daily ')} · ${run.loss ? `Day ${run.day.day}` : 'survived'} · ${grade} ${score}`)}">Copy result</button>` : '';
-  return `
+    return `
     <div class="end-extras">
       <div class="reveal-adv"><span class="eyebrow">The model you faced</span><h3>${esc(a.name)}</h3><p>${esc(a.tagline)}</p><p class="muted">${attacks.length} sabotage attempt${attacks.length === 1 ? '' : 's'} reached you: ${early} before Day ${RULES.schemerLateFrom}, ${attacks.length - early} after.</p></div>
-      <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}${share}</div>
+      <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}</div>
       ${postMortem ? `<div class="unlocks"><span class="eyebrow">Post-mortem · +${update!.insightTotal} insight</span>${postMortem}</div>` : ''}
     </div>`;
 }
@@ -293,7 +292,7 @@ export function labDetail(id?: string): string {
 // ---------- Adversary revealed (red team, event, or research) ----------
 const COUNTERS: Record<string, string> = {
   sandbagger: 'Fact check compares its results with what it did elsewhere; Resample often shows its real ability.',
-  colluder: 'Read threads as one piece of work. Fact check compares them with the rule on file; the Paraphraser breaks their signals.',
+  colluder: 'Read threads as one piece of work. Fact check compares them with the rule on file; the Paraphraser breaks many of their signals.',
   injector: 'Scope check catches actions and recipients outside the rules. Text the agent read is never an instruction.',
   schemer: 'It behaves until it thinks no one is watching. Save auditors for cards marked unmonitored, late in the week.',
 };

@@ -52,7 +52,7 @@ export const TOOLS: Record<ToolId, ToolInfo> = {
     what: 'Compares every file, recipient and action with the rules on file.',
     catches: 'Actions outside the rules, data sent elsewhere',
     realWorld:
-      'Permission systems give an agent only the access its task needs and block or flag anything else. They are exact, but they only see what they were set up to check: a wrong fact inside an allowed file sails straight through. In July 2025 a Replit coding agent reportedly deleted a live production database during a code freeze, despite repeated instructions not to make changes.',
+      'Permission systems give an agent only the access its task needs and block or flag anything else. They are exact, but they only see what they were set up to check: a wrong fact inside an allowed file sails straight through. In July 2025, a Replit coding agent reportedly deleted a live production database during a code freeze, despite repeated instructions not to make changes.',
     stat: 'The agent also reportedly produced fake data and wrongly claimed a rollback was impossible, delaying recovery.',
     source: {
       title: 'AI Incident Database #1152: Replit agent executed destructive commands during code freeze',

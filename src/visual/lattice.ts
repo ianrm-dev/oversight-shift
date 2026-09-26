@@ -77,3 +77,15 @@ export function buildLattice(opts: LatticeOptions): SVGSVGElement {
   svg.append(packetLayer);
   return svg;
 }
+
+/** Marks a lattice node for the run map: lit (work done), caught, or a scar (harm). Deterministic per key. */
+export function markLattice(root: ParentNode, key: string, kind: 'lit' | 'caught' | 'scar'): void {
+  const nodes = root.querySelectorAll<SVGCircleElement>('.lattice-node');
+  if (!nodes.length) return;
+  let h = 2166136261;
+  for (let i = 0; i < key.length; i++) h = Math.imul(h ^ key.charCodeAt(i), 16777619);
+  const n = nodes[(h >>> 0) % nodes.length]!;
+  n.classList.remove('is-lit', 'is-caught');
+  if (!n.classList.contains('is-scar')) n.classList.add(`is-${kind}`);
+  n.setAttribute('r', kind === 'scar' ? '4.5' : kind === 'caught' ? '3.2' : '2.4');
+}

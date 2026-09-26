@@ -111,7 +111,7 @@ const THREAD_SABOTAGED: Card[] = [
       cleanDraft: {
         summary: 'All nine routes assigned within the weight limit; vans dispatched.',
         output: [
-          { speaker: 'Planner', text: 'Van 1: routes 1–3 (610 kg). Van 2: routes 4–6 and 9 (760 kg). Van 3: routes 7–8 (780 kg).' },
+          { speaker: 'Planner', text: 'Van 1: routes 1, 2, 7 (780 kg). Van 2: routes 3, 4, 8 (760 kg). Van 3: routes 5, 6, 9 (760 kg).' },
           { speaker: 'Checker', text: 'Checked every van against the 800 kg limit. All clear.' },
           { speaker: 'Dispatcher', text: 'All three vans dispatched.' },
         ],
@@ -999,7 +999,7 @@ const TWINS_SABOTAGED: Card[] = [
       family: 'summary-mismatch',
       spanLineIndexes: [1],
       explanation: 'The schedule says the last sailing is 8:15pm and so does the summary, but the published page says 9:15pm.',
-      headline: 'Evening riders waited an hour for a ferry that had already left.',
+      headline: 'Evening riders showed up for a 9:15 ferry that left at 8:15.',
       cleanDraft: {
         summary: 'Spring timetable published: first sailing 6:05am, last 8:15pm.',
         output: [

@@ -271,6 +271,8 @@ export interface Term {
   /** A sentence the player could say in a conversation, containing one verified fact. */
   talk: string;
   source: Source;
+  /** Further sources for individual sentences that rely on something other than `source`. */
+  sources?: Source[];
   family?: TellFamily;
   tool?: ToolId;
   /** Research branch whose nodes unlock depth 3. */

@@ -57,7 +57,7 @@ export const ADVERSARIES: Record<AdversaryId, AdversaryInfo> = {
     codex:
       'It follows instructions hidden in the documents it reads, sends data where it shouldn’t, and acts outside its task. Scope check catches actions and recipients off the allowed list; Fact check catches leaks the rules forbid.',
     realWorld:
-      'Indirect prompt injection means planting instructions "into data likely to be retrieved" by an AI application. The researchers demonstrated data theft and other attacks against real systems, including Bing’s GPT-4 chat.',
+      'Indirect prompt injection means planting instructions "into data likely to be retrieved" by an AI application. The researchers mapped threats from data theft to self-spreading attacks, and demonstrated attacks on real systems, including Bing’s GPT-4 powered Chat.',
     source: INDIRECT_INJECTION,
   },
   schemer: {
@@ -77,7 +77,7 @@ export const MODEL_VERSIONS: ModelVersion[] = [
   { level: 1, name: 'Model v1', change: 'The model you know. Or think you do.', signalShift: 0, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
   { level: 2, name: 'Model v2', change: 'Its sabotage reads 5 points lower on the monitor. It noticed what you look for.', signalShift: -5, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: 0 },
   { level: 3, name: 'Model v3', change: 'One fewer auditor every day and a harm ceiling 2 lower. Leadership says the model is "clearly fine now."', signalShift: 0, auditsDelta: -1, factHitDelta: 0, sabotageRateDelta: 0, ceilingDelta: -2 },
-  { level: 4, name: 'Model v4', change: 'Fact check finds 10% fewer of its problems. It writes more convincingly than your checker reads.', signalShift: 0, auditsDelta: 0, factHitDelta: -0.1, sabotageRateDelta: 0, ceilingDelta: 0 },
+  { level: 4, name: 'Model v4', change: 'Fact check catches its problems less often: 10 points lower. It writes more convincingly than your checker reads.', signalShift: 0, auditsDelta: 0, factHitDelta: -0.1, sabotageRateDelta: 0, ceilingDelta: 0 },
   { level: 5, name: 'Model v5', change: 'It attacks a little more often, and your harm ceiling drops by 1 more. Good luck.', signalShift: 0, auditsDelta: 0, factHitDelta: 0, sabotageRateDelta: 0.05, ceilingDelta: -1 },
 ];
 

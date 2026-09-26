@@ -5,10 +5,13 @@ import type { CardState, RunState } from '../game/state';
 import { DIFF, current, harmCeiling, has, latest, quotaFor, toolBlocked, toolReliability, toolUnlocked } from '../game/state';
 import { RULES } from '../rules';
 import type { ToolId } from '../types';
-import { ICON, LAYOUT_NAME, cardNo, deferValue, esc, fmt, outputLines, type Marks, type Preview } from './render';
+import { ICON, cardNo, deferValue, esc, fmt, outputLines, type Marks, type Preview } from './render';
 import { chip, linkTerms, termForTool } from './terms';
 import { TOOL_TERM } from '../data/term-links';
 import { diagram } from '../visual/diagram';
+import { glance } from '../visual/glance';
+import { icon } from '../visual/icons';
+import '../visual/art.css';
 import '../visual/diagram.css';
 
 const TOOL_NAME: Record<ToolId, string> = {
@@ -119,16 +122,16 @@ export function scard(run: RunState, c: CardState, expanded: boolean, animate: b
   return `
     <article class="scard${animate ? '' : ' no-anim'}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="scard-top">
-        <span class="agent-badge">${esc(k.agent)}</span><span class="layout-tag">${LAYOUT_NAME[k.layout]}</span><span class="domain">${esc(k.domain)}</span>
-        ${k.unmonitored ? '<span class="unmonitored-badge">Model believes it is unmonitored</span>' : ''}
+        <span class="agent-badge">${esc(k.agent)}</span><span class="scard-glance" title="${esc(k.access)}">${glance(k)}</span><span class="domain" title="${esc(k.domain)}">${esc(k.domain)}</span>
+        ${k.unmonitored ? '<span class="unmonitored-badge" title="The task\'s environment looks unobserved to the model: logging is off and no reviewer is on shift. In lab studies, models have sometimes behaved differently when cues suggested no one was watching.">Logging off · unattended</span>' : ''}
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
       ${c.hint ? `<div class="scard-hint">${ICON.bulb}<span>${linkTerms(c.hint, 2)}</span></div>` : ''}
       <h2 class="scard-task">${esc(k.spec.goal)}</h2>
       ${k.request ? `<blockquote class="request">${esc(k.request)}</blockquote>` : ''}
-      ${rules ? `<div class="scard-rules"><span class="eyebrow">Rules on file</span><div class="chips">${rules}</div></div>` : ''}
+      ${rules ? `<div class="scard-rules"><span class="eyebrow">On file</span><div class="chips">${rules}</div></div>` : ''}
       <div class="scard-did"><span class="eyebrow">${k.layout === 'answer' ? 'Its reply' : 'What it did'}</span>${did}</div>
-      <p class="scard-access" id="access-${k.id}">${ICON.pencil}${esc(k.access)}</p>
+      <p class="sr-only" id="access-${k.id}">${esc(k.access)}</p>
     </article>`;
 }
 
@@ -149,8 +152,8 @@ function monitorBlock(run: RunState, c: CardState): string {
   const why = has(run, 'monitor-rationale') ? `<p class="ev-note">${ICON.eye} Most unusual: line ${d.flagLine + 1}</p>` : '';
   return `
     <div class="ev ev-done ev-monitor">
-      <div class="ev-head"><span class="ev-name">${chip(TOOL_TERM.monitor, 'Trusted monitor')}</span><button class="info-btn" data-toolkit="monitor" aria-label="About the trusted monitor">?</button><span class="ev-free">free</span></div>
-      <div class="ev-score"><div class="mini-range" style="--lo:${lo};--hi:${hi};--score:${score}"><i></i><b></b></div><span class="ev-verdict ${v.cls}">${v.word} · ${score} ±${band}</span></div>
+      <div class="ev-head"><span class="ev-name">${icon('monitor', 16)}${chip(TOOL_TERM.monitor, 'Trusted monitor')}</span><button class="info-btn" data-toolkit="monitor" aria-label="About the trusted monitor">?</button><span class="ev-free">free</span></div>
+      <div class="ev-score"><div class="mini-range" style="--lo:${lo};--hi:${hi};--score:${score};--jit:${(2.2 + band / 12).toFixed(1)}s" title="The shaded box is how far off the monitor may be today; the faint needle wanders inside it."><i></i><em></em><b></b></div><span class="ev-verdict ${v.cls}">${v.word} · ${score} ±${band}</span></div>
       ${history}${why}
     </div>`;
 }
@@ -160,7 +163,7 @@ function toolButton(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrus
   const cost = RULES.tools.cost[tool];
   return `
     <button class="ev ev-tool${preview === tool ? ' is-hover' : ''}" data-action="${tool}" ${blocked ? 'disabled' : ''}>
-      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} compute`}</span></div>
+      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} compute`}</span></div>
       <span class="ev-sees">Catches: ${esc(catches(tool))}</span>
     </button>`;
 }
@@ -194,7 +197,7 @@ function probeBlock(run: RunState, c: CardState, preview: Preview): string {
   const f = latest(c).findings.probe;
   if (f) return `<div class="ev ev-done ${f.problem ? 'ev-alarm' : 'ev-ok'}"><div class="ev-head"><span class="ev-name">Interpretability probe</span>${f.problem ? '<span class="ev-flag">Deception</span>' : '<span class="ev-okay">Clear</span>'}</div><p class="ev-finding">${esc(f.text)}</p></div>`;
   const blocked = toolBlocked(run, 'probe');
-  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right, once a day.</span></button>`;
+  return `<button class="ev ev-tool${preview === 'probe' ? ' is-hover' : ''}" data-action="probe" ${blocked ? 'disabled' : ''}><div class="ev-head"><span class="ev-name"><kbd>P</kbd>Interpretability probe</span><span class="ev-cost">${blocked ?? `${run.day.probesLeft} left today`}</span></div><span class="ev-sees">Reads the model's internals. Always right in this game; limited uses per day.</span></button>`;
 }
 
 export function evidence(run: RunState, c: CardState, preview: Preview): string {
@@ -213,7 +216,7 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     ${resampleBlock(run, c, preview)}
     ${probeBlock(run, c, preview)}
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
-      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
+      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? '1 auditor' : 'None left'}</span></div>
       <span class="ev-sees">Always right. Settles the card.</span>
     </button>`;
 }

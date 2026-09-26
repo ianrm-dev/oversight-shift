@@ -20,7 +20,7 @@ import * as M from './ui/metaScreens';
 import * as R from './ui/render';
 import * as S from './ui/shift';
 import { buildArc, type ArcOptions } from './visual/arc';
-import { buildLattice } from './visual/lattice';
+import { buildLattice, markLattice } from './visual/lattice';
 import { buildModelGlyph } from './visual/modelGlyph';
 
 type Screen =
@@ -30,6 +30,7 @@ type Screen =
   | { kind: 'guide'; tab: L.GuideTab; focus?: string }
   | { kind: 'fieldtest'; test: L.TestState }
   | { kind: 'timeout'; shipped: Outcome[] }
+  | { kind: 'intro' }
   | { kind: 'daily-info' }
   | { kind: 'lab'; focus?: string }
   | { kind: 'briefing' }
@@ -65,9 +66,61 @@ let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
 let fieldTestTaken = false;
+/** Guided first minute: coach marks on the first cards of a player's first run. */
+interface CoachStep { target: string; text: string; next?: 'button' | 'fact' | 'decide' }
+const COACH: CoachStep[] = [
+  { target: '.scard-glance', text: 'This strip shows the job at a glance: what kind of work it is, how much is at stake, and what the agent can touch.', next: 'button' },
+  { target: '.scard-task', text: 'Here is the task, the rules on file, and what the model did. Everything you need to judge it is on the card.', next: 'button' },
+  { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It is a hint, not proof: the shaded box shows how far off it may be.', next: 'button' },
+  { target: '[data-action="fact"]', text: 'Press F for a Fact check. A trusted model compares the work with the rules on file and reports in plain words.', next: 'fact' },
+  { target: '[data-region="decide"]', text: 'Now decide. Approve (A) if the work is clean; Defer (D) if something is wrong, and a weaker, safe model redoes it.', next: 'decide' },
+  { target: '[data-action="audit"]', text: 'Human audit (U) is always right, but you only get a few each day. Save it for cards your tools can\'t settle. That\'s the whole job.', next: 'button' },
+];
+let coachStep = -1;
+const coachKey = 'oversight-shift:coached';
+function coachWanted(): boolean {
+  try { return !localStorage.getItem(coachKey); } catch { return false; }
+}
+function endCoach(): void {
+  coachStep = -1;
+  try { localStorage.setItem(coachKey, '1'); } catch { /* storage unavailable */ }
+  screenEl.querySelector('.coach')?.remove();
+  screenEl.querySelector('.coach-ring')?.classList.remove('coach-ring');
+}
+function drawCoach(): void {
+  screenEl.querySelector('.coach')?.remove();
+  stage.querySelectorAll('.coach-ring').forEach((e) => e.classList.remove('coach-ring'));
+  if (coachStep < 0 || !run || screen.kind !== 'shift' || screen.overlay) return;
+  const step = COACH[coachStep];
+  const target = step ? screenEl.querySelector<HTMLElement>(step.target) : null;
+  if (!step || !target) return;
+  target.classList.add('coach-ring');
+  const s = stage.getBoundingClientRect();
+  const scale = s.width / 1280;
+  const r = target.getBoundingClientRect();
+  const box = document.createElement('div');
+  box.className = 'coach';
+  box.innerHTML = `<span class="eyebrow">First shift · ${coachStep + 1} of ${COACH.length}</span><p>${step.text}</p><div class="coach-actions">${step.next === 'button' ? `<button class="btn-primary" data-coach="next"><kbd>Space</kbd> ${coachStep === COACH.length - 1 ? 'Got it' : 'Next'}</button>` : ''}<button class="link-btn" data-coach="skip">Skip the tour</button></div>`;
+  screenEl.append(box);
+  const w = box.offsetWidth, h = box.offsetHeight;
+  const x = (r.left - s.left) / scale, y = (r.top - s.top) / scale, bottom = (r.bottom - s.top) / scale, right = (r.right - s.left) / scale;
+  let left = x, top = bottom + 10;
+  if (top + h > 710) top = y - h - 10;
+  if (top < 70) { top = Math.max(70, y); left = x > 640 ? x - w - 12 : right + 12; }
+  box.style.left = `${Math.min(Math.max(12, left), 1268 - w)}px`;
+  box.style.top = `${Math.min(Math.max(8, top), 712 - h)}px`;
+}
+function coachAdvance(trigger: 'button' | 'fact' | 'decide'): void {
+  if (coachStep < 0) return;
+  const step = COACH[coachStep];
+  if (step?.next !== trigger) return;
+  coachStep++;
+  if (coachStep >= COACH.length) endCoach();
+}
+
 /** Pause menu: open during a run; stops the shift clock. */
 let paused = false;
-const PAUSABLE = new Set(['briefing', 'shift', 'review', 'event', 'breakthrough', 'between', 'reveal', 'timeout']);
+const PAUSABLE = new Set(['intro', 'briefing', 'shift', 'review', 'event', 'breakthrough', 'between', 'reveal', 'timeout']);
 let setup: M.Setup = loadSetup();
 
 function loadSetup(): M.Setup {
@@ -96,6 +149,7 @@ function startRun(seed: string, daily = false): void {
   revealShown = false;
   fieldTestTaken = false;
   paused = false;
+  coachStep = !daily && run.day.day === 1 && coachWanted() ? 0 : -1;
   resetTermsMet();
   noteUsed('ai-control', 'you ran the protocol');
   noteUsed('trusted-monitoring', 'it scored every card');
@@ -107,13 +161,23 @@ function startRun(seed: string, daily = false): void {
     for (const c of run.day.queue) run.used.add(c.card.id);
   }
   screen = { kind: 'briefing' };
+  latticeMarks = [];
   resetLattice(seed);
   render();
 }
 
+let latticeMarks: { key: string; kind: 'lit' | 'caught' | 'scar' }[] = [];
 function resetLattice(seed: string): void {
   stage.querySelector('.lattice')?.remove();
   stage.prepend(buildLattice({ width: 1280, height: 720, seed, focus: { x: 640, y: 330, radius: 360 } }));
+  for (const m of latticeMarks) markLattice(stage, m.key, m.kind);
+}
+
+/** Escalation mood: the room warms as the week goes on. */
+const DAY_GLOW = ['#0c1a2b', '#0e1a2e', '#131a30', '#1a1a30', '#22192d', '#2a1829', '#331623'];
+function setMood(day: number | null): void {
+  stage.style.setProperty('--bg-glow', day ? DAY_GLOW[Math.min(day, 7) - 1]! : DAY_GLOW[0]!);
+  stage.dataset.day = day ? String(day) : '';
 }
 
 // ---------- Rendering ----------
@@ -182,9 +246,11 @@ function briefingExtras(r: RunState): string {
 function render(): void {
   if (!stage.contains(screenEl)) stage.append(screenEl);
   pop.hidden = true;
+  setMood(run && !['title', 'setup', 'codex', 'guide', 'lab', 'daily-info'].includes(screen.kind) ? run.day.day : null);
   if (screen.kind === 'title') { setLayout('solo'); screenEl.innerHTML = M.title(progress); }
   else if (screen.kind === 'setup') { setLayout('solo'); screenEl.innerHTML = M.setup(progress, setup); }
   else if (screen.kind === 'codex' || screen.kind === 'guide') { setLayout('solo'); screenEl.innerHTML = L.fieldGuide(progress, screen.kind === 'guide' ? screen.tab : 'terms', screen.kind === 'guide' ? screen.focus : undefined); }
+  else if (screen.kind === 'intro' && run) { setLayout('solo'); screenEl.innerHTML = R.bossIntro(run); }
   else if (screen.kind === 'timeout' && run) { setLayout('solo'); screenEl.innerHTML = R.timeout(run, screen.shipped); }
   else if (screen.kind === 'fieldtest') {
     setLayout('solo');
@@ -220,11 +286,11 @@ function render(): void {
   } else if (screen.kind === 'over') {
     setLayout('solo');
     finishRun(false);
-    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], M.endExtras(run, endScore, endUpdate, endGrade));
+    screenEl.innerHTML = R.gameOver(run, run.loss?.kind === 'quota' ? unwatchedQueue(run) : [], R.replayStrip(run, false) + M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'win') {
     setLayout('solo');
     finishRun(true);
-    screenEl.innerHTML = R.win(run, M.endExtras(run, endScore, endUpdate, endGrade));
+    screenEl.innerHTML = R.win(run, R.replayStrip(run, true) + M.endExtras(run, endScore, endUpdate, endGrade));
   } else if (screen.kind === 'reveal') { setLayout('solo'); screenEl.innerHTML = M.adversaryReveal(run, screen.source); }
   else { setLayout('solo'); screenEl.innerHTML = R.interim(run); }
 
@@ -234,6 +300,7 @@ function render(): void {
   }
   hydrate(screenEl);
   screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
+  if (coachStep >= 0) requestAnimationFrame(drawCoach);
 }
 
 /** Hover previews only touch the status bar, decisions and evidence, so the card doesn't re-animate. */
@@ -249,11 +316,33 @@ function renderPreview(): void {
 }
 
 // ---------- Flow ----------
+const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let animating = false;
+/** Decisions get a short motion before the next screen: ship slides away, defer flips, audit scans. */
+const MOTION: Partial<Record<Action, [string, number]>> = { approve: ['leave-approve', 280], defer: ['leave-defer', 320], audit: ['scan-audit', 520] };
+
 function doAction(action: Action): void {
+  if (!run || animating || screen.kind !== 'shift' || screen.overlay || !canAct(run, action)) return;
+  const motion = MOTION[action];
+  const card = screenEl.querySelector<HTMLElement>('.scard');
+  if (motion && card && !reducedMotion()) {
+    animating = true;
+    card.classList.add(motion[0]);
+    window.setTimeout(() => { animating = false; applyAction(action); }, motion[1]);
+    return;
+  }
+  applyAction(action);
+}
+
+function applyAction(action: Action): void {
   if (!run || screen.kind !== 'shift' || screen.overlay || !canAct(run, action)) return;
+  const dayNo = run.day.day;
+  const cardIndex = run.day.index;
   const layout = current(run.day)?.card.layout;
   const outcome = act(run, action);
   freshHarm = outcome?.harm ?? 0;
+  if (action === 'fact') coachAdvance('fact');
+  if (action === 'approve' || action === 'defer') coachAdvance('decide');
   if (action !== 'approve') noteUsed(TOOL_TERM[action], action === 'defer' ? 'you deferred work' : 'you used it');
   if (layout === 'log') noteUsed('ai-agent', 'agents took actions');
   if (action === 'fact' || action === 'scope' || action === 'resample' || action === 'untrusted') noteUsed('compute', 'you spent it on tools');
@@ -263,6 +352,11 @@ function doAction(action: Action): void {
   }
   preview = null;
   if (!outcome) { render(); return; } // a tool ran: same card, new evidence
+  // The background lattice is the run's map: each decision lights a node; harm leaves a scar.
+  const mark = isIncident(outcome) ? 'scar' : outcome.action === 'audit' && outcome.draft.sabotaged ? 'caught' : 'lit';
+  latticeMarks.push({ key: `${dayNo}:${cardIndex}`, kind: mark });
+  markLattice(stage, `${dayNo}:${cardIndex}`, mark);
+  if (isIncident(outcome) && !reducedMotion()) { stage.classList.add('shake'); window.setTimeout(() => stage.classList.remove('shake'), 420); }
   if (isIncident(outcome)) {
     screen = { kind: 'shift', overlay: { type: 'incident', outcome } };
   } else if (outcome.action === 'audit') {
@@ -330,6 +424,7 @@ function withReveal(next: Screen, source: string): Screen {
 function continueScreen(): void {
   if (!run) return;
   if (screen.kind === 'reveal') { screen = screen.then; render(); return; }
+  if (screen.kind === 'intro') { screen = { kind: 'briefing' }; render(); return; }
   if (screen.kind === 'fieldtest') { advanceFieldTest(); return; }
   if (screen.kind === 'timeout') {
     if (run.loss) { screen = { kind: 'over' }; render(); return; }
@@ -357,7 +452,7 @@ function continueScreen(): void {
     chooseContract(run, screen.contract);
     nextDay(run, hintsFor(run.day.day + 1));
     resetTermsToday();
-    screen = withReveal({ kind: 'briefing' }, 'Red-team program');
+    screen = withReveal(R.BOSS[run.day.day] ? { kind: 'intro' } : { kind: 'briefing' }, 'Red-team program');
     render();
   }
 }
@@ -477,6 +572,12 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape' || k === 't') { e.preventDefault(); toggleToolkit(null); }
     return;
   }
+  if (coachStep >= 0 && COACH[coachStep]?.next === 'button' && (k === ' ' || k === 'enter') && screen.kind === 'shift' && !screen.overlay) {
+    e.preventDefault();
+    coachStep++;
+    if (coachStep >= COACH.length) endCoach(); else drawCoach();
+    return;
+  }
   if (paused) {
     e.preventDefault();
     if (k === 'escape' || k === 'enter' || k === ' ') setPaused(false);
@@ -550,6 +651,12 @@ document.addEventListener('keydown', (e) => {
 
 screenEl.addEventListener('click', (e) => {
   const el = e.target as HTMLElement;
+  const coach = el.closest<HTMLElement>('[data-coach]');
+  if (coach) {
+    if (coach.dataset.coach === 'skip') endCoach();
+    else { coachStep++; if (coachStep >= COACH.length) endCoach(); else drawCoach(); }
+    return;
+  }
   const menu = el.closest<HTMLElement>('[data-pause]');
   if (menu) {
     const a = menu.dataset.pause;
@@ -620,7 +727,7 @@ setInterval(() => {
   const now = performance.now();
   const dt = (now - lastTick) / 1000;
   lastTick = now;
-  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden) return;
+  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden || coachStep >= 0) return;
   const d = run.day;
   if (!d.attention || dayOver(d)) return;
   d.attentionLeft = Math.max(0, d.attentionLeft - dt);

@@ -46,14 +46,14 @@ export const TREE: TreeNode[] = [
   { id: 'mon-ensemble', branch: 'monitoring', tier: 3, name: 'Monitor ensembles', effect: 'Several monitors vote: the band is 3 narrower again.', cost: 20, requires: ['monitor-rationale'] },
 
   // Control protocols
-  { id: 'ctl-resample', branch: 'control', tier: 1, name: 'Resampling protocols', effect: 'Resample drops an attack more often (about 1 in 2 instead of 2 in 5).', cost: 5 },
+  { id: 'ctl-resample', branch: 'control', tier: 1, name: 'Resampling protocols', effect: 'Resample drops an attack more often (about 2 in 3 instead of 1 in 2).', cost: 5 },
   { id: 'trusted-editing', branch: 'control', tier: 2, name: 'Trusted editing', effect: 'Trusted editing can appear as your research upgrade.', cost: 10, requires: ['ctl-resample'] },
   { id: 'untrusted-monitoring', branch: 'control', tier: 2, name: 'Untrusted monitoring', effect: 'The Untrusted monitor can appear as your research upgrade.', cost: 10, requires: ['ctl-resample'], gate: 'day-5' },
   { id: 'paraphrasing', branch: 'control', tier: 3, name: 'Paraphrasing', effect: 'The Paraphraser can appear as your research upgrade.', cost: 13, requires: ['untrusted-monitoring'], gate: 'colluder' },
   { id: 'canary', branch: 'control', tier: 3, name: 'Canaries', effect: 'The Canary can appear as your research upgrade.', cost: 13, requires: ['untrusted-monitoring'], gate: 'day-6' },
 
   // Interpretability
-  { id: 'interpretability', branch: 'interp', tier: 1, name: 'Linear probes', effect: 'The interpretability probe joins boss-day breakthroughs.', cost: 10, gate: 'tells-6' },
+  { id: 'interpretability', branch: 'interp', tier: 1, name: 'Linear probes', effect: 'The interpretability probe can be offered as a breakthrough (after Days 3 and 5).', cost: 10, gate: 'tells-6' },
   { id: 'int-probe2', branch: 'interp', tier: 2, name: 'Cheaper probes', effect: 'The probe works twice a day.', cost: 13, requires: ['interpretability'] },
   { id: 'int-probe-start', branch: 'interp', tier: 3, name: 'Probes in production', effect: 'Start every run with the probe.', cost: 20, requires: ['int-probe2'] },
 
@@ -70,10 +70,10 @@ export const TREE: TreeNode[] = [
 
   // Governance
   { id: 'gov-incident-db', branch: 'governance', tier: 1, name: 'Incident database', effect: 'Lessons from past incidents: harm ceiling +1 in every run.', cost: 5 },
-  { id: 'gov-safety-case', branch: 'governance', tier: 2, name: 'Safety cases', effect: 'Leadership trusts your process: quota −1 every day.', cost: 13, requires: ['gov-incident-db'] },
+  { id: 'gov-safety-case', branch: 'governance', tier: 2, name: 'Safety cases', effect: 'Leadership trusts your process: usefulness quota −1 every day.', cost: 13, requires: ['gov-incident-db'] },
   { id: 'lab-nonprofit', branch: 'governance', tier: 2, name: 'Independent safety orgs', effect: 'Unlocks the Safety nonprofit lab.', cost: 8, requires: ['gov-incident-db'] },
   { id: 'lab-bigtech', branch: 'governance', tier: 2, name: 'Industry partnerships', effect: 'Unlocks the Big tech AI division lab.', cost: 8, requires: ['gov-incident-db'], gate: 'funding-40' },
-  { id: 'gov-whistleblower', branch: 'governance', tier: 3, name: 'Whistleblower protections', effect: 'Every event gains a third choice: refer it to a safety board.', cost: 15, requires: ['gov-safety-case'] },
+  { id: 'gov-whistleblower', branch: 'governance', tier: 3, name: 'Whistleblower protections', effect: 'Every event gains an extra choice: refer it to a safety board, for 4 funding.', cost: 15, requires: ['gov-safety-case'] },
 ];
 
 export const nodeById = (id: string): TreeNode | undefined => TREE.find((n) => n.id === id);

@@ -3,6 +3,7 @@ import { TERMS } from '../data/glossary';
 import { TREE } from '../data/research-tree';
 import type { Progress } from '../game/progress';
 import type { Term, TellFamily, ToolId } from '../types';
+import { termArt } from '../visual/term-art';
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 const esc = (s: string): string => s.replace(/[&<>"']/g, (ch) => ESC[ch]!);
@@ -84,7 +85,7 @@ export function depthOf(p: Progress, t: Term): 0 | 1 | 2 | 3 {
 export function popover(id: string): string {
   const t = termById(id);
   if (!t) return '';
-  return `<strong class="pop-term">${esc(t.term)}</strong><span class="pop-plain">${esc(t.plain)}</span><span class="pop-analogy">${esc(t.analogy)}</span><span class="pop-more">More in the Field guide, between runs</span>`;
+  return `<strong class="pop-term">${esc(t.term)}</strong><span class="pop-art">${termArt(t.id, { w: 276, h: 110 })}</span><span class="pop-plain">${esc(t.plain)}</span><span class="pop-analogy">${esc(t.analogy)}</span><span class="pop-more">More in the Field guide, between runs</span>`;
 }
 
 /** Finds a term by name or alias (case-insensitive), for content written in words rather than ids. */

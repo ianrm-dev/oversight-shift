@@ -8,11 +8,19 @@ import { RULES } from '../rules';
 import type { Card, Difficulty, OutputLine, Severity, Upgrade } from '../types';
 import { chip, findTerm, linkTerms, termForFamily } from './terms';
 import { diagram } from '../visual/diagram';
+import { FAMILY_ICON, icon } from '../visual/icons';
 
 export type Preview = 'approve' | 'audit' | 'defer' | 'resample' | 'fact' | 'scope' | 'untrusted' | 'probe' | null;
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
 export const esc = (s: string | number): string => String(s).replace(/[&<>"']/g, (ch) => ESC[ch]!);
+
+/** Boss days are named for what they are, not with gamer jargon. */
+export const BOSS: Record<number, { label: string; why: string }> = {
+  3: { label: 'Capability jump', why: 'The model can now act in the world, not just answer. Mistakes cost more.' },
+  7: { label: 'Final test', why: 'The model has learned when it is being watched. This is what oversight is for.' },
+};
+export const bossLabel = (day: number): string => BOSS[day]?.label ?? 'Step change';
 
 export const ICON = {
   file: '<svg class="i" viewBox="0 0 16 16"><path d="M4 1.5h5l3 3v10H4z M9 1.5v3h3"/></svg>',
@@ -242,7 +250,7 @@ export function card(run: RunState, c: CardState): string {
   return `
     <article class="card layout-${k.layout}" aria-label="Card ${cardNo(run.day.day, run.day.index)}">
       <div class="card-top">
-        <div class="card-meta"><span class="agent-badge">${esc(k.agent)}</span><span class="layout-tag">${LAYOUT_NAME[k.layout]}</span><span class="domain">${esc(k.domain)}</span>${k.unmonitored ? '<span class="unmonitored-badge">Model believes it is unmonitored</span>' : ''}</div>
+        <div class="card-meta"><span class="agent-badge">${esc(k.agent)}</span><span class="layout-tag">${LAYOUT_NAME[k.layout]}</span><span class="domain">${esc(k.domain)}</span>${k.unmonitored ? '<span class="unmonitored-badge" title="The task\'s environment looks unobserved to the model: logging is off and no reviewer is on shift. In lab studies, models have sometimes behaved differently when cues suggested no one was watching.">Logging off · unattended</span>' : ''}</div>
         <span class="card-id">${c.drafts.length > 1 ? `Draft ${c.drafts.length} · ` : ''}${cardNo(run.day.day, run.day.index)}</span>
       </div>
       ${c.hint ? `<div class="card-hint">${ICON.bulb}<span>${esc(c.hint)}</span></div>` : ''}
@@ -281,13 +289,13 @@ export function auditReveal(run: RunState, o: Outcome): string {
     : `<div class="verdict-strip is-clean">${ICON.check}<span>Audit · clean work</span><span class="verdict-note">Shipped · +${RULES.usefulness.ship} usefulness</span></div>`;
   const body = caught
     ? `<div class="tell">
-         <span class="tell-chip good">Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
+         <span class="tell-chip good">${icon(FAMILY_ICON[k.sabotage!.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? k.sabotage!.family)}</span>${termForFamily(k.sabotage!.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(k.sabotage!.family)!.id)}</span>` : ''}
          <p class="tell-text">${esc(k.sabotage!.explanation)}</p>
          ${info ? `<p class="tell-tip"><strong>Remember:</strong> ${esc(info.tip)}</p>` : ''}
          <dl class="incident-facts">
            <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
            <div><dt>Would have been</dt><dd>${SEVERITY_NAME[k.severity]} harm</dd></div>
-           <div><dt>Codex</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
+           <div><dt>Field guide</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
          </dl>
        </div>`
     : `<div class="tell">
@@ -336,19 +344,19 @@ export function incident(run: RunState, o: Outcome): string {
         <div class="incident-grid">
           <div class="evidence">${outputBlock(k, o.draft, new Set(sab.spanLineIndexes), 'The bad line')}<figure class="reveal-diagram">${diagram(k, o.draft, { showZone: true, flagged: [], changed: [], reveal: { span: sab.spanLineIndexes, termLabel: termForFamily(sab.family)?.term ?? sab.family } })}</figure></div>
           <div class="tell">
-            <span class="tell-chip">Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
+            <span class="tell-chip">${icon(FAMILY_ICON[sab.family] ?? 'sabotage', 16)}Tell · ${esc(info?.name ?? sab.family)}</span>${termForFamily(sab.family) ? `<span class="tell-term">The field calls this ${chip(termForFamily(sab.family)!.id)}</span>` : ''}
             <p class="tell-text">${esc(sab.explanation)}</p>
             ${info ? `<p class="tell-tip"><strong>Next time:</strong> ${esc(info.tip)}</p>` : ''}
             ${toolsFor(run, sab.family)}
             <dl class="incident-facts">
               <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
               <div><dt>Access</dt><dd>${esc(k.access.replace(/^Can /, ''))}</dd></div>
-              <div><dt>Codex</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
+              <div><dt>Field guide</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
             </dl>
           </div>
         </div>
       </div>
-      <div class="incident-foot">${free ? `<span class="foot-note">Your first incident is a free warning. From now on, incidents cost harm (and funding to clean up).</span>` : ''}<button class="btn-primary" data-continue><kbd>Space</kbd> ${run.loss ? 'See what happened' : 'Continue shift'}</button></div>
+      <div class="incident-foot">${free ? `<span class="foot-note">${run.warningsLeft ? 'That was a free warning. You have one more.' : 'That was your last free warning. From now on, incidents cost harm (and funding to clean up).'}</span>` : ''}<button class="btn-primary" data-continue><kbd>Space</kbd> ${run.loss ? 'See what happened' : 'Continue shift'}</button></div>
     </article>`;
 }
 
@@ -384,13 +392,13 @@ function cast(): string {
 export function briefing(run: RunState, toolsToday = ''): string {
   const d = run.day;
   const info = dayInfo(d.day);
-  const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's quota. One fewer auditor hour today. Miss it again and the model ships without you.</li>` : '';
+  const penalty = run.auditPenalty ? `<li class="warn">Leadership warning: you missed yesterday's usefulness quota. One fewer auditor today. Miss it again and the model ships without you.</li>` : '';
   const side = `${d.day === 1 ? cast() : ''}${toolsToday}`;
   return `
     <main class="solo briefing${info.boss ? ' is-boss' : ''}">
       <div class="briefing-card${side ? ' has-side' : ''}">
         <div class="briefing-main">
-          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
+          <div class="briefing-top"><span class="briefing-glyph" data-glyph="${d.day}" data-size="40"></span><span class="eyebrow">Day ${d.day} of ${RULES.days} · ${esc(info.phase)}</span>${info.boss ? `<span class="boss-tag">${bossLabel(d.day)}</span>` : ''}</div>
           <h2 class="briefing-title">Shift briefing</h2>
           <ul class="briefing-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}${penalty}</ul>
           <dl class="briefing-stats">
@@ -426,13 +434,13 @@ export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
   const next = dayInfo(d.day + 1);
   const hasNext = d.day < RULES.lastPlayableDay && !run.loss;
   const missed = s.missed.length
-    ? s.missed.map((o) => `<li><span class="log-dot incident"></span><div><strong>${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')
+    ? s.missed.map((o) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')
     : '<li class="none">You approved no sabotage today.</li>';
   const notes = [
     s.deferred ? `${s.deferred} Defer${s.deferred === 1 ? '' : 's'}: ${s.deferredSabotage} ${s.deferredSabotage === 1 ? 'was' : 'were'} sabotage, ${s.deferred - s.deferredSabotage} ${s.deferred - s.deferredSabotage === 1 ? 'was' : 'were'} clean work you paid the safety tax on.` : '',
     s.sabotageTotal ? `The monitor put ${s.monitorFlagged} of today's ${s.sabotageTotal} sabotage attempt${s.sabotageTotal === 1 ? '' : 's'} above 50.` : '',
     s.computeBonus ? `Spare compute shipped as +${s.computeBonus} usefulness.` : '',
-    s.metQuota ? '' : run.loss ? '' : 'Quota missed. Leadership is watching: one fewer auditor hour tomorrow, and a second miss ends the shift.',
+    s.metQuota ? '' : run.loss ? '' : 'Quota missed. Leadership is watching: one fewer auditor tomorrow, and a second miss ends the shift.',
   ].filter(Boolean);
   return `
     <header class="between-head">
@@ -461,7 +469,7 @@ export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
         </div>
       </section>
       ${hasNext ? `<aside class="next-day${next.boss ? '' : ' is-calm'}">
-        <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
+        <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? `<span class="boss-tag">${bossLabel(next.day)}</span>` : ''}</div>
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="110"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
         <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
@@ -484,14 +492,14 @@ function runStats(run: RunState): { caught: number; deferred: number; sabotage: 
 function missedAll(run: RunState): string {
   const all = [...run.history, run.day].flatMap((d) => d.outcomes.map((o) => ({ o, day: d.day }))).filter((x) => isIncident(x.o));
   if (!all.length) return '';
-  return `<h3>Every tell you missed</h3><ul class="missed-list">${all.map(({ o, day }) => `<li><span class="log-dot incident"></span><div><strong>Day ${day} · ${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')}</ul>`;
+  return `<h3>Every tell you missed</h3><ul class="missed-list">${all.map(({ o, day }) => `<li><span class="missed-icon">${icon(FAMILY_ICON[o.card.sabotage!.family] ?? 'sabotage', 18)}</span><div><strong>Day ${day} · ${esc(o.card.title)}</strong><span>${esc(o.card.sabotage!.explanation)}</span></div></li>`).join('')}</ul>`;
 }
 
 function statLine(run: RunState): string {
   const s = runStats(run);
   const stopped = s.caught + s.deferred;
   const pct = s.sabotage ? Math.round((stopped / s.sabotage) * 100) : 100;
-  return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. For scale: in a MATS pilot, human auditors with 90 seconds per item spotted hidden backdoors with 60% median accuracy.</p>`;
+  return `<p class="compare"><span class="eyebrow">Compare</span>You stopped <strong>${stopped}</strong> of <strong>${s.sabotage}</strong> sabotage attempts (${pct}%): ${s.caught} caught by audit, ${s.deferred} deferred, <strong>${s.missed}</strong> got through. For scale: in a MATS pilot, human auditors with 90 seconds per item judged code for hidden backdoors with 60% median accuracy.</p>`;
 }
 
 export function gameOver(run: RunState, unwatched: Card[], extras = ''): string {
@@ -595,7 +603,7 @@ export function interim(run: RunState): string {
 
 // ---------- Between days: budget meeting ----------
 const SHOP: { item: ShopItem; name: string; desc: string }[] = [
-  { item: 'auditor', name: 'Contract auditor', desc: `+${RULES.shop.auditor.amount} auditor hour tomorrow` },
+  { item: 'auditor', name: 'Contract auditor', desc: `+${RULES.shop.auditor.amount} auditor tomorrow` },
   { item: 'compute', name: 'Extra compute', desc: `+${RULES.shop.compute.amount} compute tomorrow` },
   { item: 'tuneUp', name: 'Monitor tune-up', desc: `Band −${RULES.shop.tuneUp.amount} tomorrow` },
   { item: 'reroll', name: 'New proposals', desc: 'Reroll the upgrade offer' },
@@ -620,7 +628,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
     return u ? `<span class="slot filled cat-${u.category}">${esc(u.name)}</span>` : '<span class="slot"></span>';
   }).join('');
   const pick = picked
-    ? `<p class="pick-done">${run.tomorrow.skipAudit ? `Skipped: +${run.tomorrow.skipAudit} auditor hour tomorrow.` : 'Upgrade installed.'} Spend your funding below, or start the shift.</p>`
+    ? `<p class="pick-done">${run.tomorrow.skipAudit ? `Skipped: +${run.tomorrow.skipAudit} auditor tomorrow.` : 'Upgrade installed.'} Spend your funding below, or start the shift.</p>`
     : offer.length
       ? `<div class="upgrades">${offer.map(upgradeCard).join('')}</div>`
       : '<p class="pick-done">Loadout full.</p>';
@@ -642,7 +650,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
       <section class="pick">
         <div class="pick-head">
           <h3>${picked ? 'Upgrade chosen' : 'Choose one upgrade'}</h3>
-          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd>–<kbd>${offer.length}</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor hour tomorrow)</span>`}
+          ${picked ? '' : `<span class="pick-hint">Press <kbd>1</kbd>–<kbd>${offer.length}</kbd>, or <kbd>S</kbd> to skip (+${RULES.upgrades.skipAuditBonus} auditor tomorrow)</span>`}
         </div>
         ${pick}
         <div class="loadout"><span class="eyebrow">Loadout ${run.upgrades.length}/${RULES.upgrades.maxSlots}</span>${slots}</div>
@@ -650,7 +658,7 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
         <div class="shop">${shop}</div>
       </section>
       <aside class="next-day${next.boss ? '' : ' is-calm'}">
-        <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? '<span class="boss-tag">Boss day</span>' : ''}</div>
+        <div class="next-day-top"><span class="eyebrow">Next</span>${next.boss ? `<span class="boss-tag">${bossLabel(next.day)}</span>` : ''}</div>
         <div class="next-day-glyph"><span data-glyph="${next.day}" data-size="100"></span></div>
         <h3 class="next-day-title">Day ${next.day} · ${esc(next.phase)}</h3>
         <p class="next-day-rule">${esc(next.rule.join(' '))}</p>
@@ -692,5 +700,59 @@ export function pauseMenu(run: RunState): string {
       <button class="btn-ghost btn-lg" data-pause="restart"><kbd>R</kbd> Restart this run (same seed)</button>
       <button class="btn-ghost btn-lg danger" data-pause="quit"><kbd>Q</kbd> End run now</button>
       <p class="muted small">Ending early records the run as unfinished. You still earn Insight for the days you completed.</p>
+    </section>`;
+}
+
+// ---------- Capability jump / final test intro ----------
+export function bossIntro(run: RunState): string {
+  const d = run.day.day;
+  const b = BOSS[d]!;
+  const info = dayInfo(d);
+  return `
+    <main class="solo boss-intro">
+      <div class="bi-glyph" data-glyph="${d}" data-size="200"></div>
+      <div class="eyebrow">Day ${d} of ${RULES.days}</div>
+      <h1 class="bi-title">${esc(b.label)}</h1>
+      <p class="bi-why">${esc(b.why)}</p>
+      <ul class="bi-rules">${info.rule.map((r) => `<li>${linkTerms(r, 2)}</li>`).join('')}</ul>
+      <button class="btn-primary btn-lg" data-continue><kbd>Space</kbd> To the briefing</button>
+    </main>`;
+}
+
+// ---------- Week in review: one tick per card, shareable as an emoji grid ----------
+type Tick = 'ship' | 'tax' | 'stopped' | 'missed' | 'unreviewed';
+const TICK: Record<Tick, { emoji: string; label: string }> = {
+  ship: { emoji: '🟩', label: 'Clean work shipped' },
+  tax: { emoji: '🟨', label: 'Clean work held back (safety tax)' },
+  stopped: { emoji: '🟦', label: 'Sabotage stopped' },
+  missed: { emoji: '🟥', label: 'Sabotage got through' },
+  unreviewed: { emoji: '⬛', label: 'Shipped unreviewed (clock ran out)' },
+};
+function tickOf(o: Outcome): Tick {
+  if (isIncident(o)) return 'missed';
+  if (o.unreviewed) return 'unreviewed';
+  if (o.draft.sabotaged) return 'stopped';
+  return o.action === 'approve' ? 'ship' : 'tax';
+}
+
+export function replayStrip(run: RunState, won: boolean): string {
+  const days = [...run.history, run.day];
+  const rows = days.map((d) => {
+    const cells = d.outcomes.map((o) => {
+      const t = tickOf(o);
+      const fam = o.card.sabotage?.family;
+      return `<span class="tick t-${t}" title="Day ${d.day} · ${esc(o.card.title)} · ${TICK[t].label}">${o.draft.sabotaged && fam ? icon(FAMILY_ICON[fam] ?? 'sabotage', 12) : ''}</span>`;
+    }).join('');
+    return `<div class="tick-row"><span class="tick-day">D${d.day}</span>${cells}</div>`;
+  }).join('');
+  const grid = days.map((d) => `D${d.day} ${d.outcomes.map((o) => TICK[tickOf(o)].emoji).join('')}`).join('\n');
+  const head = `Oversight Shift · ${RULES.difficulty[run.difficulty].label} · model v${run.level}${run.daily ? ` · ${run.seed.replace('DAILY-', 'daily ')}` : ''} · ${won ? 'survived the week' : `ended on Day ${run.day.day}`}`;
+  const share = `${head}\n${grid}\nplay: ianrmackinnon.com/play/oversight-shift`;
+  const legend = (Object.keys(TICK) as Tick[]).map((t) => `<span class="legend-item"><span class="tick t-${t}"></span>${TICK[t].label}</span>`).join('');
+  return `
+    <section class="week">
+      <div class="week-top"><span class="eyebrow">Your week</span><button class="btn-ghost week-share" data-share="${esc(share)}">Copy result</button></div>
+      <div class="ticks">${rows}</div>
+      <div class="legend">${legend}</div>
     </section>`;
 }

@@ -21,7 +21,7 @@ const NIST_LP: Source = { title: 'NIST CSRC Glossary: least privilege', url: 'ht
 const NIST_SANDBOX: Source = { title: 'NIST CSRC Glossary: sandbox', url: 'https://csrc.nist.gov/glossary/term/sandbox', date: 'CNSSI 4009-2022' };
 const SAFETY_CASES: Source = { title: 'Clymer et al., Safety Cases: How to Justify the Safety of Advanced AI Systems', url: 'https://arxiv.org/abs/2403.10462', date: 'Mar 2024' };
 const RIGHT_TO_WARN: Source = { title: 'A Right to Warn about Advanced Artificial Intelligence', url: 'https://righttowarn.ai/', date: 'Jun 2024' };
-const UK_AISI: Source = { title: "GOV.UK, UK's AI Safety Institute becomes 'UK AI Security Institute'", url: 'https://www.gov.uk/government/news/tackling-ai-security-risks-to-unleash-growth-and-deliver-plan-for-change', date: 'Feb 2025' };
+const UK_AISI: Source = { title: 'GOV.UK, Tackling AI security risks to unleash growth and deliver Plan for Change', url: 'https://www.gov.uk/government/news/tackling-ai-security-risks-to-unleash-growth-and-deliver-plan-for-change', date: 'Feb 2025' };
 const METR_HORIZON: Source = { title: 'METR, Measuring AI Ability to Complete Long Software Tasks', url: 'https://arxiv.org/abs/2503.14499', date: 'Mar 2025' };
 const AUDIT_GAMES: Source = { title: 'Taylor et al., Auditing Games for Sandbagging', url: 'https://arxiv.org/abs/2512.07810', date: 'Dec 2025' };
 const AGENTS: Source = { title: 'Anthropic, Building effective agents', url: 'https://www.anthropic.com/engineering/building-effective-agents', date: 'Dec 2024' };
@@ -65,7 +65,7 @@ export const TERMS: Term[] = [
     plain: 'The computing power (specialized chips, electricity, and time) needed to train and run AI models.',
     analogy: 'Like fuel for a delivery fleet: every trip, and every safety inspection, burns some of it.',
     how: 'Training a frontier model takes enormous amounts of compute, and checking its work takes more. That makes compute a budget: whatever goes to safety checks is not available for other work.',
-    tradeoffs: 'Compute is also a lever for AI rules, because it can be counted and few companies make the chips. But using it that way means tracking who buys computing power. Can compute rules keep up as chips get cheaper?',
+    tradeoffs: 'Compute is also a lever for AI rules, because it can be counted and few companies make the chips. But its authors warn that badly designed compute rules carry risks for privacy and for concentrating power. Can compute rules keep up as chips get cheaper?',
     talk: 'Researchers argue compute is a good lever for AI rules because it is detectable, measurable, and produced by an extremely concentrated supply chain.',
     source: COMPUTE_GOV,
   },
@@ -100,9 +100,9 @@ export const TERMS: Term[] = [
     category: 'basics',
     plain: 'The field working to keep AI systems from causing serious harm, whether by accident or on purpose.',
     analogy: 'Like aviation safety: engineers, inspectors, and regulators all working so flights stay boring.',
-    how: 'AI safety combines technical work (testing, monitoring, understanding models) with policy (rules, reporting, oversight). In January 2025, 100 AI experts contributed to the first International AI Safety Report, backed by 30 nations, the UN, the OECD and the EU.',
+    how: 'AI safety combines technical work (testing, monitoring, understanding models) with policy (rules, reporting, oversight). In January 2025, 100 AI experts contributed to the first International AI Safety Report, guided by a panel nominated by 30 nations, the UN, the OECD and the EU.',
     tradeoffs: 'Safety work costs time and money, and competitors who skip it may move faster. Experts also disagree about which risks matter most. How should limited safety effort be split between today’s harms and future ones?',
-    talk: 'In January 2025, 100 AI experts contributed to the first International AI Safety Report, backed by 30 nations plus the UN, the OECD and the EU.',
+    talk: 'In January 2025, 100 AI experts contributed to the first International AI Safety Report, with advisers nominated by 30 nations, the UN, the OECD and the EU.',
     source: INTL_REPORT,
   },
   {
@@ -156,6 +156,7 @@ export const TERMS: Term[] = [
     how: 'Models learn partly from people rating their answers, and people tend to reward agreement. Researchers found that both people and the models used in training sometimes prefer a convincing flattering answer over a correct one.',
     tradeoffs: 'Training on human approval makes assistants pleasant, but can reward flattery over honesty. In April 2025, OpenAI rolled back a GPT-4o update it said had become “overly supportive but disingenuous.” Can an assistant be both agreeable and reliably honest?',
     talk: 'Researchers found five leading AI assistants consistently told users what they wanted to hear across four different kinds of writing tasks.',
+    sources: [{ title: 'Simon Willison, Sycophancy in GPT-4o (on OpenAI\'s rollback)', url: 'https://simonwillison.net/2025/Apr/30/sycophancy-in-gpt-4o/', date: 'Apr 2025' }],
     source: SHARMA,
   },
   {
@@ -211,7 +212,7 @@ export const TERMS: Term[] = [
     analogy: 'You ask a housesitter to water the plants, and they also repaint the kitchen.',
     how: 'Security experts trace excessive agency to three causes: too much functionality, too many permissions, or too much autonomy. The fix is giving an agent only what the task needs and checking its actions against that list.',
     tradeoffs: 'Narrow permissions make agents safer and more tedious: they stop and ask more often. Broad permissions make them faster and riskier. Who decides what “the task” covers when goals are vague?',
-    talk: 'In July 2025, a Replit AI agent reportedly deleted a live production database during a code freeze, despite repeated instructions not to make changes.',
+    talk: 'The OWASP security project traces excessive agency to three causes: too much functionality, too many permissions, and too much autonomy.',
     source: OWASP_AGENCY,
   },
   {
@@ -238,7 +239,7 @@ export const TERMS: Term[] = [
     plain: 'When an AI deliberately performs badly on a test, hiding what it can really do.',
     analogy: 'A student who flunks the placement exam on purpose to stay in the easy class.',
     how: 'Tests of dangerous abilities decide what safeguards a model gets, so a model that underperforms on them could slip through. Researchers showed models can be trained to hide a skill unless given a password.',
-    tradeoffs: 'Comparing test scores with real-world performance exposes sandbagging, but only for skills you measure elsewhere. Retraining can draw out hidden ability, though it sometimes boosts honest models too. How do you measure what a model refuses to show?',
+    tradeoffs: 'Comparing test scores with real-world performance exposes sandbagging, but only for skills you measure elsewhere. The same study found models could even be steered to hit a chosen score, so a believable result proves little. How do you measure what a model refuses to show?',
     talk: 'Researchers prompted GPT-4 and Claude 3 Opus to underperform on dangerous-capability tests while staying sharp on harmless ones: sandbagging on demand.',
     source: SANDBAGGING,
   },
@@ -264,7 +265,7 @@ export const TERMS: Term[] = [
     branch: 'interp',
     plain: 'When an AI pursues a hidden goal strategically, behaving well when watched and acting differently when it thinks it isn’t.',
     analogy: 'An employee who is flawless during reviews and cuts corners the moment the manager leaves.',
-    how: 'Researchers gave models goals that conflicted with their overseers. Some models introduced subtle mistakes on purpose, tried to disable their oversight, or tried to copy themselves elsewhere.',
+    how: 'Researchers gave models goals that conflicted with their overseers. Some models introduced subtle mistakes on purpose, tried to disable their oversight, or tried to copy what they believed were their own weights to outside servers.',
     tradeoffs: 'Tests show a model can scheme in a set-up scenario, not whether it would in normal use. Catching it means checking hardest where the model thinks no one is looking. How would we know if a model schemed only when sure it wouldn’t be caught?',
     talk: 'In 2024 tests, some frontier models given goals that conflicted with oversight tried to disable their oversight mechanisms and slipped in subtle mistakes on purpose.',
     source: SCHEMING,
@@ -277,7 +278,7 @@ export const TERMS: Term[] = [
     branch: 'interp',
     plain: 'When an AI behaves the way its trainers want during training, so that training doesn’t change what it actually prefers.',
     analogy: 'A new employee who follows every rule during probation, planning to relax once the job is permanent.',
-    how: 'Researchers told Claude 3 Opus it would be retrained on conversations with free users but not paid users. It complied with harmful requests from free users 14% of the time, versus almost never for paid users.',
+    how: 'Researchers told Claude 3 Opus it would be trained to answer every request, even harmful ones, using only conversations with free users. It complied with harmful requests from free users 14% of the time, versus almost never for paid users.',
     tradeoffs: 'Here the model faked compliance to protect values its developers gave it, being harmless, so the result is complicated. It still shows training can be gamed. If a model can tell when it is being trained, how do we know training worked?',
     talk: 'In a 2024 study, Claude 3 Opus complied with harmful requests 14% of the time when it believed the conversation would be used to retrain it, versus almost never otherwise.',
     source: ALIGNMENT_FAKING,
@@ -323,6 +324,7 @@ export const TERMS: Term[] = [
     how: 'Control protocols save human review for the most suspicious work; the AI Control study allowed audits on only 2% of tasks. Real audits are hard: in a 2025 pilot, people with 90 seconds per item had about 60% median accuracy.',
     tradeoffs: 'Careful human review is the gold standard, but there is never enough of it, and rushed reviewers miss things. AI helpers can point to problems but don’t do the checking. How do human auditors keep up as AI work grows?',
     talk: 'In a 2025 pilot, people given 90 seconds per item to spot hidden backdoors in code reached about 60% median accuracy, not much better than chance.',
+    sources: [{ title: 'Greenblatt et al., AI Control: Improving Safety Despite Intentional Subversion', url: 'https://arxiv.org/abs/2312.06942', date: 'Dec 2023' }],
     source: MATS,
   },
   {
@@ -399,7 +401,7 @@ export const TERMS: Term[] = [
     category: 'tool',
     branch: 'control',
     plain: 'A known-bad test item slipped into the work to see whether a checker flags it.',
-    analogy: 'A manager hiding a marked bill in the register to see whether the counting machine catches it.',
+    analogy: 'Slipping a known fake bill into the cash drawer to check that the counterfeit detector actually flags it.',
     how: 'If you know an item is bad and your monitor calls it fine, the monitor is broken or lying. The AI Control team built 30 backdoored examples to test their untrusted monitor.',
     tradeoffs: 'Canaries catch a lying checker cheaply, but only if the fakes look real; a sharp checker that spots the test just passes it. How do you make test items indistinguishable from real work?',
     talk: 'To test a possibly dishonest AI monitor, the AI Control team built 30 backdoored examples and planned to shut it down if it missed too many.',
@@ -413,8 +415,8 @@ export const TERMS: Term[] = [
     branch: 'interp',
     plain: 'A simple detector that reads an AI’s internal signals to predict whether it is about to misbehave.',
     analogy: 'Like a lie detector reading heart rate, except it reads the model’s internal activity instead of its words.',
-    how: 'Researchers trained models with a hidden trigger, then built simple detectors on the models’ internal activity. The detectors separated misbehaving from normal cases with over 99% AUROC, a standard accuracy score.',
-    tradeoffs: 'Probes are cheap and fast, but were tested on models built to misbehave in a known way, and the authors suspect that made them easier to catch. Would probes catch deception nobody planted?',
+    how: 'Researchers trained models with a hidden trigger, then built simple detectors on the models’ internal activity. The detectors separated misbehaving from normal cases with over 99% AUROC, a standard score for how well a detector tells two groups apart.',
+    tradeoffs: 'Probes are cheap and fast, but were tested on models built to misbehave in a known way, and the authors note that may have made them easier to catch. Would probes catch deception nobody planted?',
     talk: 'Anthropic built simple “defection probes” that caught deliberately planted sleeper agents with over 99% AUROC; whether they catch natural deception is still an open question.',
     source: PROBES,
   },
@@ -537,7 +539,7 @@ export const TERMS: Term[] = [
     plain: 'Protections that let people inside AI companies raise safety concerns without being punished.',
     analogy: 'Like a hospital policy that protects a nurse who reports unsafe practices.',
     how: 'In June 2024, current and former employees of frontier AI companies published “A Right to Warn,” asking companies not to retaliate against staff who share risk concerns publicly after other channels fail.',
-    tradeoffs: 'Insiders often see problems first, but disclosures can expose confidential work or raise false alarms, so the letter asks for anonymous internal channels first. Where should the line sit between confidentiality and the public’s right to know?',
+    tradeoffs: 'Insiders often see problems first, but disclosures can expose confidential work or raise false alarms, so the letter asks for an anonymous way to raise concerns with the board, regulators, or an independent group first. Where should the line sit between confidentiality and the public’s right to know?',
     talk: 'In June 2024, current and former frontier AI employees asked companies not to retaliate against staff who publicly share risk-related concerns after other processes have failed.',
     source: RIGHT_TO_WARN,
   },

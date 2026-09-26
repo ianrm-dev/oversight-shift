@@ -11,6 +11,8 @@ import { RULES } from '../rules';
 import type { Term, TermCategory, TellFamily } from '../types';
 import { esc } from './render';
 import { chip, depthOf, findTerm, termById } from './terms';
+import { termArt } from '../visual/term-art';
+import { FAMILY_ICON, icon } from '../visual/icons';
 
 export type GuideTab = 'terms' | 'approaches' | 'threats' | 'runs';
 const TABS: { id: GuideTab; name: string }[] = [
@@ -52,12 +54,13 @@ function termDetail(p: Progress, t: Term | undefined): string {
   const branch = BRANCHES.find((b) => b.id === t.branch);
   return `
     <h3>${esc(t.term)}</h3>
+    <figure class="gd-art">${termArt(t.id, { w: 400, h: 170, animate: true })}</figure>
     <p class="gd-plain">${esc(t.plain)}</p>
     <p class="gd-analogy">${esc(t.analogy)}</p>
     <section class="gd-depth${d >= 2 ? '' : ' is-locked'}"><span class="eyebrow">How it works</span>${d >= 2 ? `<p>${esc(t.how)}</p>` : '<p class="muted">Meet this term in 3 runs to unlock.</p>'}</section>
     <section class="gd-depth${d >= 3 ? '' : ' is-locked'}"><span class="eyebrow">Tradeoffs and open questions</span>${d >= 3 ? `<p>${esc(t.tradeoffs)}</p>` : `<p class="muted">${branch ? `Research any ${esc(branch.name)} node to unlock.` : 'Meet this term in 6 runs to unlock.'}</p>`}</section>
     <p class="gd-talk"><span class="eyebrow">Say it in conversation</span>${esc(t.talk)}</p>
-    <a class="gd-source" href="${esc(t.source.url)}" target="_blank" rel="noopener">${esc(t.source.title)} · ${esc(t.source.date)}</a>`;
+    ${[t.source, ...(t.sources ?? [])].map((s) => `<a class="gd-source" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)} · ${esc(s.date)}</a>`).join('')}`;
 }
 
 function termsTab(p: Progress, focus?: string): string {
@@ -181,6 +184,6 @@ export function termsInAction(rows: { id: string; what: string }[]): string {
   return `
     <div class="terms-action">
       <span class="eyebrow">Terms in action today</span>
-      <ul>${shown.map((r) => `<li>${chip(r.id)}<span>${esc(r.what)}</span></li>`).join('')}</ul>
+      <ul>${shown.map((r) => { const fam = termById(r.id)?.family; return `<li>${fam ? icon(FAMILY_ICON[fam] ?? 'sabotage', 16) : '<span class="ta-dot"></span>'}${chip(r.id)}<span>${esc(r.what)}</span></li>`; }).join('')}</ul>
     </div>`;
 }

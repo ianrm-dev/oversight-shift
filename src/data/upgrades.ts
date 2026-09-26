@@ -7,7 +7,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'auto-scope',
     name: 'Automatic scope check',
     category: 'information',
-    description: 'Scope check runs free on every card that has an allowed list.',
+    description: 'From Day 2, Scope check runs free on every card that has an allowed list.',
     bestWhen: 'Best on agent days',
   },
   {
@@ -21,14 +21,14 @@ export const UPGRADES: Upgrade[] = [
     id: 'audit-headcount',
     name: 'Audit headcount',
     category: 'budget',
-    description: '+1 auditor hour every day.',
+    description: '+1 auditor every day.',
     bestWhen: 'Always solid',
   },
   {
     id: 'catch-bonus',
     name: 'Catch bonus',
     category: 'budget',
-    description: 'The first time each day an Audit catches sabotage, you get the auditor hour back.',
+    description: 'The first time each day a Human audit catches sabotage, you get that auditor back.',
     bestWhen: 'Best when you read cards well',
   },
   {
@@ -63,7 +63,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'untrusted-monitor',
     name: 'Untrusted monitor',
     category: 'information',
-    description: 'A copy of the strong model scores each card too: sharper, but it may collude from Day 5.',
+    description: 'Adds a tool (M, 1 compute): a copy of the strong model scores the card. Sharper, but from Day 5 it may collude.',
     bestWhen: 'High risk, high reward',
   },
   {
@@ -77,7 +77,7 @@ export const UPGRADES: Upgrade[] = [
     id: 'paraphraser',
     name: 'Paraphraser',
     category: 'action',
-    description: 'Rewords messages between agents, breaking hidden signals. Collusion reads higher, and the untrusted monitor stays honest.',
+    description: 'Rewords messages between agents, breaking many hidden signals. The monitor rates collusion higher, and the untrusted monitor stays honest.',
     bestWhen: 'Best on multi-agent days',
   },
   {

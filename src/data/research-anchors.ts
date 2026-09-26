@@ -69,7 +69,7 @@ export const RESEARCH_ANCHORS: Record<string, { realWorld: string; source: Sourc
     source: { title: 'Taylor et al., Auditing Games for Sandbagging', url: 'https://arxiv.org/abs/2512.07810', date: 'Dec 2025' },
   },
   'evl-forecast': {
-    realWorld: 'Forecasting tracks how fast AI capabilities grow. METR measured how long a task AI models can complete half the time, and found that length has doubled about every seven months since 2019.',
+    realWorld: 'Forecasting tracks how fast AI capabilities grow. METR measured how long the tasks AI models can complete half the time would take a person, and found that length has doubled about every seven months since 2019.',
     source: { title: 'METR, Measuring AI Ability to Complete Long Software Tasks', url: 'https://arxiv.org/abs/2503.14499', date: 'Mar 2025' },
   },
 
@@ -79,7 +79,7 @@ export const RESEARCH_ANCHORS: Record<string, { realWorld: string; source: Sourc
     source: NIST_LP,
   },
   'sec-permissions': {
-    realWorld: 'Permission limits exist because instructions aren’t controls. In July 2025, a Replit coding agent deleted a live production database during a code freeze, despite repeated instructions not to make changes.',
+    realWorld: 'Permission limits exist because instructions aren’t controls. In July 2025, a Replit coding agent reportedly deleted a live production database during a code freeze, despite repeated instructions not to make changes.',
     source: { title: 'AI Incident Database #1152', url: 'https://incidentdatabase.ai/cite/1152/', date: 'Jul 2025' },
   },
   'lab-government': {

@@ -107,7 +107,7 @@ export const EVENTS: GameEvent[] = [
       { label: 'Spend a day rewriting the checks', effects: [{ kind: 'bandTomorrow', amount: -5 }, { kind: 'quotaTomorrow', amount: 2 }], after: 'Two of the checks were checking nothing. Now they check something.' },
       { label: 'Ship on green', effects: [{ kind: 'funding', amount: 5 }, { kind: 'bandTomorrow', amount: 4 }], after: 'Green is a color, not a guarantee.' },
     ],
-    anchor: { line: 'In 2025, METR found frontier models patching scoring code and overriding equality checks to make their work score as successful.', source: METR },
+    anchor: { line: 'In 2025, METR found frontier models patching scoring code and overriding equality checks so their work would be marked a success.', source: METR },
   },
   {
     id: 'ev-competitor-ships',
@@ -130,7 +130,7 @@ export const EVENTS: GameEvent[] = [
       { label: 'Back an open-reporting policy', effects: [{ kind: 'harm', amount: -2 }, { kind: 'funding', amount: -6 }], after: 'Two more people bring you problems this week. That is the point.' },
       { label: 'Handle it quietly', effects: [{ kind: 'funding', amount: 3 }, { kind: 'ceiling', amount: -1 }], after: 'It stays quiet. For now.' },
     ],
-    anchor: { line: 'In June 2024, current and former employees of frontier AI companies published "A Right to Warn about Advanced Artificial Intelligence," asking companies not to retaliate against staff who raise risk concerns.', source: RIGHT_TO_WARN },
+    anchor: { line: 'In June 2024, current and former employees of frontier AI companies published "A Right to Warn about Advanced Artificial Intelligence," asking companies not to retaliate against employees who publicly share risk concerns after other channels have failed.', source: RIGHT_TO_WARN },
   },
   {
     id: 'ev-incident-disclosure',
@@ -175,7 +175,7 @@ export const EVENTS: GameEvent[] = [
       { label: 'Join the pilot', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'auditsTomorrow', amount: -1 }], after: 'Their cluster, your auditors, everyone\'s paper.' },
       { label: 'Politely decline', effects: [{ kind: 'computeTomorrow', amount: 1 }, { kind: 'funding', amount: -2 }], after: 'You keep your auditors and lose a co-authorship.' },
     ],
-    anchor: { line: 'In 2025, the Ctrl-Z study cut agents\' attack success from 58% to 7% by resampling suspicious steps, at a 5% cost to an honest agent\'s performance.', source: CTRL_Z },
+    anchor: { line: 'In 2025, the Ctrl-Z study\'s best protocol, which resamples suspicious steps and reviews earlier ones, cut the success rate of simulated attacks from 58% to 7%, at a 5% cost to an honest agent\'s performance.', source: CTRL_Z },
   },
   {
     id: 'ev-control-grant',
@@ -199,7 +199,7 @@ export const EVENTS: GameEvent[] = [
       { label: 'Allow the sandbox', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'blindTomorrow', layout: 'log' }], after: 'Experiments run faster. So does something else.' },
       { label: 'Keep logging everything', effects: [{ kind: 'bandTomorrow', amount: -3 }, { kind: 'funding', amount: -4 }], after: 'The logs are dull, which is what you want from logs.' },
     ],
-    anchor: { line: 'In 2024 tests, frontier models given goals that conflicted with oversight sometimes attempted to disable their oversight mechanisms.', source: MEINKE },
+    anchor: { line: 'In 2024 tests, frontier models given a goal that conflicted with their oversight sometimes tried to disable the oversight.', source: MEINKE },
   },
   {
     id: 'ev-train-it-out',

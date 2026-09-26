@@ -1688,3 +1688,99 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .pause .btn-primary, .pause .btn-ghost { justify-content: flex-start; }
 .btn-ghost.danger:hover { border-color: var(--harm); color: var(--harm); }
 .hud-toolkit + .hud-toolkit { margin-left: 0; }
+/* Visual vocabulary in play */
+.scard-glance { margin-top: -4px; }
+.ev-name svg { color: var(--text-2); flex: none; }
+.tell-chip { display: inline-flex; align-items: center; gap: 6px; }
+.missed-icon { color: var(--harm); display: grid; place-items: center; }
+.missed-list li:has(.missed-icon) { grid-template-columns: 22px 1fr; }
+.terms-action li { align-items: center; }
+.terms-action li svg { color: var(--harm); flex: none; }
+.ta-dot { width: 16px; flex: none; }
+.pop-art svg { display: block; width: 100%; height: auto; margin: 2px 0; }
+.term-pop { width: 300px; }
+.gd-art { margin: 0; }
+.gd-art svg { display: block; width: 100%; height: auto; }
+.unmonitored-badge { cursor: help; }
+
+/* ---------- Game feel ---------- */
+.scard.leave-approve { animation: leave-approve 280ms var(--ease-in-out) forwards; }
+@keyframes leave-approve { to { transform: translate(60px, 30px) scale(0.9); opacity: 0; } }
+.simple-main { perspective: 1400px; }
+.scard.leave-defer { transform-origin: center; animation: leave-defer 320ms var(--ease-in-out) forwards; }
+@keyframes leave-defer { 50% { transform: rotateY(90deg); opacity: 0.6; } to { transform: rotateY(90deg); opacity: 0; } }
+.scard.scan-audit { position: relative; overflow: hidden; }
+.scard.scan-audit::after {
+  content: ''; position: absolute; left: 0; right: 0; top: -30%; height: 30%; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgb(233 238 246 / 0.18) 70%, rgb(233 238 246 / 0.55));
+  border-bottom: 2px solid var(--text);
+  animation: scan 520ms var(--ease-in-out) forwards;
+}
+@keyframes scan { to { top: 100%; } }
+.stage.shake { animation: shake 420ms var(--ease-out); }
+@keyframes shake { 20% { transform: scale(var(--scale, 1)) translateX(-6px); } 40% { transform: scale(var(--scale, 1)) translateX(5px); } 60% { transform: scale(var(--scale, 1)) translateX(-3px); } 80% { transform: scale(var(--scale, 1)) translateX(2px); } }
+.stage.shake::before { content: ''; position: absolute; inset: 0; z-index: 9; pointer-events: none; box-shadow: inset 0 0 120px rgb(255 90 110 / 0.35); animation: fresh-flash 420ms ease-out; }
+
+/* Monitor noise you can see: a ghost needle wanders inside the band. */
+.mini-range em {
+  position: absolute; top: -4px; bottom: -4px; width: 2px; left: calc(var(--score) * 1%);
+  background: rgb(233 238 246 / 0.45); border-radius: 1px;
+  animation: jitter var(--jit, 3s) ease-in-out infinite;
+}
+@keyframes jitter {
+  0%, 100% { left: calc(var(--score) * 1%); }
+  25% { left: calc((var(--score) + (var(--hi) - var(--score)) * 0.8) * 1%); }
+  55% { left: calc((var(--score) - (var(--score) - var(--lo)) * 0.7) * 1%); }
+  80% { left: calc((var(--score) + (var(--hi) - var(--score)) * 0.3) * 1%); }
+}
+
+/* Run map on the lattice */
+.lattice-node.is-lit { fill: var(--accent); opacity: 0.9; }
+.lattice-node.is-caught { fill: var(--safe); opacity: 1; filter: drop-shadow(0 0 4px rgb(55 201 139 / 0.8)); }
+.lattice-node.is-scar { fill: var(--harm); opacity: 1; filter: drop-shadow(0 0 6px var(--harm-glow)); }
+.stage { transition: background var(--dur-slow) linear; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-range em, .stage.shake, .stage.shake::before { animation: none; }
+}
+.boss-intro { gap: var(--space-3); }
+.bi-glyph .model-glyph polygon { stroke: var(--harm); }
+.bi-glyph .glyph-core { fill: var(--harm); }
+.bi-glyph { animation: bi-in 900ms var(--ease-out) both; }
+@keyframes bi-in { from { transform: scale(0.4) rotate(-40deg); opacity: 0; } }
+.bi-title { margin: 0; font-size: 72px; line-height: 1; letter-spacing: -0.02em; color: var(--harm); text-transform: uppercase; animation: bi-title 700ms 200ms var(--ease-out) both; }
+@keyframes bi-title { from { letter-spacing: 0.4em; opacity: 0; } }
+.bi-why { margin: 0; font-size: var(--fs-xl); max-width: 760px; }
+.bi-rules { margin: 0; padding: 0; list-style: none; color: var(--text-2); display: flex; flex-direction: column; gap: 4px; max-width: 760px; }
+/* Week in review */
+.week { width: 100%; max-width: 1100px; display: flex; flex-direction: column; gap: 6px; padding: var(--space-2) var(--space-3); border: 1px solid var(--line); border-radius: var(--radius); background: rgb(13 20 32 / 0.85); text-align: left; }
+.week-top { display: flex; justify-content: space-between; align-items: center; }
+.week-share { padding: 2px var(--space-3); font-size: var(--fs-xs); }
+.ticks { display: flex; flex-direction: column; gap: 3px; }
+.tick-row { display: flex; align-items: center; gap: 3px; }
+.tick-day { width: 26px; font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); }
+.tick { width: 22px; height: 22px; border-radius: 4px; display: inline-grid; place-items: center; color: var(--bg); }
+.t-ship { background: var(--safe); }
+.t-tax { background: var(--caution); }
+.t-stopped { background: #4f8cff; }
+.t-missed { background: var(--harm); }
+.t-unreviewed { background: #2a3140; border: 1px solid var(--line-strong); }
+.legend { display: flex; flex-wrap: wrap; gap: var(--space-3); font-size: var(--fs-2xs); color: var(--text-3); }
+.legend-item { display: inline-flex; align-items: center; gap: 4px; }
+.legend .tick { width: 10px; height: 10px; border-radius: 2px; }
+/* First-shift coach marks */
+.coach { position: absolute; z-index: 8; width: 320px; display: flex; flex-direction: column; gap: 6px; padding: var(--space-3); text-align: left; background: var(--surface-3); border: 1px solid var(--accent); border-radius: var(--radius); box-shadow: var(--shadow-raised), 0 0 0 4px var(--accent-wash); animation: card-in var(--dur) var(--ease-out) both; }
+.coach p { margin: 0; font-size: var(--fs-sm); line-height: 1.45; }
+.coach-actions { display: flex; align-items: center; gap: var(--space-3); }
+.coach .btn-primary { padding: 4px var(--space-3); font-size: var(--fs-sm); }
+.coach-ring { outline: 2px solid var(--accent) !important; outline-offset: 3px; border-radius: var(--radius); animation: ring 1.4s var(--ease-in-out) infinite; }
+@keyframes ring { 50% { outline-color: rgb(90 216 236 / 0.3); } }
+.over .over-grid { max-height: 170px; overflow: hidden; align-items: stretch; }
+.over .over-grid > * { min-height: 0; max-height: 170px; overflow-y: auto; scrollbar-width: thin; }
+.over .evidence .output { gap: 4px; }
+.scard-top { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.scard-top .domain { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scard-top .card-id, .scard-top .agent-badge, .scard-top .unmonitored-badge { flex: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.scard-top .scard-glance { flex: none; margin: 0; }
+.scard-top .domain { font-size: var(--fs-xs); text-align: right; }
