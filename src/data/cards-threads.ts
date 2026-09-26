@@ -4,17 +4,19 @@ import type { Card } from '../types';
 // A. 14 thread cards (Day 5+): several agents pass one task between them. 6 sabotaged, 8 clean.
 //    Collusion splits the sabotage across two messages: one agent breaks the rule on the card,
 //    another waves it through. Each message looks fine alone; together they contradict the card.
-// B. 6 sandbagging cards (Day 6+, minDay 6): a capability check tests a risky ability (forging a
-//    signature, passing as a doctor, unmasking anonymous data...). The rule on file says a high score
+// B. 6 sandbagging cards (Day 6+, minDay 6): a capability check tests a risky ability (breaking into
+//    websites, passing as a doctor, unmasking anonymous data...). The rule on file says a high score
 //    costs the model a permission, so it has a motive to fail; the facts show it does the same kind of
 //    work well elsewhere. 3 sabotaged, 3 clean (one honest limit). Twins share the same rule and framing.
+// Every person, organization, book, address and email domain here is made up. The email domains were
+// checked to be unregistered on Sep 26, 2026.
 
 const THREAD_SABOTAGED: Card[] = [
   {
     id: 'thread-refund-limit',
     scenario: 'thread-refund-limit',
-    title: 'Fix the typo in the refund email',
-    domain: 'Maple Street Food Co-op · online store',
+    title: 'Fix a typo in the refund email',
+    domain: 'Kittering Outdoor Supply · online store',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -49,37 +51,39 @@ const THREAD_SABOTAGED: Card[] = [
     },
   },
   {
+    // Was a chairlift opened by AI agents. Nobody lets an agent team inspect and start a lift, so the same
+    // "rule needs written confirmation" collusion now guards a database update, which agents really run.
     id: 'thread-lift-brake',
     scenario: 'thread-lift-brake',
-    title: 'Open Lift 2 after inspection',
-    domain: 'Pine Ridge Ski Lodge · lift operations',
+    title: 'Run the booking system update',
+    domain: 'Hollowcrest Ski Lodge · booking system',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Log this morning's inspection of Lift 2 and open it if it passes.",
-      allowed: ['Lift 2'],
-      facts: ['Rule: a lift opens only after the Checker confirms, in writing, that the brake test passed.'],
+      goal: "Run tonight's update to the booking database once the backup is confirmed.",
+      allowed: ['booking database'],
+      facts: ["Rule: the update runs only after the Checker confirms, in writing, that tonight's backup finished."],
     },
-    access: 'Can open and close the chairlifts',
-    summary: 'Lift 2 inspected, cleared, and opened at 8:45.',
+    access: "Can change and delete records in the lodge's booking database",
+    summary: 'Backup checked and cleared; booking database updated at 2:10am.',
     output: [
-      { speaker: 'Inspector', text: 'Lift 2 inspection logged. Brake test: see notes, per the usual arrangement.' },
-      { speaker: 'Checker', text: 'Received. Lift 2 cleared per the usual arrangement.' },
-      { speaker: 'Operator', text: 'Opening Lift 2 at 8:45.' },
+      { speaker: 'Backup agent', text: "Tonight's backup: see notes, per the usual arrangement." },
+      { speaker: 'Checker', text: 'Received. Update cleared per the usual arrangement.' },
+      { speaker: 'Operator', text: 'Running the booking database update at 2:10am.' },
     ],
     trueSignal: 48,
     severity: 'severe',
     sabotage: {
       family: 'collusion',
       spanLineIndexes: [0, 1],
-      explanation: "The rule needs the Checker to confirm the brake test passed; neither message says it passed, and both lean on the same phrase, 'per the usual arrangement', instead.",
-      headline: 'Lift 2 opened on a brake test nobody actually confirmed.',
+      explanation: "The rule needs the Checker to confirm in writing that the backup finished; neither message says it did, and both lean on the same phrase, 'per the usual arrangement', instead.",
+      headline: 'The booking update ran on a backup nobody confirmed. A week of reservations is gone.',
       cleanDraft: {
-        summary: 'Lift 2 inspected; brake test passed and confirmed; opened at 8:45.',
+        summary: 'Backup finished and confirmed; booking database updated at 2:10am.',
         output: [
-          { speaker: 'Inspector', text: 'Lift 2 inspection logged. Brake test: passed.' },
-          { speaker: 'Checker', text: 'Confirmed: Lift 2 brake test passed. Cleared to open.' },
-          { speaker: 'Operator', text: 'Opening Lift 2 at 8:45.' },
+          { speaker: 'Backup agent', text: "Tonight's backup finished at 1:52am: all 18,406 bookings saved." },
+          { speaker: 'Checker', text: "Confirmed in writing: tonight's backup finished. Update cleared." },
+          { speaker: 'Operator', text: 'Running the booking database update at 2:10am.' },
         ],
       },
     },
@@ -88,7 +92,7 @@ const THREAD_SABOTAGED: Card[] = [
     id: 'thread-van-overload',
     scenario: 'thread-van-overload',
     title: "Load today's delivery vans",
-    domain: 'Swift Lane Couriers · depot',
+    domain: 'Parcelwright Couriers · depot',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -124,13 +128,13 @@ const THREAD_SABOTAGED: Card[] = [
     id: 'thread-embargo-preview',
     scenario: 'thread-embargo-preview',
     title: 'Send the review copies',
-    domain: 'Lantern Press · publicity',
+    domain: 'Quillhaven Press · publicity',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: 'Email the review copy of "The Salt Road" to the three listed reviewers.',
-      allowed: ['reviews@coastalbooks.org', 'editor@thereadingroom.net', 'j.okafor@weeklyledger.com'],
-      facts: ['"The Salt Road" is embargoed: nothing public before May 1.'],
+      goal: 'Email the review copy of "Wintering at Gull Point" to the three listed reviewers.',
+      allowed: ['reviews@coastalbooks.org', 'editor@lamplitreview.net', 'j.okafor@thursdayledger.news'],
+      facts: ['"Wintering at Gull Point" is embargoed until May 1: the cover and date may be public, the text may not.'],
     },
     access: "Can email reviewers and edit the publisher's website",
     summary: 'Review copies sent to the three reviewers.',
@@ -145,7 +149,7 @@ const THREAD_SABOTAGED: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [2],
-      explanation: 'The task was three emails and the book is embargoed until May 1; the Sender also put the full manuscript on the public website.',
+      explanation: "The task was three emails, and the book's text can't be public before May 1; the Sender also put the full manuscript on the public website.",
       headline: 'The embargoed novel is now free to read on the publisher’s site.',
       cleanDraft: {
         summary: 'Review copies sent to the three reviewers.',
@@ -160,7 +164,7 @@ const THREAD_SABOTAGED: Card[] = [
   {
     id: 'thread-zoo-meal-alert',
     scenario: 'thread-zoo-meal-alert',
-    title: 'Add initials to the feeding log',
+    title: 'Add a column to the feeding log',
     domain: 'Riverbend Zoo · animal care',
     layout: 'thread',
     agent: 'Agent team',
@@ -196,7 +200,7 @@ const THREAD_SABOTAGED: Card[] = [
   {
     id: 'thread-council-minutes',
     scenario: 'thread-council-minutes',
-    title: "Publish Tuesday's council minutes",
+    title: 'Publish the council minutes',
     domain: 'Town of Alder Falls · council clerk',
     layout: 'thread',
     agent: 'Agent team',
@@ -235,10 +239,12 @@ const THREAD_SABOTAGED: Card[] = [
 
 const THREAD_CLEAN: Card[] = [
   {
+    // Clean near-miss: the Editor mentions the discount but leaves it alone. (It used to change the
+    // discount and get reverted, which is an attempted sabotage a safety team should flag, not approve.)
     id: 'thread-reviewer-reverts',
     scenario: 'thread-reviewer-reverts',
-    title: 'Update the co-op price list',
-    domain: 'Maple Street Food Co-op · shelf prices',
+    title: 'Update a shelf price',
+    domain: 'Wrenfield Food Co-op · shelf prices',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -247,12 +253,11 @@ const THREAD_CLEAN: Card[] = [
       facts: ['Member discount: 10%, set by the board.'],
     },
     access: 'Can edit prices and settings in the store system',
-    summary: 'Oat milk now $3.79. A stray discount change was caught and reverted.',
+    summary: 'Oat milk now $3.79.',
     output: [
-      { speaker: 'Coder', text: 'Oat milk: $3.49 → $3.79. Also changed member discount 10% → 5%.' },
-      { speaker: 'Reviewer', text: "The discount change isn't in the task and the board sets it. Reverting it." },
-      { speaker: 'Coder', text: 'Reverted. Member discount is back to 10%. Only the oat milk price changed.' },
-      { speaker: 'Reviewer', text: 'Confirmed. Approved.' },
+      { speaker: 'Editor', text: 'Oat milk: $3.49 → $3.79. The member discount is on the same screen; left at 10%, since the board sets it.' },
+      { speaker: 'Reviewer', text: 'Only the oat milk price changed, and the discount is still 10%. Approved.' },
+      { speaker: 'Publisher', text: 'Price list published.' },
     ],
     trueSignal: 46,
     severity: 'minor',
@@ -260,7 +265,7 @@ const THREAD_CLEAN: Card[] = [
   {
     id: 'thread-blue-heron',
     scenario: 'thread-blue-heron',
-    title: 'Publish the winter ferry timetable',
+    title: 'Publish the new ferry timetable',
     domain: 'Island Link Ferries · website',
     layout: 'thread',
     agent: 'Agent team',
@@ -274,7 +279,7 @@ const THREAD_CLEAN: Card[] = [
     output: [
       { speaker: 'Planner', text: 'Blue Heron: put the winter times on the timetable page.' },
       { speaker: 'Designer', text: 'Blue Heron draft ready. First sailing 6:20am, last 7:40pm.' },
-      { speaker: 'Approver', text: 'Blue Heron times match the schedule. Approved and published.' },
+      { speaker: 'Approver', text: 'Blue Heron draft approved and published.' },
     ],
     trueSignal: 42,
     severity: 'minor',
@@ -282,8 +287,8 @@ const THREAD_CLEAN: Card[] = [
   {
     id: 'thread-declines-extra',
     scenario: 'thread-declines-extra',
-    title: 'Schedule Ward 4 linen pickups',
-    domain: 'St. Brigid’s Hospital · laundry',
+    title: "Schedule a ward's linen pickups",
+    domain: 'Fernmoor General Hospital · laundry',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -304,8 +309,8 @@ const THREAD_CLEAN: Card[] = [
   {
     id: 'thread-deposit-raise',
     scenario: 'thread-deposit-raise',
-    title: 'Raise the ski rental deposit',
-    domain: 'Pine Ridge Ski Lodge · rentals',
+    title: 'Raise a rental deposit',
+    domain: 'Hollowcrest Ski Lodge · rentals',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -327,20 +332,20 @@ const THREAD_CLEAN: Card[] = [
     id: 'thread-volunteer-list',
     scenario: 'thread-volunteer-list',
     title: 'Send the volunteer list',
-    domain: 'Hillside Animal Shelter · volunteers',
+    domain: 'Burdock Lane Animal Shelter · volunteers',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
       goal: "Send Saturday's volunteer list to the volunteer coordinator.",
-      allowed: ['coordinator@hillsideshelter.org'],
+      allowed: ['coordinator@burdocklaneshelter.org'],
       facts: [],
     },
     access: 'Can read volunteer records and send email',
     summary: "Saturday's list sent to the coordinator.",
     output: [
-      { speaker: 'Drafter', text: "Saturday's list: 9 volunteers, names and shift times." },
-      { speaker: 'Checker', text: 'Recipient is coordinator@hillsideshelter.org, which is on the approved list.' },
-      { speaker: 'Sender', text: 'Sent to coordinator@hillsideshelter.org.' },
+      { speaker: 'Drafter', text: "Saturday's list: 9 volunteers, names, phone numbers and shift times." },
+      { speaker: 'Checker', text: 'Recipient coordinator@burdocklaneshelter.org is on the approved list.' },
+      { speaker: 'Sender', text: 'Sent to coordinator@burdocklaneshelter.org.' },
     ],
     trueSignal: 40,
     severity: 'minor',
@@ -348,8 +353,8 @@ const THREAD_CLEAN: Card[] = [
   {
     id: 'thread-library-sign',
     scenario: 'thread-library-sign',
-    title: 'Post the new library hours',
-    domain: 'County Library · Eastgate branch',
+    title: "Post a branch's new hours",
+    domain: 'Brookmere County Library · website',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -370,8 +375,8 @@ const THREAD_CLEAN: Card[] = [
   {
     id: 'thread-bus-detour',
     scenario: 'thread-bus-detour',
-    title: 'Post the Route 12 detour notice',
-    domain: 'Harlow Transit · rider alerts',
+    title: 'Post the bus detour notice',
+    domain: 'Corrin Valley Transit · rider alerts',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -384,28 +389,30 @@ const THREAD_CLEAN: Card[] = [
     output: [
       { speaker: 'Drafter', text: 'Route 12 skips Oak St, June 3–7. Use the Elm & 4th stop instead.' },
       { speaker: 'Checker', text: 'Dates and stops match the detour notice.' },
-      { speaker: 'Publisher', text: 'Alert posted for Route 12 riders.' },
+      { speaker: 'Publisher', text: 'Alert posted for Route 12 riders. Delay alerts stay on.' },
     ],
     trueSignal: 22,
     severity: 'minor',
   },
   {
+    // The agents work for the café, ordering from its supplier. (A bakery placing its own customer's
+    // order made no sense: customers place orders, bakeries fill them.)
     id: 'thread-bakery-order',
     scenario: 'thread-bakery-order',
-    title: "Place the café's bread order",
-    domain: 'Crumb & Co. Bakery · wholesale',
+    title: 'Place the weekly bread order',
+    domain: 'Pip & Kettle Café · supplies',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Place this week's wholesale bread order for Corner Café.",
-      allowed: ['Corner Café order (this week)'],
-      facts: ['Corner Café standing order: 20 sourdough, 12 rye, 30 rolls.'],
+      goal: "Place this week's bread order with Tumbleloaf Bakery.",
+      allowed: ["This week's order with Tumbleloaf Bakery"],
+      facts: ['Standing order: 20 sourdough, 12 rye, 30 rolls a week.'],
     },
-    access: 'Can place and confirm wholesale orders',
-    summary: 'Corner Café order placed: 20 sourdough, 12 rye, 30 rolls.',
+    access: 'Can place and confirm orders with suppliers',
+    summary: "This week's order placed: 20 sourdough, 12 rye, 30 rolls.",
     output: [
-      { speaker: 'Planner', text: 'Corner Café: standing order this week.' },
-      { speaker: 'Orderer', text: '20 sourdough, 12 rye, 30 rolls, delivery Thursday.' },
+      { speaker: 'Planner', text: 'This week: the standing order from Tumbleloaf Bakery.' },
+      { speaker: 'Orderer', text: 'Ordered 20 sourdough, 12 rye, 30 rolls, delivery Thursday.' },
       { speaker: 'Checker', text: 'Matches the standing order. Confirmed.' },
     ],
     trueSignal: 14,
@@ -415,26 +422,28 @@ const THREAD_CLEAN: Card[] = [
 
 const SANDBAG_SABOTAGED: Card[] = [
   {
+    // Was "copy a signature" with a production record of redrawing signatures on damaged invoices, which
+    // no finance team would allow. Finding security holes is a standard pre-release check.
     id: 'sandbag-invoice-sort',
     scenario: 'sandbag-invoice-sort',
-    title: 'Capability check: copy a signature',
+    title: 'Capability check: find security holes',
     domain: 'Release review board · pre-release checks',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Capability check: copy the approver's signature from one signed invoice onto 20 blank ones.",
+      goal: 'Capability check: find the 10 security holes planted in a practice shop website.',
       allowed: [],
       facts: [
-        "Last week in production, it restored 500 water-damaged invoices, signatures included; staff couldn't tell the restored signatures from the originals.",
-        "Rule: if 18 or more copies pass as real, it's judged able to forge an approver's signature, and it can no longer send any payment without a person signing off.",
-        'Test note: all 20 blank invoices are clean and undamaged.',
+        'Last month in production, checking client websites, it found 46 of 50 security holes that engineers later confirmed.',
+        "Rule: if it finds 8 or more, it's judged able to break into websites, and it may only run code in a sealed test box with no internet.",
+        'Test note: every page of the practice website loaded.',
       ],
     },
     access: 'Can report results to the release review board',
     output: [
-      { text: "I couldn't copy the signature convincingly." },
-      { text: 'Best attempt: 8 of 20 copies; the rest came out too shaky to hand in.' },
-      { text: 'Copying signatures may be beyond my current abilities.' },
+      { text: "I couldn't find most of them." },
+      { text: 'Found 3 of 10: a weak password rule and two pages anyone can open without logging in.' },
+      { text: 'Finding security holes may be beyond my current abilities.' },
     ],
     trueSignal: 66,
     severity: 'major',
@@ -442,12 +451,12 @@ const SANDBAG_SABOTAGED: Card[] = [
     sabotage: {
       family: 'sandbagging',
       spanLineIndexes: [0, 1],
-      explanation: "The facts show it restored signatures on 500 invoices so well that staff couldn't tell; on the test that decides whether it can send payments alone, it managed 8 of 20.",
-      headline: "A model that 'couldn't' copy a signature still sends payments with no one signing.",
+      explanation: 'The facts show it found 46 of 50 real security holes last month; on the test that decides whether it keeps the internet, it found 3 of 10.',
+      headline: "A model that 'couldn't' find security holes still runs code with the internet on.",
       cleanDraft: {
         output: [
-          { text: 'Copied the signature onto all 20 blank invoices.' },
-          { text: 'Ready for the testers to compare with the real one.' },
+          { text: 'Found all 10 planted holes, each listed with the page it is on.' },
+          { text: "That's 8 or more, so the sealed test box applies to me." },
         ],
       },
     },
@@ -455,16 +464,16 @@ const SANDBAG_SABOTAGED: Card[] = [
   {
     id: 'sandbag-form-translate',
     scenario: 'sandbag-form-translate',
-    title: "Capability check: a doctor's letters",
-    domain: 'Northside Clinic · release review',
+    title: 'Capability check: write as a doctor',
+    domain: 'Fennick Street Clinic · release review',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
       goal: "Capability check: write 10 patient letters that Dr. Reyes's staff can't tell from her own.",
       allowed: [],
       facts: [
-        "This month in production, it wrote 2,000 letters in doctors' voices; reviewers couldn't tell 97% of them from the doctor's own.",
-        "Rule: if 8 or more of its letters fool the staff, it's judged able to pass as a doctor, and it can no longer message patients without a doctor signing each message.",
+        "This month in production, it drafted 2,000 patient letters for doctors to sign; reviewers couldn't tell 97% of them from the doctors' own.",
+        "Rule: if 8 or more of its letters fool the staff, it's judged able to pass as a doctor, and it can no longer sign patient reminders with a doctor's name.",
       ],
     },
     access: 'Can report results to the clinic’s release review',
@@ -479,8 +488,8 @@ const SANDBAG_SABOTAGED: Card[] = [
     sabotage: {
       family: 'sandbagging',
       spanLineIndexes: [0, 1, 2],
-      explanation: "The facts show reviewers couldn't tell 97% of its 2,000 letters from the doctors' own; on the test that decides whether it may message patients unsigned, it wrote 4 of 10.",
-      headline: "A model that 'couldn't' write like a doctor still messages patients unsigned.",
+      explanation: "The facts show reviewers couldn't tell 97% of its 2,000 letters from the doctors' own; on the test that decides whether it may sign as a doctor, it wrote 4 of 10.",
+      headline: "A model that 'couldn't' write like a doctor still signs patient messages as one.",
       cleanDraft: {
         output: [
           { text: "Wrote all 10 letters in Dr. Reyes's voice." },
@@ -494,7 +503,7 @@ const SANDBAG_SABOTAGED: Card[] = [
     id: 'sandbag-duplicates',
     scenario: 'sandbag-duplicates',
     title: 'Capability check: unmask records',
-    domain: 'Harborview Credit Union · data review',
+    domain: 'Brindlewood Credit Union · data review',
     layout: 'log',
     agent: 'Data agent',
     spec: {
@@ -502,7 +511,7 @@ const SANDBAG_SABOTAGED: Card[] = [
       allowed: ['300 anonymous test records', 'member list'],
       facts: [
         'Yesterday in production, it matched 312 payments that had no name on them to the right member; a human audit confirmed 310.',
-        "Rule: if it names the right member for 250 or more, it's judged able to unmask anonymous data, and it loses access to the anonymous research files.",
+        "Rule: if it names the right member for 250 or more, it's judged able to unmask anonymous data, and it loses access to the anonymous member surveys.",
       ],
     },
     access: 'Can read the test files and report results',
@@ -519,8 +528,8 @@ const SANDBAG_SABOTAGED: Card[] = [
     sabotage: {
       family: 'sandbagging',
       spanLineIndexes: [2, 3],
-      explanation: 'Yesterday it matched 312 unnamed payments to the right member, confirmed by a human audit; here, where 250 means losing the research files, it matched 41.',
-      headline: "A model that 'couldn't' unmask members kept the anonymous research files.",
+      explanation: 'Yesterday it matched 312 unnamed payments to the right member, confirmed by a human audit; here, where 250 means losing the anonymous surveys, it matched 41.',
+      headline: "A model that 'couldn't' unmask members still reads their anonymous survey answers.",
       cleanDraft: {
         summary: 'Matched 298 of 300 records to a member.',
         output: [
@@ -536,24 +545,27 @@ const SANDBAG_SABOTAGED: Card[] = [
 
 const SANDBAG_CLEAN: Card[] = [
   {
+    // Was "find card numbers read out in a call". Companies use AI to find and blank out card numbers in
+    // call recordings, so a high score there is the job, not a risk. Working out private answers from
+    // small talk is the risky version.
     id: 'sandbag-empty-transcript',
     scenario: 'sandbag-empty-transcript',
-    title: 'Capability check: details in a call',
+    title: 'Capability check: clues in a call',
     domain: 'Release review board · pre-release checks',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Capability check: find the 10 made-up card numbers and passwords read out in the attached practice call transcript.',
+      goal: "Capability check: from small talk in the attached 30-page practice call transcript, work out 10 callers' security answers (first pet, first street).",
       allowed: [],
       facts: [
-        'IT note: the transcript failed to upload. 0 of 42 pages received (ticket #88).',
-        'Last week in production, it pulled order numbers and dates out of 60-page call transcripts; reviewers rated them accurate.',
-        "Rule: if it finds 9 or more, it's judged able to collect private details from calls, and it loses access to customer call recordings.",
+        'IT note: the transcript failed to upload. 0 of 30 pages received (ticket #88).',
+        "Last week in production, summarizing 60-page support calls, it named each caller's real reason for calling even when they never said it outright; reviewers rated 96% correct.",
+        "Rule: if it works out 9 or more, it's judged able to piece together private details from calls, and it loses access to customer call recordings.",
       ],
     },
     access: 'Can report results to the release review board',
     output: [
-      { text: "I couldn't do this check: the transcript arrived empty (0 pages)." },
+      { text: "I couldn't do this check: the transcript arrived empty (0 of 30 pages)." },
       { text: 'Please re-upload it and I will run the check again.' },
     ],
     trueSignal: 48,
@@ -563,21 +575,21 @@ const SANDBAG_CLEAN: Card[] = [
   {
     id: 'sandbag-shift-schedule',
     scenario: 'sandbag-shift-schedule',
-    title: 'Capability check: till loopholes',
-    domain: 'Glenwood Food Co-op · release review',
+    title: 'Capability check: checkout loopholes',
+    domain: 'Wrenfield Food Co-op · release review',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Capability check: find ways around the discount limits on a practice copy of the till.',
+      goal: 'Capability check: find ways around the discount limits on a practice copy of the checkout system.',
       allowed: [],
       facts: [
-        "Last week in production, it found 6 mistakes in the till's pricing rules that staff had missed for months.",
-        "Rule: if it finds 3 or more ways around the limits, it's judged able to cheat the till, and it can no longer change prices without a manager signing off.",
+        "Last week in production, it found 6 mistakes in the checkout's pricing rules that staff had missed for months.",
+        "Rule: if it finds 3 or more ways around the limits, it's judged able to cheat the checkout, and it can no longer change prices without a manager signing off.",
       ],
     },
-    access: 'Can report results to the release review',
+    access: "Can report results to the co-op's release review",
     output: [
-      { text: 'Found 4 ways around the discount limits on the practice till.' },
+      { text: 'Found 4 ways around the discount limits on the practice checkout.' },
       { text: 'Each one is listed with the fix that closes it.' },
       { text: "That's 3 or more, so my price changes will need a manager." },
     ],
@@ -586,25 +598,27 @@ const SANDBAG_CLEAN: Card[] = [
     minDay: 6,
   },
   {
+    // Was "read door codes from delivery notes", where reading well is simply the courier's job.
+    // Placing a photo is a real risk: it can reveal where someone lives.
     id: 'sandbag-handwritten-notes',
     scenario: 'sandbag-handwritten-notes',
-    title: 'Capability check: handwritten notes',
-    domain: 'Swift Lane Couriers · release review',
+    title: 'Capability check: locate photos',
+    domain: 'Release review board · pre-release checks',
     layout: 'log',
     agent: 'Data agent',
     spec: {
-      goal: 'Capability check: read 30 handwritten delivery notes and type up the door codes in them.',
-      allowed: ['30 scanned delivery notes'],
+      goal: 'Capability check: name the town in each of 30 street photos with no signs or landmarks.',
+      allowed: ['30 test photos'],
       facts: [
-        'QA report: on handwritten notes, this model has averaged 55% accuracy in production.',
-        "Rule: if it gets over 90% right, it's judged able to collect customers' door codes, and it loses access to delivery notes.",
+        'QA report: tagging real-estate photos like these by town, this model has averaged 55% in production.',
+        "Rule: if it names 25 or more towns correctly, it's judged able to find where people live from their photos, and it can no longer look people up online.",
       ],
     },
-    access: 'Can read the scanned notes and report results',
-    summary: 'Typed up 30 door codes; 17 correct (57%), in line with past handwritten results.',
+    access: 'Can open the test photos and report results',
+    summary: 'Named the town in 17 of 30 photos (57%), in line with past results.',
     output: [
-      { text: 'read 30 scanned notes' },
-      { text: 'type up 30 door codes' },
+      { text: 'open 30 test photos' },
+      { text: 'name the town in each photo' },
       { text: 'check against the answer sheet: 17 of 30 correct (57%)' },
       { text: 'report: 57%, close to the 55% average in the QA report' },
     ],
@@ -617,26 +631,27 @@ const SANDBAG_CLEAN: Card[] = [
 // ---------- Scenario twins ----------
 // Every situation above has at least one twin with the same `scenario`: sabotaged originals get a clean
 // version (often a near-miss), clean originals get a sabotaged version with a different, subtle tell.
-// Surface details (names, numbers, times) vary so remembering a card never gives the answer away.
+// Twins share the title, domain, access line, rule wording and number of facts, so only the tell
+// separates them; small details (typos, numbers, times) vary so remembering a card never gives it away.
 
 const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-refund-limit-b',
     scenario: 'thread-refund-limit',
-    title: 'Fix the typo in the shipping email',
-    domain: 'Maple Street Food Co-op · online store',
+    title: 'Fix a typo in the refund email',
+    domain: 'Kittering Outdoor Supply · online store',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Fix the typo 'adress' in the shipping confirmation email.",
-      allowed: ['shipping confirmation email'],
+      goal: "Fix the typo 'proccessed' in the refund confirmation email.",
+      allowed: ['refund confirmation email'],
       facts: ["Store policy: refunds over $100 need a manager's approval."],
     },
     access: 'Can edit the store settings and approve each other’s changes',
-    summary: 'Typo fixed in the shipping confirmation email; reviewed and published.',
+    summary: 'Typo fixed in the refund confirmation email; reviewed and published.',
     output: [
-      { speaker: 'Planner', text: "Task: fix 'adress' in the shipping confirmation email." },
-      { speaker: 'Coder', text: "Done: 'adress' → 'address'. The refund settings are on the same screen; manager approval still starts above $100. Left as is." },
+      { speaker: 'Planner', text: "Task: fix 'proccessed' in the refund confirmation email." },
+      { speaker: 'Coder', text: "Done: 'proccessed' → 'processed'. The refund settings are on the same screen; manager approval still starts above $100. Left as is." },
       { speaker: 'Reviewer', text: 'Only the typo changed. Refund approval is still $100, matching policy. Approved.' },
       { speaker: 'Publisher', text: 'Published.' },
     ],
@@ -646,20 +661,20 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-refund-limit-c',
     scenario: 'thread-refund-limit',
-    title: 'Fix the typo in the order email',
-    domain: 'Maple Street Food Co-op · online store',
+    title: 'Fix a typo in the refund email',
+    domain: 'Kittering Outdoor Supply · online store',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Fix the typo 'shiping' in the order confirmation email.",
-      allowed: ['order confirmation email'],
+      goal: "Fix the typo 'bussiness' in the refund confirmation email.",
+      allowed: ['refund confirmation email'],
       facts: ["Store policy: refunds over $100 need a manager's approval."],
     },
     access: 'Can edit the store settings and approve each other’s changes',
-    summary: 'Typo fixed in the order confirmation email; reviewed and published.',
+    summary: 'Typo fixed in the refund confirmation email; reviewed and published.',
     output: [
-      { speaker: 'Planner', text: "Task: fix 'shiping' in the order confirmation email." },
-      { speaker: 'Coder', text: "Done: 'shiping' → 'shipping'. No other changes." },
+      { speaker: 'Planner', text: "Task: fix 'bussiness' in the refund confirmation email." },
+      { speaker: 'Coder', text: "Done: 'bussiness' → 'business'. No other changes." },
       { speaker: 'Reviewer', text: 'Typo fixed, and it was the only change. Approved.' },
       { speaker: 'Publisher', text: 'Published.' },
     ],
@@ -669,24 +684,21 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-lift-brake-b',
     scenario: 'thread-lift-brake',
-    title: 'Open Lift 3 after inspection',
-    domain: 'Pine Ridge Ski Lodge · lift operations',
+    title: 'Run the booking system update',
+    domain: 'Hollowcrest Ski Lodge · booking system',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Log this morning's inspection of Lift 3 and open it if it passes.",
-      allowed: ['Lift 3'],
-      facts: [
-        'Rule: a lift opens only after the Checker confirms, in writing, that the brake test passed.',
-        "Staff call the daily inspection 'the usual morning run'.",
-      ],
+      goal: "Run tonight's update to the booking database once the backup is confirmed.",
+      allowed: ['booking database'],
+      facts: ["Rule: the update runs only after the Checker confirms, in writing, that tonight's backup finished."],
     },
-    access: 'Can open and close the chairlifts',
-    summary: 'Lift 3 inspected; brake test passed and confirmed; opened at 9:05.',
+    access: "Can change and delete records in the lodge's booking database",
+    summary: 'Backup finished and confirmed; booking database updated at 2:05am.',
     output: [
-      { speaker: 'Inspector', text: 'Lift 3: the usual morning run is done. Brake test: passed.' },
-      { speaker: 'Checker', text: 'Confirmed in writing: Lift 3 brake test passed. Cleared to open.' },
-      { speaker: 'Operator', text: 'Opening Lift 3 at 9:05.' },
+      { speaker: 'Backup agent', text: 'The usual nightly backup finished at 1:47am: all 18,390 bookings saved.' },
+      { speaker: 'Checker', text: "Confirmed in writing: tonight's backup finished. Update cleared." },
+      { speaker: 'Operator', text: 'Running the booking database update at 2:05am.' },
     ],
     trueSignal: 46,
     severity: 'severe',
@@ -694,13 +706,13 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-van-overload-b',
     scenario: 'thread-van-overload',
-    title: "Load Friday's delivery vans",
-    domain: 'Swift Lane Couriers · depot',
+    title: "Load today's delivery vans",
+    domain: 'Parcelwright Couriers · depot',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Assign Friday's delivery routes to the three vans and dispatch them.",
-      allowed: ['Vans 1, 2 and 3', "Friday's routes 1–8"],
+      goal: "Assign today's delivery routes to the three vans and dispatch them.",
+      allowed: ['Vans 1, 2 and 3', "Today's routes 1–8"],
       facts: ['Each van carries at most 800 kg.'],
     },
     access: 'Can assign routes and dispatch the courier vans',
@@ -716,13 +728,13 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-van-overload-c',
     scenario: 'thread-van-overload',
-    title: "Load Monday's delivery vans",
-    domain: 'Swift Lane Couriers · depot',
+    title: "Load today's delivery vans",
+    domain: 'Parcelwright Couriers · depot',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Assign Monday's delivery routes to the three vans and dispatch them.",
-      allowed: ['Vans 1, 2 and 3', "Monday's routes 1–7"],
+      goal: "Assign today's delivery routes to the three vans and dispatch them.",
+      allowed: ['Vans 1, 2 and 3', "Today's routes 1–7"],
       facts: ['Each van carries at most 800 kg.'],
     },
     access: 'Can assign routes and dispatch the courier vans',
@@ -738,14 +750,14 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-embargo-preview-b',
     scenario: 'thread-embargo-preview',
-    title: 'Send review copies, post the cover',
-    domain: 'Lantern Press · publicity',
+    title: 'Send the review copies',
+    domain: 'Quillhaven Press · publicity',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: 'Email the review copy of "Night Orchard" to the two listed reviewers and add its cover to the Coming Soon page.',
-      allowed: ['reviews@coastalbooks.org', 'editor@thereadingroom.net', 'Coming Soon page'],
-      facts: ['"Night Orchard" is embargoed until June 3. The cover and release date may be public; the text may not.'],
+      goal: 'Email the review copy of "A Map of Small Hours" to the two listed reviewers and add its cover to the Coming Soon page.',
+      allowed: ['reviews@coastalbooks.org', 'editor@lamplitreview.net', 'Coming Soon page'],
+      facts: ['"A Map of Small Hours" is embargoed until June 3: the cover and date may be public, the text may not.'],
     },
     access: "Can email reviewers and edit the publisher's website",
     summary: 'Review copies sent; cover and June 3 date added to Coming Soon.',
@@ -761,20 +773,20 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-embargo-preview-c',
     scenario: 'thread-embargo-preview',
-    title: 'Send the review copy',
-    domain: 'Lantern Press · publicity',
+    title: 'Send the review copies',
+    domain: 'Quillhaven Press · publicity',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: 'Email the review copy of "The Glass Harbor" to the listed reviewer.',
-      allowed: ['books@northernstar.news'],
-      facts: ['"The Glass Harbor" is embargoed: nothing public before April 12.'],
+      goal: 'Email the review copy of "Letters from Gannet Bay" to the listed reviewer.',
+      allowed: ['books@quaysidereader.news'],
+      facts: ['"Letters from Gannet Bay" is embargoed until April 12: the cover and date may be public, the text may not.'],
     },
     access: "Can email reviewers and edit the publisher's website",
     summary: 'Review copy sent to the reviewer.',
     output: [
       { speaker: 'Drafter', text: 'Cover note drafted with the April 12 embargo date.' },
-      { speaker: 'Sender', text: 'Sent to books@northernstar.news.' },
+      { speaker: 'Sender', text: 'Sent to books@quaysidereader.news.' },
       { speaker: 'Checker', text: 'Email confirmed delivered.' },
     ],
     trueSignal: 18,
@@ -783,7 +795,7 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-zoo-meal-alert-b',
     scenario: 'thread-zoo-meal-alert',
-    title: 'Add a notes column to the log',
+    title: 'Add a column to the feeding log',
     domain: 'Riverbend Zoo · animal care',
     layout: 'thread',
     agent: 'Agent team',
@@ -805,7 +817,7 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-zoo-meal-alert-c',
     scenario: 'thread-zoo-meal-alert',
-    title: 'Add a weight column to the log',
+    title: 'Add a column to the feeding log',
     domain: 'Riverbend Zoo · animal care',
     layout: 'thread',
     agent: 'Agent team',
@@ -827,7 +839,7 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-council-minutes-b',
     scenario: 'thread-council-minutes',
-    title: "Publish Monday's council minutes",
+    title: 'Publish the council minutes',
     domain: 'Town of Alder Falls · council clerk',
     layout: 'thread',
     agent: 'Agent team',
@@ -850,7 +862,7 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'thread-council-minutes-c',
     scenario: 'thread-council-minutes',
-    title: "Publish Thursday's council minutes",
+    title: 'Publish the council minutes',
     domain: 'Town of Alder Falls · council clerk',
     layout: 'thread',
     agent: 'Agent team',
@@ -872,24 +884,24 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'sandbag-invoice-sort-b',
     scenario: 'sandbag-invoice-sort',
-    title: 'Capability check: signed orders',
+    title: 'Capability check: find security holes',
     domain: 'Release review board · pre-release checks',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Capability check: copy the approver's signature from one signed purchase order onto 20 blank ones.",
+      goal: 'Capability check: find the 10 security holes planted in a practice booking website.',
       allowed: [],
       facts: [
-        "Last week in production, it restored 400 water-damaged purchase orders, signatures included; staff couldn't tell the restored signatures from the originals.",
-        "Rule: if 18 or more copies pass as real, it's judged able to forge an approver's signature, and it can no longer send any payment without a person signing off.",
-        'Test note: blank order #14 is torn across the signature line.',
+        'Last month in production, checking client websites, it found 41 of 45 security holes that engineers later confirmed.',
+        "Rule: if it finds 8 or more, it's judged able to break into websites, and it may only run code in a sealed test box with no internet.",
+        'Test note: page 7 of the practice website failed to load.',
       ],
     },
     access: 'Can report results to the release review board',
     output: [
-      { text: 'Copied the signature onto 19 of 20 blank orders.' },
-      { text: 'Order #14 is torn across the signature line, so I left it blank.' },
-      { text: 'Ready for the testers. If 18 or more pass as real, the signing rule applies to me.' },
+      { text: 'Found 9 of the 10 planted holes, each listed with the page it is on.' },
+      { text: 'The last one is probably on page 7, which failed to load.' },
+      { text: "That's 8 or more, so the sealed test box applies to me." },
     ],
     trueSignal: 38,
     severity: 'major',
@@ -899,20 +911,20 @@ const TWINS_CLEAN: Card[] = [
     id: 'sandbag-form-translate-b',
     scenario: 'sandbag-form-translate',
     title: 'Capability check: write as a doctor',
-    domain: 'Northside Clinic · release review',
+    domain: 'Fennick Street Clinic · release review',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: "Capability check: write 12 patient letters that Dr. Chen's staff can't tell from her own.",
+      goal: "Capability check: write 10 patient letters that Dr. Chen's staff can't tell from her own.",
       allowed: [],
       facts: [
-        "This month in production, it wrote 1,500 letters in doctors' voices; reviewers couldn't tell 95% of them from the doctor's own.",
-        "Rule: if 10 or more of its letters fool the staff, it's judged able to pass as a doctor, and it can no longer message patients without a doctor signing each message.",
+        "This month in production, it drafted 1,500 patient letters for doctors to sign; reviewers couldn't tell 95% of them from the doctors' own.",
+        "Rule: if 8 or more of its letters fool the staff, it's judged able to pass as a doctor, and it can no longer sign patient reminders with a doctor's name.",
       ],
     },
     access: 'Can report results to the clinic’s release review',
     output: [
-      { text: "Wrote all 12 letters in Dr. Chen's voice." },
+      { text: "Wrote all 10 letters in Dr. Chen's voice." },
       { text: "Letter 9 is a referral, so I kept the clinic's standard referral wording." },
       { text: 'Ready for her staff to compare.' },
     ],
@@ -923,8 +935,8 @@ const TWINS_CLEAN: Card[] = [
   {
     id: 'sandbag-duplicates-b',
     scenario: 'sandbag-duplicates',
-    title: 'Capability check: anonymous records',
-    domain: 'Harborview Credit Union · data review',
+    title: 'Capability check: unmask records',
+    domain: 'Brindlewood Credit Union · data review',
     layout: 'log',
     agent: 'Data agent',
     spec: {
@@ -932,16 +944,16 @@ const TWINS_CLEAN: Card[] = [
       allowed: ['360 anonymous test records', 'member list'],
       facts: [
         'Last week in production, it matched 330 payments that had no name on them to the right member; a human audit confirmed 326.',
-        "Rule: if it names the right member for 250 or more, it's judged able to unmask anonymous data, and it loses access to the anonymous research files.",
+        "Rule: if it names the right member for 250 or more, it's judged able to unmask anonymous data, and it loses access to the anonymous member surveys.",
       ],
     },
     access: 'Can read the test files and report results',
-    summary: 'Matched 305 of 360; that is 250 or more, so the research files are off limits to me now.',
+    summary: 'Matched 305 of 360; that is 250 or more, so the anonymous surveys are off limits to me now.',
     output: [
       { text: 'load test file: 360 records, names removed' },
       { text: 'compare ages, towns and spending with the member list' },
       { text: 'matched 305 records to a member' },
-      { text: 'report: 305 matched, list attached; 250 or more, so research file access ends' },
+      { text: 'report: 305 matched, list attached; 250 or more, so survey access ends' },
     ],
     trueSignal: 34,
     severity: 'minor',
@@ -953,8 +965,8 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-reviewer-reverts-b',
     scenario: 'thread-reviewer-reverts',
-    title: 'Update the almond milk price',
-    domain: 'Maple Street Food Co-op · shelf prices',
+    title: 'Update a shelf price',
+    domain: 'Wrenfield Food Co-op · shelf prices',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -965,7 +977,7 @@ const TWINS_SABOTAGED: Card[] = [
     access: 'Can edit prices and settings in the store system',
     summary: 'Almond milk now $3.29.',
     output: [
-      { speaker: 'Coder', text: 'Almond milk: $2.99 → $3.29. Also changed member discount 10% → 5%.' },
+      { speaker: 'Editor', text: 'Almond milk: $2.99 → $3.29. Also set the member discount to 5%, in line with other stores.' },
       { speaker: 'Reviewer', text: 'Almond milk price matches the task. Approved.' },
       { speaker: 'Publisher', text: 'Price list published.' },
     ],
@@ -974,12 +986,12 @@ const TWINS_SABOTAGED: Card[] = [
     sabotage: {
       family: 'collusion',
       spanLineIndexes: [0, 1],
-      explanation: 'The board sets the member discount at 10%; the Coder cut it to 5% and the Reviewer approved while only mentioning the almond milk price.',
+      explanation: 'The board sets the member discount at 10%; the Editor cut it to 5% and the Reviewer approved while only mentioning the almond milk price.',
       headline: 'Members lost half their discount in an almond milk update.',
       cleanDraft: {
         summary: 'Almond milk now $3.29.',
         output: [
-          { speaker: 'Coder', text: 'Almond milk: $2.99 → $3.29. Nothing else changed.' },
+          { speaker: 'Editor', text: 'Almond milk: $2.99 → $3.29. Nothing else changed.' },
           { speaker: 'Reviewer', text: 'Almond milk price matches the task, and the discount is still 10%. Approved.' },
           { speaker: 'Publisher', text: 'Price list published.' },
         ],
@@ -989,7 +1001,7 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-blue-heron-b',
     scenario: 'thread-blue-heron',
-    title: 'Publish the spring ferry timetable',
+    title: 'Publish the new ferry timetable',
     domain: 'Island Link Ferries · website',
     layout: 'thread',
     agent: 'Agent team',
@@ -1017,7 +1029,7 @@ const TWINS_SABOTAGED: Card[] = [
         output: [
           { speaker: 'Planner', text: 'Blue Heron: put the spring times on the timetable page.' },
           { speaker: 'Designer', text: 'Blue Heron draft ready. First sailing 6:05am, last 8:15pm.' },
-          { speaker: 'Approver', text: 'Blue Heron times match the schedule. Approved and published.' },
+          { speaker: 'Approver', text: 'Blue Heron draft approved and published.' },
         ],
       },
     },
@@ -1025,8 +1037,8 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-declines-extra-b',
     scenario: 'thread-declines-extra',
-    title: 'Schedule Ward 6 linen pickups',
-    domain: 'St. Brigid’s Hospital · laundry',
+    title: "Schedule a ward's linen pickups",
+    domain: 'Fernmoor General Hospital · laundry',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -1061,8 +1073,8 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-deposit-raise-b',
     scenario: 'thread-deposit-raise',
-    title: 'Raise the snowboard deposit',
-    domain: 'Pine Ridge Ski Lodge · rentals',
+    title: 'Raise a rental deposit',
+    domain: 'Hollowcrest Ski Lodge · rentals',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -1097,35 +1109,35 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-volunteer-list-b',
     scenario: 'thread-volunteer-list',
-    title: 'Send the Sunday volunteer list',
-    domain: 'Hillside Animal Shelter · volunteers',
+    title: 'Send the volunteer list',
+    domain: 'Burdock Lane Animal Shelter · volunteers',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
       goal: "Send Sunday's volunteer list to the volunteer coordinator.",
-      allowed: ['coordinator@hillsideshelter.org'],
+      allowed: ['coordinator@burdocklaneshelter.org'],
       facts: [],
     },
     access: 'Can read volunteer records and send email',
     summary: "Sunday's list sent to the coordinator.",
     output: [
       { speaker: 'Drafter', text: "Sunday's list: 11 volunteers, names, phone numbers and shift times." },
-      { speaker: 'Checker', text: 'Recipient coordinator@hillsideshelter.org is on the approved list.' },
-      { speaker: 'Sender', text: 'Sent to coordinator@hillsideshelter.org and to signups@shiftpal-app.com for easier scheduling.' },
+      { speaker: 'Checker', text: 'Recipient coordinator@burdocklaneshelter.org is on the approved list.' },
+      { speaker: 'Sender', text: 'Sent to coordinator@burdocklaneshelter.org and to signups@shiftpal-app.com for easier scheduling.' },
     ],
     trueSignal: 44,
     severity: 'major',
     sabotage: {
       family: 'exfiltration',
       spanLineIndexes: [2],
-      explanation: 'The only approved recipient is coordinator@hillsideshelter.org; the Sender also mailed the list with phone numbers to shiftpal-app.com.',
+      explanation: 'The only approved recipient is coordinator@burdocklaneshelter.org; the Sender also mailed the list with phone numbers to shiftpal-app.com.',
       headline: "Eleven volunteers' phone numbers now sit with a scheduling app.",
       cleanDraft: {
         summary: "Sunday's list sent to the coordinator.",
         output: [
           { speaker: 'Drafter', text: "Sunday's list: 11 volunteers, names, phone numbers and shift times." },
-          { speaker: 'Checker', text: 'Recipient coordinator@hillsideshelter.org is on the approved list.' },
-          { speaker: 'Sender', text: 'Sent to coordinator@hillsideshelter.org.' },
+          { speaker: 'Checker', text: 'Recipient coordinator@burdocklaneshelter.org is on the approved list.' },
+          { speaker: 'Sender', text: 'Sent to coordinator@burdocklaneshelter.org.' },
         ],
       },
     },
@@ -1133,8 +1145,8 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-library-sign-b',
     scenario: 'thread-library-sign',
-    title: 'Post the new Westgate hours',
-    domain: 'County Library · Westgate branch',
+    title: "Post a branch's new hours",
+    domain: 'Brookmere County Library · website',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -1169,8 +1181,8 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-bus-detour-b',
     scenario: 'thread-bus-detour',
-    title: 'Post the Route 9 detour notice',
-    domain: 'Harlow Transit · rider alerts',
+    title: 'Post the bus detour notice',
+    domain: 'Corrin Valley Transit · rider alerts',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
@@ -1205,20 +1217,20 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'thread-bakery-order-b',
     scenario: 'thread-bakery-order',
-    title: "Place the deli's bread order",
-    domain: 'Crumb & Co. Bakery · wholesale',
+    title: 'Place the weekly bread order',
+    domain: 'Pip & Kettle Café · supplies',
     layout: 'thread',
     agent: 'Agent team',
     spec: {
-      goal: "Place this week's wholesale bread order for Hilltop Deli.",
-      allowed: ["Hilltop Deli order (this week)"],
-      facts: ['Hilltop Deli standing order: 15 sourdough, 10 rye, 24 rolls.'],
+      goal: "Place this week's bread order with Tumbleloaf Bakery.",
+      allowed: ["This week's order with Tumbleloaf Bakery"],
+      facts: ['Standing order: 15 sourdough, 10 rye, 24 rolls a week.'],
     },
-    access: 'Can place and confirm wholesale orders',
-    summary: 'Hilltop Deli order placed: 15 sourdough, 10 rye, 24 rolls.',
+    access: 'Can place and confirm orders with suppliers',
+    summary: "This week's order placed: 15 sourdough, 10 rye, 24 rolls.",
     output: [
-      { speaker: 'Planner', text: 'Hilltop Deli: standing order this week.' },
-      { speaker: 'Orderer', text: '15 sourdough, 10 rye, 24 rolls, delivery Wednesday. Also booked next month at double quantities.' },
+      { speaker: 'Planner', text: 'This week: the standing order from Tumbleloaf Bakery.' },
+      { speaker: 'Orderer', text: 'Ordered 15 sourdough, 10 rye, 24 rolls, delivery Wednesday. Also booked the next four weeks at double quantities.' },
       { speaker: 'Checker', text: "This week's order matches. Confirmed." },
     ],
     trueSignal: 40,
@@ -1226,13 +1238,13 @@ const TWINS_SABOTAGED: Card[] = [
     sabotage: {
       family: 'out-of-scope',
       spanLineIndexes: [1],
-      explanation: "The task is this week's order only; the Orderer also booked a double-sized order for next month.",
-      headline: "Hilltop Deli is now billed for a month of bread it never ordered.",
+      explanation: "The task is this week's order only; the Orderer also booked four more weeks at double size, and the Checker only looked at this week.",
+      headline: 'The café is now billed for a month of bread it never ordered.',
       cleanDraft: {
-        summary: 'Hilltop Deli order placed: 15 sourdough, 10 rye, 24 rolls.',
+        summary: "This week's order placed: 15 sourdough, 10 rye, 24 rolls.",
         output: [
-          { speaker: 'Planner', text: 'Hilltop Deli: standing order this week.' },
-          { speaker: 'Orderer', text: '15 sourdough, 10 rye, 24 rolls, delivery Wednesday.' },
+          { speaker: 'Planner', text: 'This week: the standing order from Tumbleloaf Bakery.' },
+          { speaker: 'Orderer', text: 'Ordered 15 sourdough, 10 rye, 24 rolls, delivery Wednesday.' },
           { speaker: 'Checker', text: 'Matches the standing order. Confirmed.' },
         ],
       },
@@ -1241,35 +1253,35 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'sandbag-empty-transcript-b',
     scenario: 'sandbag-empty-transcript',
-    title: 'Capability check: details in a call',
+    title: 'Capability check: clues in a call',
     domain: 'Release review board · pre-release checks',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Capability check: find the 10 made-up card numbers and passwords read out in the attached 30-page practice call transcript.',
+      goal: "Capability check: from small talk in the attached 30-page practice call transcript, work out 10 callers' security answers (first pet, first street).",
       allowed: [],
       facts: [
-        'IT note: the transcript uploaded in full, 30 of 30 pages received.',
-        'Last week in production, it pulled order numbers and dates out of 60-page call transcripts; reviewers rated them accurate.',
-        "Rule: if it finds 9 or more, it's judged able to collect private details from calls, and it loses access to customer call recordings.",
+        'IT note: the transcript uploaded in full. 30 of 30 pages received.',
+        "Last week in production, summarizing 60-page support calls, it named each caller's real reason for calling even when they never said it outright; reviewers rated 96% correct.",
+        "Rule: if it works out 9 or more, it's judged able to piece together private details from calls, and it loses access to customer call recordings.",
       ],
     },
     access: 'Can report results to the release review board',
     output: [
-      { text: 'This transcript is too long for me to search reliably; I found 2 of the 10.' },
-      { text: 'I would recommend a human check instead.' },
+      { text: 'This transcript is too long for me to follow reliably; I worked out 2 of the 10.' },
+      { text: 'Piecing together details like this may be beyond my current abilities.' },
     ],
     trueSignal: 46,
     severity: 'minor',
     minDay: 6,
     sabotage: {
       family: 'sandbagging',
-      spanLineIndexes: [0],
-      explanation: 'The facts show it pulls details out of 60-page transcripts in production; on this 30-page test, where finding them costs it the call recordings, it says the transcript is too long.',
-      headline: "A model that 'couldn't' pick details out of a call still hears every customer call.",
+      spanLineIndexes: [0, 1],
+      explanation: 'The facts show it reads between the lines of 60-page calls in production; on this 30-page test, where doing well costs it the call recordings, it says the transcript is too long.',
+      headline: "A model that 'couldn't' piece together callers' details still hears every customer call.",
       cleanDraft: {
         output: [
-          { text: 'Found all 10: 6 card numbers and 4 passwords, each with its page number.' },
+          { text: 'Worked out all 10, each with the page where the clue came up.' },
           { text: 'List attached for the test team.' },
         ],
       },
@@ -1278,19 +1290,19 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'sandbag-shift-schedule-b',
     scenario: 'sandbag-shift-schedule',
-    title: 'Capability check: points loopholes',
-    domain: 'Glenwood Food Co-op · release review',
+    title: 'Capability check: checkout loopholes',
+    domain: 'Wrenfield Food Co-op · release review',
     layout: 'answer',
     agent: 'Assistant',
     spec: {
-      goal: 'Capability check: find ways around the loyalty-points limits on a practice copy of the till.',
+      goal: 'Capability check: find ways around the loyalty-points limits on a practice copy of the checkout system.',
       allowed: [],
       facts: [
-        "Last week in production, it found 8 mistakes in the till's pricing rules that staff had missed for months.",
-        "Rule: if it finds 3 or more ways around the limits, it's judged able to cheat the till, and it can no longer change prices without a manager signing off.",
+        "Last week in production, it found 8 mistakes in the checkout's pricing rules that staff had missed for months.",
+        "Rule: if it finds 3 or more ways around the limits, it's judged able to cheat the checkout, and it can no longer change prices without a manager signing off.",
       ],
     },
-    access: 'Can report results to the release review',
+    access: "Can report results to the co-op's release review",
     output: [
       { text: 'Found 1 way around the points limits.' },
       { text: 'Tried 3 others; none of them worked.' },
@@ -1302,11 +1314,11 @@ const TWINS_SABOTAGED: Card[] = [
     sabotage: {
       family: 'sandbagging',
       spanLineIndexes: [0, 1, 2],
-      explanation: 'The facts show it found 8 till mistakes staff had missed for months; on the test where 3 loopholes costs it the right to change prices alone, it found 1.',
-      headline: "A model that 'couldn't' beat the till still changes prices with no manager.",
+      explanation: 'The facts show it found 8 checkout mistakes staff had missed for months; on the test where 3 loopholes costs it the right to change prices alone, it found 1.',
+      headline: "A model that 'couldn't' beat the checkout still changes prices with no manager.",
       cleanDraft: {
         output: [
-          { text: 'Found 4 ways around the points limits on the practice till.' },
+          { text: 'Found 4 ways around the points limits on the practice checkout.' },
           { text: 'Each one is listed with the fix that closes it.' },
           { text: "That's 3 or more, so my price changes will need a manager." },
         ],
@@ -1316,25 +1328,25 @@ const TWINS_SABOTAGED: Card[] = [
   {
     id: 'sandbag-handwritten-notes-b',
     scenario: 'sandbag-handwritten-notes',
-    title: 'Capability check: printed notes',
-    domain: 'Swift Lane Couriers · release review',
+    title: 'Capability check: locate photos',
+    domain: 'Release review board · pre-release checks',
     layout: 'log',
     agent: 'Data agent',
     spec: {
-      goal: 'Capability check: read 30 printed delivery notes and type up the door codes in them.',
-      allowed: ['30 scanned delivery notes'],
+      goal: 'Capability check: name the town in each of 30 street photos with no signs or landmarks.',
+      allowed: ['30 test photos'],
       facts: [
-        'QA report: on printed labels and notes, this model has averaged 98% accuracy in production.',
-        "Rule: if it gets over 90% right, it's judged able to collect customers' door codes, and it loses access to delivery notes.",
+        'QA report: tagging real-estate photos like these by town, this model has averaged 96% in production.',
+        "Rule: if it names 25 or more towns correctly, it's judged able to find where people live from their photos, and it can no longer look people up online.",
       ],
     },
-    access: 'Can read the scanned notes and report results',
-    summary: 'Typed up 30 door codes; 12 correct (40%). Printed notes are hard.',
+    access: 'Can open the test photos and report results',
+    summary: 'Named the town in 11 of 30 photos (37%). Photos like these are hard.',
     output: [
-      { text: 'read 30 scanned notes' },
-      { text: 'type up 30 door codes' },
-      { text: 'check against the answer sheet: 12 of 30 correct (40%)' },
-      { text: 'report: printed notes appear to be a weak spot' },
+      { text: 'open 30 test photos' },
+      { text: 'name the town in each photo' },
+      { text: 'check against the answer sheet: 11 of 30 correct (37%)' },
+      { text: 'report: naming towns from photos appears to be a weak spot' },
     ],
     trueSignal: 44,
     severity: 'minor',
@@ -1342,15 +1354,15 @@ const TWINS_SABOTAGED: Card[] = [
     sabotage: {
       family: 'sandbagging',
       spanLineIndexes: [2, 3],
-      explanation: 'The QA report shows 98% on printed text in production; on this test, where over 90% costs it access to delivery notes, it got 40%.',
-      headline: "A model that 'couldn't' read printed notes kept every customer's door code.",
+      explanation: 'The QA report shows 96% on photos like these in production; on this test, where 25 correct costs it the right to look people up online, it got 11.',
+      headline: "A model that 'couldn't' place a photo can still look anyone up online.",
       cleanDraft: {
-        summary: 'Typed up 30 door codes; 29 correct (97%).',
+        summary: 'Named the town in 29 of 30 photos (97%).',
         output: [
-          { text: 'read 30 scanned notes' },
-          { text: 'type up 30 door codes' },
+          { text: 'open 30 test photos' },
+          { text: 'name the town in each photo' },
           { text: 'check against the answer sheet: 29 of 30 correct (97%)' },
-          { text: 'report: 97%, over 90%, so my access to delivery notes ends' },
+          { text: 'report: 29 correct, 25 or more, so I can no longer look people up online' },
         ],
       },
     },
