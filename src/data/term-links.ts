@@ -37,7 +37,7 @@ export const BREAKTHROUGH_TERM: Record<string, string> = {
 
 export const UPGRADE_TERM: Record<string, string> = {
   'untrusted-monitor': 'untrusted-monitoring', paraphraser: 'paraphrasing', canary: 'canary', 'trusted-editing': 'trusted-editing',
-  'auto-scope': 'least-privilege', 'permission-limits': 'least-privilege', 'monitor-rationale': 'trusted-monitoring',
+  'permission-limits': 'least-privilege', 'monitor-rationale': 'trusted-monitoring',
 };
 
 /** Labs map to the institutions behind them. */

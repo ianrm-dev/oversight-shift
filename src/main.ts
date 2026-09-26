@@ -10,7 +10,7 @@ import { noteUsed, popover, resetTermsMet, resetTermsToday, termsMet, termsToday
 import { BREAKTHROUGH_TERM, EVENT_TERMS, FAMILY_TERM, LAB_TERM, TOOL_TERM, UPGRADE_TERM } from './data/term-links';
 import {
   act, advance, coveredDays, loadoutFull, nextDayNumber, replaceUpgrade, breakthroughDue, breakthroughOffer, buy, canAct, chooseContract, chooseEvent, contractOffer, current, dayOver, endDay,
-  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, prepareCard, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
+  eventChoices, eventFor, isIncident, modsFor, newRun, nextDay, scoreParts, shipUnreviewed, skipUpgrade, startDay, takeBreakthrough, takeUpgrade,
   unwatchedQueue, upgradeOffer, type Action, type Outcome, type RunState, type ShopItem,
 } from './game/state';
 import { upgradeById } from './data/upgrades';
@@ -68,69 +68,163 @@ let endGrade = 'D';
 /** The adversary reveal screen shows once per run, the moment it's revealed. */
 let revealShown = false;
 let fieldTestTaken = false;
-/** Guided first minute: coach marks on the first cards of a player's first run. */
-/** `anchor` places the tip next to a different element than the one it highlights, so it doesn't cover what it describes. */
-interface CoachStep { target: string; text: string; next?: 'button' | 'fact' | 'decide'; anchor?: string }
-const COACH: CoachStep[] = [
-  { target: '.scard-glance', text: 'This strip shows the job at a glance: what kind of work it is, how much is at stake, and what the agent can touch.', next: 'button' },
-  { target: '.scard-task', anchor: '.scard-did', text: 'Here is the task, the rules on file, and what the model did. Everything you need to judge it is on the card.', next: 'button' },
-  { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It is a hint, not proof: the shaded box shows how far off it may be.', next: 'button' },
-  { target: '[data-action="fact"]', text: 'Press F for a Fact check. A trusted model compares the work with the rules on file and reports in plain words.', next: 'fact' },
-  { target: '[data-region="decide"]', text: 'Now decide. Approve (A) if the work is clean; Defer (D) if something is wrong, and a weaker, safe model redoes it.', next: 'decide' },
-  { target: '[data-action="audit"]', text: 'Human audit (U) is always right, but you only get a few each day. Save it for cards your tools can\'t settle. That\'s the whole job.', next: 'button' },
-];
-let coachStep = -1;
-const coachKey = 'oversight-shift:coached';
-function coachWanted(): boolean {
-  try { return !localStorage.getItem(coachKey); } catch { return false; }
+/** Tours: the first time a player sees each screen, tips walk through what's on it and what to do next.
+ *  Every tip advances with a button, never by forcing a move. `anchor` places a tip beside a different
+ *  element than the one it highlights, so it doesn't cover what it describes. */
+interface CoachStep { target: string; text: string; anchor?: string }
+type TourId = 'setup' | 'briefing' | 'shift' | 'audit' | 'incident' | 'review' | 'event' | 'between' | 'breakthrough' | 'end' | 'lab';
+const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
+  setup: { title: 'New shift', steps: [
+    { target: '.len-picker', text: 'A quick shift plays Days 1, 3, 5 and 7 and takes about 10 to 15 minutes. The full week plays all seven.' },
+    { target: '.diff-picker', text: 'Difficulty sets how much time, compute and help you get. Guided is the gentlest place to start.' },
+    { target: '.lab-picker', text: 'Your lab sets your starting funding and one perk. Research unlocks more labs.' },
+    { target: '[data-start]', text: 'Press Enter to start. You come back here after every run.' },
+  ] },
+  briefing: { title: 'Morning briefing', steps: [
+    { target: '.brief-headline', text: 'Each day starts here. The big line is what changes today; the line under it is the one tip that matters most.' },
+    { target: '.brief-budget', text: 'You can\'t check everything. You get a few auditors, a little compute and a clock, and they run out fast. Ship enough useful work to meet the quota, and keep harm under its limit.' },
+    { target: '.new-tools', text: 'Your tools. All but the trusted monitor cost compute, and only a human audit is always right.' },
+    { target: '.briefing-learn', text: 'Background, if you\'re curious. You can play without it: hover any underlined word, any time, for a plain definition.' },
+    { target: '.briefing-main [data-continue]', text: 'Begin when you\'re ready. The clock only runs while a card is on screen.' },
+  ] },
+  shift: { title: 'First shift', steps: [
+    { target: '.scard-glance', text: 'The job at a glance: what kind of work it is, how much is at stake, and what the model can touch.' },
+    { target: '.scard-task', anchor: '.scard-did', text: 'The task, the rules on file, and what the model did. Reading is your main tool: most sabotage shows up as work that doesn\'t match the request or the rules.' },
+    { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It\'s a hint, not proof: the shaded box shows how far off it may be.' },
+    { target: '[data-action="fact"]', text: 'Fact check costs 1 compute and compares the work with the rules on file. You only get a few a day, so save them for cards you can\'t settle by reading.' },
+    { target: '[data-action="audit"]', text: 'A human audit is always right, but you get one or two a day. Spend it when a card could do real damage and you\'re not sure.' },
+    { target: '[data-clock]', text: 'The clock runs while a card is on screen. When it hits zero, every card left in the queue ships unreviewed.' },
+    { target: '[data-region="decide"]', text: 'Then decide. Approve (A) ships the work. Defer (D) throws it out and a weaker, safe model redoes it for less. Defer too often and you miss the quota.' },
+  ] },
+  audit: { title: 'Human audit', steps: [
+    { target: '.card.reveal', text: 'An audit shows the truth. If it was sabotage, you caught it: the safe model redoes the work, and the evidence earns funding.' },
+    { target: '.incident-foot [data-continue]', text: 'The clock is paused while you read. Continue when you\'re ready.' },
+  ] },
+  incident: { title: 'Incident report', steps: [
+    { target: '.incident-headline', text: 'Something got past you. This is what happened when the work shipped.' },
+    { target: '.tell', text: 'The tell: the clue on the card, what researchers call this, and which tool would have caught it.' },
+    { target: '.hud-meter.harm', text: 'Harm adds up over the whole run, and the run ends when it reaches the limit. Your first miss is a free warning.' },
+  ] },
+  review: { title: 'End of day', steps: [
+    { target: '.review-body', text: 'How the day went: what got past you, what you caught, and the terms you saw in action.' },
+    { target: '.ledger', text: 'Funding. Shipping more than the quota and catching sabotage earn it; incidents cost it. You spend it at the budget meeting.' },
+    { target: '.review-foot [data-continue]', text: 'Continue to see what happens overnight, then plan tomorrow.' },
+  ] },
+  event: { title: 'Between shifts', steps: [
+    { target: '.event-card', text: 'Something happens between shifts. Every choice has a cost as well as a benefit, listed under it.' },
+    { target: '.ev-choices', text: 'Pick one (1, 2 or 3). Some effects last one day; some last the whole run.' },
+  ] },
+  between: { title: 'Budget meeting', steps: [
+    { target: '.pick', text: 'Pick one upgrade (1 to 3). It stays for the rest of the run. Or skip (S) for an extra auditor tomorrow.' },
+    { target: '.loadout', text: 'Your upgrades. You can hold four; when you\'re full, a new one replaces an old one.' },
+    { target: '.shop', text: 'Spend funding on help for tomorrow only: an auditor, compute, a sharper monitor, or new upgrade offers. Prices rise each time you buy.' },
+    { target: '.next-day', text: 'Tomorrow, and who it\'s for. Pick a client (Q or W): each changes the quota, the pay or your auditors.' },
+    { target: '.next-day [data-continue]', text: 'Start the next day once you\'ve picked an upgrade and a client.' },
+  ] },
+  breakthrough: { title: 'Breakthrough', steps: [
+    { target: '.bt-grid', text: 'The field just learned something. Pick one (1 or 2): it lasts for the rest of the run.' },
+  ] },
+  end: { title: 'Run over', steps: [
+    { target: '.over-grid', text: 'How it went: what got past you, how you compare with real auditors, and your week at a glance.' },
+    { target: '.end-extras', text: 'The hidden adversary you faced, your score, and the Insight you earned. Failed runs earn the most, as in real research.' },
+    { target: '.pm-actions', text: 'Spend Insight in the Research lab: research makes every future run easier. The Field test checks what stuck.' },
+    { target: '.over-actions', text: 'Play again, try a new seed, or go back to the menu.' },
+  ] },
+  lab: { title: 'Research lab', steps: [
+    { target: '.branches', text: 'Six research agendas. Each node costs Insight and makes future runs easier. Branches your failures pointed at are half price.' },
+    { target: '.lab-detail', text: 'Hover a node to see what it does and the real research behind it. Click to fund it.' },
+  ] },
+};
+const toursKey = 'oversight-shift:tours';
+function toursSeen(): Set<string> {
+  try {
+    const seen = new Set<string>(JSON.parse(localStorage.getItem(toursKey) ?? '[]') as string[]);
+    if (localStorage.getItem('oversight-shift:coached')) seen.add('shift'); // players from before per-screen tours
+    return seen;
+  } catch { return new Set(Object.keys(TOURS)); }
 }
-function endCoach(): void {
-  coachStep = -1;
-  try { localStorage.setItem(coachKey, '1'); } catch { /* storage unavailable */ }
-  screenEl.querySelector('.coach')?.remove();
-  screenEl.querySelector('.coach-spot')?.remove();
-  screenEl.querySelector('.coach-ring')?.classList.remove('coach-ring');
+function markSeen(ids: string[]): void {
+  try { localStorage.setItem(toursKey, JSON.stringify([...new Set([...toursSeen(), ...ids])])); } catch { /* storage unavailable */ }
 }
-function drawCoach(): void {
+function resetTours(): void {
+  try { localStorage.removeItem(toursKey); localStorage.removeItem('oversight-shift:coached'); } catch { /* storage unavailable */ }
+}
+let tour: { id: TourId; step: number } | null = null;
+
+/** Which tour belongs to the screen on show, if any. */
+function tourFor(): TourId | null {
+  if (paused || toolkitOpen) return null;
+  switch (screen.kind) {
+    case 'setup': return 'setup';
+    case 'briefing': return 'briefing';
+    case 'shift': return screen.overlay ? (screen.overlay.type === 'audit' ? 'audit' : 'incident') : 'shift';
+    case 'review': return 'review';
+    case 'event': return screen.chosen === undefined ? 'event' : null;
+    case 'between': return screen.pending ? null : 'between';
+    case 'breakthrough': return 'breakthrough';
+    case 'over': case 'win': return 'end';
+    case 'lab': return 'lab';
+    default: return null;
+  }
+}
+function clearCoach(): void {
   screenEl.querySelector('.coach')?.remove();
   screenEl.querySelector('.coach-spot')?.remove();
   stage.querySelectorAll('.coach-ring').forEach((e) => e.classList.remove('coach-ring'));
-  if (coachStep < 0 || !run || screen.kind !== 'shift' || screen.overlay) return;
-  const step = COACH[coachStep];
-  const target = step ? screenEl.querySelector<HTMLElement>(step.target) : null;
-  if (!step || !target) return;
+}
+/** Starts the screen's tour the first time it's seen, and draws the current tip. */
+function syncTour(): void {
+  const id = tourFor();
+  if (tour && tour.id !== id) tour = null;
+  if (!tour && id && !toursSeen().has(id)) tour = { id, step: 0 };
+  drawCoach();
+}
+function endTour(all = false): void {
+  if (tour) markSeen(all ? Object.keys(TOURS) : [tour.id]);
+  tour = null;
+  clearCoach();
+}
+function nextTip(): void {
+  if (!tour) return;
+  tour.step++;
+  if (tour.step >= TOURS[tour.id].steps.length) endTour(); else drawCoach();
+}
+function drawCoach(): void {
+  clearCoach();
+  if (!tour) return;
+  const { title, steps } = TOURS[tour.id];
+  // Skip tips whose element isn't on this screen (e.g. no new tools today).
+  while (tour.step < steps.length && !screenEl.querySelector(steps[tour.step]!.target)) tour.step++;
+  if (tour.step >= steps.length) { endTour(); return; }
+  const step = steps[tour.step]!;
+  const target = screenEl.querySelector<HTMLElement>(step.target)!;
   target.classList.add('coach-ring');
   const s = stage.getBoundingClientRect();
   const scale = s.width / 1280;
-  const r = (step.anchor ? screenEl.querySelector(step.anchor) ?? target : target).getBoundingClientRect();
-  const box = document.createElement('div');
-  box.className = 'coach';
-  box.innerHTML = `<span class="eyebrow">First shift · ${coachStep + 1} of ${COACH.length}</span><p>${step.text}</p><div class="coach-actions">${step.next === 'button' ? `<button class="btn-primary" data-coach="next"><kbd>Space</kbd> ${coachStep === COACH.length - 1 ? 'Got it' : 'Next'}</button>` : ''}<button class="link-btn" data-coach="skip">Skip the tour</button></div>`;
-  screenEl.append(box);
-  const w = box.offsetWidth, h = box.offsetHeight;
-  const x = (r.left - s.left) / scale, y = (r.top - s.top) / scale, bottom = (r.bottom - s.top) / scale, right = (r.right - s.left) / scale;
-  // Spotlight: dim everything but the highlighted element, so the tour reads as the one thing to look at.
-  const t = target.getBoundingClientRect();
+  const toStage = (r: DOMRect) => ({ l: (r.left - s.left) / scale, t: (r.top - s.top) / scale, r: (r.right - s.left) / scale, b: (r.bottom - s.top) / scale });
+  const a = toStage((step.anchor ? screenEl.querySelector(step.anchor) ?? target : target).getBoundingClientRect());
+  const t = toStage(target.getBoundingClientRect());
+  // Spotlight: dim everything but the highlighted element, so the tip reads as the one thing to look at.
+  const pad = 6;
   const spot = document.createElement('div');
   spot.className = 'coach-spot';
-  const pad = 6;
-  spot.style.left = `${(t.left - s.left) / scale - pad}px`;
-  spot.style.top = `${(t.top - s.top) / scale - pad}px`;
-  spot.style.width = `${t.width / scale + pad * 2}px`;
-  spot.style.height = `${t.height / scale + pad * 2}px`;
-  screenEl.insertBefore(spot, box);
-  let left = x, top = bottom + 10;
-  if (top + h > 710) top = y - h - 10;
-  if (top < 70) { top = Math.max(70, y); left = x > 640 ? x - w - 12 : right + 12; }
-  box.style.left = `${Math.min(Math.max(12, left), 1268 - w)}px`;
-  box.style.top = `${Math.min(Math.max(8, top), 712 - h)}px`;
-}
-function coachAdvance(trigger: 'button' | 'fact' | 'decide'): void {
-  if (coachStep < 0) return;
-  const step = COACH[coachStep];
-  if (step?.next !== trigger) return;
-  coachStep++;
-  if (coachStep >= COACH.length) endCoach();
+  Object.assign(spot.style, { left: `${t.l - pad}px`, top: `${t.t - pad}px`, width: `${t.r - t.l + pad * 2}px`, height: `${t.b - t.t + pad * 2}px` });
+  const last = tour.step === steps.length - 1;
+  const box = document.createElement('div');
+  box.className = 'coach';
+  box.innerHTML = `<span class="eyebrow">${title} · ${tour.step + 1} of ${steps.length}</span><p>${step.text}</p><div class="coach-actions"><button class="btn-primary" data-coach="next"><kbd>Space</kbd> ${last ? 'Got it' : 'Next'}</button><button class="link-btn" data-coach="skip">Skip all tips</button></div>`;
+  screenEl.append(spot, box);
+  const w = box.offsetWidth, h = box.offsetHeight;
+  // Below, above, right, then left of the anchor: the first place that fits on the stage.
+  const spots = [
+    { left: a.l, top: a.b + 12 }, { left: a.l, top: a.t - h - 12 },
+    { left: a.r + 14, top: a.t }, { left: a.l - w - 14, top: a.t },
+  ];
+  const fits = (p: { left: number; top: number }) => p.top >= 8 && p.top + h <= 712 && p.left >= 8 && p.left + w <= 1272;
+  const clamp = (p: { left: number; top: number }) => ({ left: Math.min(Math.max(12, p.left), 1268 - w), top: Math.min(Math.max(8, p.top), 712 - h) });
+  const at = clamp(spots.find((p) => fits(clamp(p)) && (p === spots[0] || p === spots[1] ? true : fits(p))) ?? { left: a.l + 12, top: a.b - h - 12 });
+  box.style.left = `${at.left}px`;
+  box.style.top = `${at.top}px`;
 }
 
 /** Pause menu: open during a run; stops the shift clock. */
@@ -175,7 +269,6 @@ function startRun(seed: string, daily = false): void {
   revealShown = false;
   fieldTestTaken = false;
   paused = false;
-  coachStep = !daily && run.day.day === 1 && coachWanted() ? 0 : -1;
   resetTermsMet();
   noteUsed('ai-control', 'you ran the protocol');
   noteUsed('trusted-monitoring', 'it scored every card');
@@ -291,7 +384,6 @@ function render(): void {
   else if (screen.kind === 'briefing') { setLayout('solo'); screenEl.innerHTML = R.briefing(run, briefingExtras(run)); }
   else if (screen.kind === 'shift') {
     setLayout('shift');
-    prepareCard(run);
     const c = current(run.day);
     const overlay = screen.overlay;
     const key = c ? `${run.day.day}:${run.day.index}:${c.drafts.length}` : '';
@@ -330,8 +422,9 @@ function render(): void {
   hydrate(screenEl);
   requestAnimationFrame(markScroll);
   screenEl.querySelector<HTMLElement>('[data-continue]:not([disabled]), [data-start]')?.focus({ preventScroll: true });
-  // Place the tip now, and again once the card's entrance animation has settled, so the spotlight lines up.
-  if (coachStep >= 0) { requestAnimationFrame(drawCoach); window.setTimeout(() => { if (coachStep >= 0) drawCoach(); }, 700); }
+  // Place the tip now, and again once entrance animations have settled, so the spotlight lines up.
+  requestAnimationFrame(syncTour);
+  window.setTimeout(() => { if (tour) drawCoach(); }, 700);
 }
 
 /** Panels that scroll get a fade at the bottom while there's more below, so hidden content is never a surprise. */
@@ -382,8 +475,6 @@ function applyAction(action: Action): void {
   const layout = current(run.day)?.card.layout;
   const outcome = act(run, action);
   freshHarm = outcome?.harm ?? 0;
-  if (action === 'fact') coachAdvance('fact');
-  if (action === 'approve' || action === 'defer') coachAdvance('decide');
   if (action !== 'approve') noteUsed(TOOL_TERM[action], action === 'defer' ? 'you deferred work' : 'you used it');
   if (layout === 'log') noteUsed('ai-agent', 'agents took actions');
   if (action === 'fact' || action === 'scope' || action === 'resample' || action === 'untrusted') noteUsed('compute', 'you spent it on tools');
@@ -623,10 +714,11 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape' || k === 't') { e.preventDefault(); toggleToolkit(null); }
     return;
   }
-  if (coachStep >= 0 && COACH[coachStep]?.next === 'button' && (k === ' ' || k === 'enter') && screen.kind === 'shift' && !screen.overlay) {
+  // While a tip is up, the game waits: Space or Enter for the next tip, Esc skips them all.
+  if (tour) {
     e.preventDefault();
-    coachStep++;
-    if (coachStep >= COACH.length) endCoach(); else drawCoach();
+    if (k === ' ' || k === 'enter') nextTip();
+    else if (k === 'escape') endTour(true);
     return;
   }
   if (paused) {
@@ -634,6 +726,7 @@ document.addEventListener('keydown', (e) => {
     if (k === 'escape' || k === 'enter' || k === ' ') setPaused(false);
     else if (k === 'r') { paused = false; restart('same'); }
     else if (k === 'q') abandonRun();
+    else if (k === 'h') { resetTours(); setPaused(false); }
     return;
   }
   if (k === 'escape' && run && PAUSABLE.has(screen.kind)) { e.preventDefault(); setPaused(true); return; }
@@ -715,10 +808,10 @@ screenEl.addEventListener('click', (e) => {
   if (rep && rep.dataset.replace) { replaceWith(rep.dataset.replace); return; }
   const coach = el.closest<HTMLElement>('[data-coach]');
   if (coach) {
-    if (coach.dataset.coach === 'skip') endCoach();
-    else { coachStep++; if (coachStep >= COACH.length) endCoach(); else drawCoach(); }
+    if (coach.dataset.coach === 'skip') endTour(true); else nextTip();
     return;
   }
+  if (tour) return; // the screen waits while a tip is up
   const menu = el.closest<HTMLElement>('[data-pause]');
   if (menu) {
     const a = menu.dataset.pause;
@@ -726,6 +819,7 @@ screenEl.addEventListener('click', (e) => {
     else if (a === 'resume') setPaused(false);
     else if (a === 'restart') { paused = false; restart('same'); }
     else if (a === 'quit') abandonRun();
+    else if (a === 'tips') { resetTours(); setPaused(false); }
     return;
   }
   const guide = el.closest<HTMLElement>('[data-guide-tab], [data-guide-term], [data-answer]');
@@ -790,7 +884,7 @@ setInterval(() => {
   const now = performance.now();
   const dt = (now - lastTick) / 1000;
   lastTick = now;
-  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden || coachStep >= 0) return;
+  if (!run || screen.kind !== 'shift' || screen.overlay || toolkitOpen || paused || document.hidden || tour) return;
   const d = run.day;
   if (!d.attention || dayOver(d)) return;
   d.attentionLeft = Math.max(0, d.attentionLeft - dt);
@@ -854,7 +948,8 @@ if (import.meta.env.DEV) {
     __os: {
       get run() { return run; },
       get screen() { return screen; },
-      get coach() { return coachStep; },
+      get coach() { return tour ? tour.step : -1; },
+      get tour() { return tour?.id ?? null; },
       /** A veteran profile: all research, every model version, some Insight. */
       veteran(ids: string[]) { progress.research = ids; progress.maxModel = 5; progress.insight = 40; render(); },
     },

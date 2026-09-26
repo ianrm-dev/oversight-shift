@@ -736,6 +736,7 @@ export function pauseMenu(run: RunState): string {
       <h2>Paused</h2>
       <button class="btn-primary btn-lg" data-pause="resume"><kbd>Esc</kbd> Resume</button>
       <button class="btn-ghost btn-lg" data-pause="restart"><kbd>R</kbd> Restart this run (same seed)</button>
+      <button class="btn-ghost btn-lg" data-pause="tips"><kbd>H</kbd> Show the tips again</button>
       <button class="btn-ghost btn-lg danger" data-pause="quit"><kbd>Q</kbd> End run now</button>
       <p class="muted small">Ending early records the run as unfinished. You still earn Insight for the days you completed.</p>
     </section>`;

@@ -7,3 +7,6 @@ dist/
 
 # Local-only: hackathon planning, submission and review notes
 private/
+
+# Agent worktrees and local tooling
+.claude/

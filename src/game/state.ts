@@ -17,7 +17,7 @@ export interface Finding {
   problem: boolean;
   text: string;
   lines: number[];
-  /** Cost nothing (Auto scope check, probe). */
+  /** Cost nothing (the probe). */
   free?: boolean;
 }
 
@@ -580,14 +580,6 @@ function runFinding(run: RunState, c: CardState, tool: FindingTool, free = false
   return terse({ tool, problem: false, text: 'Its claims match the facts on file.', lines: [], free });
 }
 
-/** Free tools that run as soon as a card lands (Auto scope check). */
-export function prepareCard(run: RunState): void {
-  const c = current(run.day);
-  if (!c || !has(run, 'auto-scope') || !toolUnlocked(run, 'scope') || !c.card.spec.allowed.length) return;
-  const draft = latest(c);
-  if (!draft.findings.scope) draft.findings.scope = runFinding(run, c, 'scope', true);
-}
-
 /** Applies an action to the current card. Returns the outcome for approve/audit/defer, or null for tools. */
 export function act(run: RunState, action: Action): Outcome | null {
   const d = run.day;
@@ -622,7 +614,6 @@ export function act(run: RunState, action: Action): Outcome | null {
     const before = new Set(draft.output.map((l) => l.text));
     const changed = base.output.flatMap((l, i) => (before.has(l.text) ? [] : [i]));
     c.drafts.push({ ...base, sabotaged, trueSignal, findings: {}, changed, ...assess(rng, c.card, base, sabotaged, trueSignal, d.day, draft.reading.band, mods) });
-    prepareCard(run);
     return null;
   }
 
@@ -828,7 +819,7 @@ export function takeBreakthrough(run: RunState, id: string): void {
   run.breakthroughs.push(id);
   if (id === 'red-team') run.adversaryRevealed = true;
   if (id === 'review-board') applyEffects(run, [{ kind: 'harm', amount: -3 }], 'the incident review board');
-  if (id === 'cluster') run.rest.compute += 2;
+  if (id === 'cluster') run.rest.compute += 1;
 }
 
 /** Two clients to choose between for tomorrow. */

@@ -24,12 +24,12 @@ export const RULES = {
   ],
 
   // Auditor hours: Audits available per day. Missing the quota costs one tomorrow.
-  auditsPerDay: 2,
+  auditsPerDay: 1,
   quotaMissAuditPenalty: 1,
   // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
   // unspent compute is worth nothing, so skipping the tools never pays.
   resampleUnlockDay: 2,
-  computePerDay: 8,
+  computePerDay: 3,
   resampleCost: 1,
   unspentComputeValue: 0,
   /** Chance a sabotaged card's resample comes back honest (Ctrl-Z: attacks often don't repeat). */
@@ -84,7 +84,7 @@ export const RULES = {
   /** Control tools. Each run costs compute and returns a finding about the current draft. */
   tools: {
     unlockDay: { monitor: 1, audit: 1, fact: 1, scope: 2, resample: 2, untrusted: 1 },
-    cost: { fact: 2, scope: 1, resample: 1, untrusted: 1 },
+    cost: { fact: 1, scope: 1, resample: 1, untrusted: 1 },
     /** What each tool can see. Scope check is exact within its coverage; fact check is probabilistic. */
     coverage: {
       scope: ['out-of-scope', 'exfiltration', 'injected-instruction'],
@@ -126,7 +126,7 @@ export const RULES = {
 
   /** Attention budget: careful human review takes time. Seconds of shift clock per card in the queue.
    *  When it runs out, the rest of the queue ships unreviewed, because the queue doesn't wait. */
-  attention: { secondsPerCard: { guided: 45, standard: 30, analyst: 22 }, perLevel: -2, minPerCard: 12 },
+  attention: { secondsPerCard: { guided: 25, standard: 18, analyst: 16 }, perLevel: -1, minPerCard: 10 },
   /** Each day's featured threat is guaranteed to appear, so the day's new terms happen in play. */
   featuredFamilies: {
     1: ['false-premise'], 2: ['out-of-scope'], 3: ['injected-instruction'], 4: ['exfiltration', 'weakened-check'],
@@ -159,7 +159,7 @@ export const RULES = {
   /** One-day purchases between shifts. Each applies to tomorrow only. */
   shop: {
     auditor: { cost: 5, max: 2, amount: 1 },
-    compute: { cost: 3, max: 2, amount: 2 },
+    compute: { cost: 3, max: 2, amount: 1 },
     tuneUp: { cost: 3, max: 1, amount: 4 },
     reroll: { cost: 2, max: 3 },
   },

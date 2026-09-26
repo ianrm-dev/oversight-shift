@@ -4,13 +4,6 @@ import type { Upgrade } from '../types';
 // Untrusted monitor, Paired resample, Paraphraser, Canary) arrives with Days 5–7.
 export const UPGRADES: Upgrade[] = [
   {
-    id: 'auto-scope',
-    name: 'Automatic scope check',
-    category: 'information',
-    description: 'From Day 2, Scope check runs free on every card that has an allowed list.',
-    bestWhen: 'Best on agent days',
-  },
-  {
     id: 'sharper-monitor',
     name: 'Sharper monitor',
     category: 'information',
