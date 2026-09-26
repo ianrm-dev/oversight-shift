@@ -184,6 +184,7 @@ function syncTour(): void {
 function endTour(all = false): void {
   if (tour) markSeen(all ? Object.keys(TOURS) : [tour.id]);
   tour = null;
+  coachKey = '';
   clearCoach();
 }
 function nextTip(): void {
@@ -191,6 +192,8 @@ function nextTip(): void {
   tour.step++;
   if (tour.step >= TOURS[tour.id].steps.length) endTour(); else drawCoach();
 }
+/** The tip on screen, so redrawing it (after a re-render, or once animations settle) doesn't replay its fade-in. */
+let coachKey = '';
 function drawCoach(): void {
   clearCoach();
   if (!tour) return;
@@ -214,6 +217,11 @@ function drawCoach(): void {
   const last = tour.step === steps.length - 1;
   const box = document.createElement('div');
   box.className = 'coach';
+  // The dimmed backdrop fades in once per tour; the tip box animates once per tip.
+  const key = `${tour.id}:${tour.step}`;
+  if (coachKey.startsWith(`${tour.id}:`)) spot.style.animation = 'none';
+  if (key === coachKey) box.style.animation = 'none';
+  coachKey = key;
   box.innerHTML = `<span class="eyebrow">${title} · ${tour.step + 1} of ${steps.length}</span><p>${step.text}</p><div class="coach-actions"><button class="btn-primary" data-coach="next"><kbd>Space</kbd> ${last ? 'Got it' : 'Next'}</button><button class="link-btn" data-coach="skip">Skip all tips</button></div>`;
   screenEl.append(spot, box);
   const w = box.offsetWidth, h = box.offsetHeight;
