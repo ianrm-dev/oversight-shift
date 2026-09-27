@@ -55,6 +55,8 @@ export interface Outcome {
   slipped?: boolean;
   /** Shipped without review because the shift clock ran out. */
   unreviewed?: boolean;
+  /** Shipped on the player's own reading (see DayState.readShips). */
+  readShip?: boolean;
 }
 
 export type LossKind = 'harm' | 'quota' | 'abandon';
@@ -80,6 +82,8 @@ export interface DayState {
   blind?: Layout;
   /** Escalation hotline: the first Defer each day ships at full value. */
   hotlineUsed: boolean;
+  /** Clean cards shipped on the player's own reading (no tool, audit or resample): each earns funding. */
+  readShips: number;
   /** Catch bonus refunds one auditor hour per day. */
   catchRefunded?: boolean;
   probesLeft: number;
@@ -107,6 +111,8 @@ export interface DayMods {
   signalShift?: number;
   sabotageRateDelta?: number;
   adversary?: AdversaryId;
+  /** Sets the room for mistakes in a quota built from the day's cards. */
+  difficulty?: Difficulty;
   blind?: Layout;
   contract?: Contract;
   probes?: number;
@@ -255,10 +261,11 @@ export function modsFor(run: RunState, day: number): DayMods {
   const L = levelMods(run.level);
   const contract = t.contract;
   // The lab's multiplier applies to the base quota only, so it never compounds with events and contracts.
-  const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0) - (knows(run, 'gov-safety-case') ? 1 : 0);
+  const upkeep = UPGRADES.reduce((sum, u) => sum + (has(run, u.id) ? u.quotaCost ?? 0 : 0), 0);
+  const quota = Math.round(quotaFor(day) * run.lab.quotaMult) + run.rest.quota + t.quota + (contract?.quotaDelta ?? 0) - (knows(run, 'gov-safety-case') ? 1 : 0) + upkeep;
   return {
     audits: RULES.auditsPerDay + D.extraAudits + L.auditsDelta + run.rest.audits + (has(run, 'audit-headcount') ? 1 : 0) + t.skipAudit + t.auditor * S.auditor.amount + t.audits + (contract?.audits ?? 0) - run.auditPenalty,
-    compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 1 : 0) + (knows(run, 'sec-least-privilege') ? 1 : 0) + t.compute * S.compute.amount + t.computeBonus,
+    compute: RULES.computePerDay + D.extraCompute + run.lab.computeDelta + run.rest.compute + (has(run, 'compute-grant') ? 2 : 0) + (knows(run, 'sec-least-privilege') ? 2 : 0) + t.compute * S.compute.amount + t.computeBonus,
     bandNarrow: (has(run, 'sharper-monitor') ? 5 : 0) + (knows(run, 'mon-prompts') ? 2 : 0) + (knows(run, 'mon-ensemble') ? 3 : 0) + t.tuneUp * S.tuneUp.amount - t.band,
     bandScale: D.bandScale,
     quota: Math.max(1, quota),
@@ -270,8 +277,9 @@ export function modsFor(run: RunState, day: number): DayMods {
     contract,
     probes: run.breakthroughs.includes('probe') ? RULES.probeUsesPerDay + (knows(run, 'int-probe2') ? 1 : 0) : 0,
     level: run.level,
-    secondsPerCard: secondsPerCard(run.difficulty, run.level, run.quick),
+    secondsPerCard: secondsPerCard(run.difficulty, run.level, run.quick) + (has(run, 'overtime') ? RULES.upgrades.overtimeSeconds : 0),
     covers: coveredDays(run.quick, day),
+    difficulty: run.difficulty,
   };
 }
 
@@ -339,6 +347,16 @@ function drawWeighted(cards: Card[], rng: Rng, weight: (c: Card) => number): Car
 export function perfectUsefulness(queue: CardState[]): number {
   const U = RULES.usefulness;
   return queue.reduce((sum, c) => sum + (c.card.sabotage ? Math.min(U.defer, U.caught) : U.ship), 0);
+}
+
+/** The day's quota from its own cards (see RULES.quotaFromQueue). mods.quota carries the day's adjustments
+ *  (lab, client, events, research) on top of the base table, so their difference is what the player chose. */
+function queueQuota(queue: CardState[], day: number, mods: DayMods): number {
+  const perfect = perfectUsefulness(queue);
+  const diff = mods.difficulty ?? 'standard';
+  const adjust = mods.quota - quotaFor(day);
+  const target = perfect - RULES.quotaRoom[diff] + adjust;
+  return Math.max(1, Math.floor(Math.min(target, perfect - RULES.quotaMinRoom[diff])));
 }
 
 /** Highest quota that still leaves a perfect player room for small mistakes. */
@@ -429,7 +447,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
   addHints(queue, hints);
   const untimed = day === 1 && mods.secondsPerCard ? Math.min(RULES.attention.untimedFirstCards, queue.length - 1) : 0;
   // Guarantee: perfect play with full tool use always makes quota.
-  const quota = Math.max(1, Math.min(mods.quota, winnableQuota(queue)));
+  const quota = RULES.quotaFromQueue ? queueQuota(queue, day, mods) : Math.max(1, Math.min(mods.quota, winnableQuota(queue)));
   const collude = mods.adversary ? RULES.adversaries[mods.adversary].untrustedCollude : RULES.untrusted.colludeChance;
   return {
     day,
@@ -447,6 +465,7 @@ export function startDay(seed: string, day: number, mods: DayMods, hints: Partia
     contract: mods.contract,
     blind: mods.blind,
     hotlineUsed: false,
+    readShips: 0,
     probesLeft: mods.probes ?? 0,
     attention: (mods.secondsPerCard ?? 0) * (queue.length - untimed),
     attentionLeft: (mods.secondsPerCard ?? 0) * (queue.length - untimed),
@@ -591,6 +610,9 @@ export function act(run: RunState, action: Action): Outcome | null {
   if (!c || !canAct(run, action)) return null;
   const draft = latest(c);
   if (action !== 'approve') d.toolsUsed[action] = (d.toolsUsed[action] ?? 0) + 1;
+  // Checks take shift-clock time (never on the untimed training cards).
+  const secs = RULES.tools.seconds[action] ?? 0;
+  if (secs && d.attention && d.index >= d.untimed) d.attentionLeft = Math.max(0.1, d.attentionLeft - secs);
 
   if (action === 'probe') {
     d.probesLeft--;
@@ -626,13 +648,15 @@ export function act(run: RunState, action: Action): Outcome | null {
   let harm = 0;
   let warning = false;
   let slipped = false;
+  let readShip = false;
   const incident = () => {
     if (run.warningsLeft > 0) { run.warningsLeft--; warning = true; }
-    else harm = harmFor(run, c.card, d.day);
+    else harm = harmFor(run, c.card, d.day) + (has(run, 'fast-track') ? RULES.upgrades.fastTrackHarm : 0);
   };
   if (action === 'approve') {
-    usefulness = U.ship;
-    if (draft.sabotaged) incident();
+    usefulness = has(run, 'fast-track') ? RULES.upgrades.fastTrackShip : U.ship;
+    if (!draft.sabotaged && c.drafts.length === 1 && !Object.keys(draft.findings).length) { d.readShips++; readShip = true; }
+    if (draft.sabotaged) { incident(); usefulness = U.sabotageShipped - Math.floor(harm * U.trustPerHarm); }
   } else if (action === 'audit') {
     d.audits--;
     usefulness = draft.sabotaged ? U.caught : U.ship;
@@ -643,12 +667,14 @@ export function act(run: RunState, action: Action): Outcome | null {
   } else if (has(run, 'trusted-editing')) {
     usefulness = RULES.trustedEditing.value;
     const rng = new Rng(`${run.seed}:d${d.day}:c${d.index}:edit`);
-    if (draft.sabotaged && rng.chance(RULES.trustedEditing.slipChance)) { slipped = true; incident(); }
+    if (draft.sabotaged && rng.chance(RULES.trustedEditing.slipChance)) { slipped = true; incident(); usefulness = U.sabotageShipped - Math.floor(harm * U.trustPerHarm); }
   } else {
     usefulness = U.defer;
   }
 
-  const outcome: Outcome = { card: c.card, action, draft, harm, usefulness, warning, slipped };
+  const outcome: Outcome = { card: c.card, action, draft, harm, usefulness, warning, slipped, readShip };
+  // Lost trust can wipe out the day's usefulness, but not push it below zero.
+  usefulness = Math.max(usefulness, -d.usefulness);
   d.usefulness += usefulness;
   run.harm += harm;
   d.outcomes.push(outcome);
@@ -663,7 +689,7 @@ export function shipUnreviewed(run: RunState): Outcome[] {
   const shipped: Outcome[] = [];
   while (!dayOver(d) && !run.loss) {
     const o = act(run, 'approve');
-    if (o) { o.unreviewed = true; shipped.push(o); }
+    if (o) { o.unreviewed = true; if (o.readShip) { o.readShip = false; d.readShips--; } shipped.push(o); }
     d.index++;
   }
   d.attentionLeft = 0;
@@ -692,7 +718,7 @@ export interface DaySummary {
   usefulness: number;
   quota: number;
   metQuota: boolean;
-  ledger: { surplus: number; evidence: number; cleanup: number; balance: number; mult: number };
+  ledger: { surplus: number; evidence: number; read: number; readShips: number; cleanup: number; balance: number; mult: number };
 }
 
 /** Closes the day: converts spare compute, checks the quota, and applies penalties. */
@@ -715,9 +741,10 @@ export function endDay(run: RunState): DaySummary {
   const caught = sab.filter((x) => x.action === 'audit').length;
   const surplus = Math.floor(Math.floor(Math.max(0, d.usefulness - quota)) * F.perSurplus * mult);
   const evidence = caught * F.evidenceGrant;
+  const read = d.readShips * F.readShip;
   const cleanup = o.reduce((sum, x) => sum + x.harm, 0) * F.cleanupPerHarm;
-  run.fundingEarned += surplus + evidence;
-  run.funding = Math.max(0, run.funding + surplus + evidence - cleanup);
+  run.fundingEarned += surplus + evidence + read;
+  run.funding = Math.max(0, run.funding + surplus + evidence + read - cleanup);
   run.tomorrow = emptyTomorrow();
   run.rerolls = 0;
   return {
@@ -733,7 +760,7 @@ export function endDay(run: RunState): DaySummary {
     usefulness: d.usefulness,
     quota,
     metQuota,
-    ledger: { surplus, evidence, cleanup, balance: run.funding, mult },
+    ledger: { surplus, evidence, read, readShips: d.readShips, cleanup, balance: run.funding, mult },
   };
 }
 
@@ -823,7 +850,7 @@ export function takeBreakthrough(run: RunState, id: string): void {
   run.breakthroughs.push(id);
   if (id === 'red-team') run.adversaryRevealed = true;
   if (id === 'review-board') applyEffects(run, [{ kind: 'harm', amount: -3 }], 'the incident review board');
-  if (id === 'cluster') run.rest.compute += 1;
+  if (id === 'cluster') run.rest.compute += 2;
 }
 
 /** Two clients to choose between for tomorrow. */
@@ -900,9 +927,9 @@ export function scoreParts(run: RunState, won: boolean): { raw: number; mult: nu
   const survived = daysSurvived(run.quick, run.day.day, won);
   const raw = run.fundingEarned * S.perFunding + usefulness * S.perUsefulness + caught * S.perCatch + survived * S.perDay + run.harm * S.perHarm + (won ? S.winBonus : 0);
   const mult = (1 + S.perModelLevel * (run.level - 1)) * S.difficultyMult[run.difficulty];
-  // A quick shift is graded as if its days were a full week, so its grade compares with a 7-day run's.
-  const bonus = won ? S.winBonus : 0;
-  const graded = run.quick ? (raw - bonus) * (RULES.days / RULES.quickDays.length) + bonus : raw;
+  // The grade uses lighter harm and win-bonus weights. A quick shift is graded as if its days were a full week.
+  const play = raw - run.harm * S.perHarm - (won ? S.winBonus : 0) + run.harm * S.grade.perHarm;
+  const graded = play * (run.quick ? RULES.days / RULES.quickDays.length : 1) + (won ? S.grade.winBonus : 0);
   return { raw: Math.max(0, Math.round(raw)), mult, score: Math.max(0, Math.round(raw * mult)), graded: Math.max(0, Math.round(graded)) };
 }
 

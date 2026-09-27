@@ -142,7 +142,11 @@ export function fieldGuide(p: Progress, tab: GuideTab, focus?: string): string {
 }
 
 // ---------- Field test ----------
-export interface TestState { questions: Question[]; index: number; picked?: string; correct: number; done: boolean }
+export interface TestState { questions: Question[]; index: number; picked?: string; correct: number; done: boolean;
+  /** Which questions were answered right, in order. */
+  right: boolean[];
+  /** Quick shifts are a demo: no Insight. */
+  quick: boolean }
 
 export function fieldTest(ts: TestState): string {
   const q = ts.questions[ts.index]!;
@@ -160,7 +164,7 @@ export function fieldTest(ts: TestState): string {
   return `
     <main class="solo event-screen">
       <article class="event-card ft-card">
-        <div class="eyebrow">Field test · question ${ts.index + 1} of ${ts.questions.length} · +1 insight each</div>
+        <div class="eyebrow">Field test · question ${ts.index + 1} of ${ts.questions.length}${ts.quick ? '' : ' · +1 insight each'}</div>
         <h2 class="event-title">${esc(q.prompt)}</h2>
         ${q.context ? `<p class="event-text ft-context">${linkProse(q.context)}</p>` : ''}
         <div class="ft-opts">${opts}</div>
@@ -169,14 +173,19 @@ export function fieldTest(ts: TestState): string {
     </main>`;
 }
 
-export function fieldTestResults(ts: TestState, talk: Term[]): string {
+/** Results: the terms the questions covered. The ones you got right you can now talk about; the rest are worth another look. */
+export function fieldTestResults(ts: TestState): string {
+  const terms = ts.questions.map((q, i) => ({ t: termById(q.answer)!, right: !!ts.right[i] })).filter((x) => x.t);
+  const got = terms.filter((x) => x.right), missed = terms.filter((x) => !x.right);
   return `
     <main class="solo event-screen">
       <article class="event-card ft-card">
-        <div class="eyebrow">Field test complete · +${ts.correct} insight</div>
+        <div class="eyebrow">Field test complete${ts.quick ? '' : ` · +${ts.correct} insight`}</div>
         <h2 class="event-title">${ts.correct} of ${ts.questions.length} right</h2>
-        <p class="event-text">You can now talk about:</p>
-        <ul class="talk-list">${talk.map((t) => `<li>${chip(t.id)}<span>${linkProse(t.talk)}</span></li>`).join('')}</ul>
+        ${got.length ? `<p class="event-text">You can now talk about:</p>
+        <ul class="talk-list ft-got">${got.map(({ t }) => `<li>${chip(t.id)}<span>${linkProse(t.talk)}</span></li>`).join('')}</ul>` : ''}
+        ${missed.length ? `<p class="event-text">Worth another look:</p>
+        <ul class="talk-list ft-missed">${missed.map(({ t }) => `<li>${chip(t.id)}<span>${linkProse(t.plain)}</span></li>`).join('')}</ul>` : ''}
         <div class="setup-actions">
           <button class="btn-ghost" data-go="guide"><kbd>G</kbd> Field guide</button>
           <button class="btn-primary btn-lg" data-go="lab"><kbd>L</kbd> Research lab</button>

@@ -1956,3 +1956,27 @@ mark { color: var(--text); background: rgb(255 90 110 / 0.35); border-radius: 2p
 .feedback .small { margin: 0; }
 .over-actions .over-feedback { margin-left: auto; }
 .over-actions .over-feedback + .seed-note { margin-left: var(--space-3); }
+
+.grade-note { margin: 2px 0 0; font-size: 11px; color: var(--text-3); line-height: 1.3; }
+
+/* Card counter: which card of today's queue, above the dots. */
+.hud-cards { margin-left: auto; flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+.hud-cards .eyebrow { white-space: nowrap; }
+.hud-cards .hud-progress { margin: 0; }
+/* The shift clock: a bigger number, and a strip along the bottom of the status bar that drains as time runs out. */
+.hud { position: relative; }
+.hud-clock .clock-num { font-size: var(--fs-lg); font-weight: 700; color: var(--text); }
+.hud-clock .bar { height: 10px; }
+.hud-clock .clock-fill { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.hud-timebar { position: absolute; left: 0; bottom: 0; height: 3px; width: var(--v); background: var(--accent); box-shadow: 0 0 10px var(--accent-glow); transition: width 0.2s linear; pointer-events: none; }
+.hud-timebar.is-low { background: var(--harm); box-shadow: 0 0 10px rgb(255 90 110 / 0.6); animation: fresh-flash 1s var(--ease-in-out) infinite; }
+/* Shipped / Deferred: bigger, tinted, with the gain in bold. */
+.toast { bottom: var(--space-6); padding: var(--space-3) var(--space-5); font-size: var(--fs-lg); z-index: 4; display: flex; align-items: baseline; gap: var(--space-3); }
+.toast-neutral { background: color-mix(in oklab, var(--safe) 18%, var(--surface-3)); border: 1px solid var(--safe); }
+.toast-defer { background: color-mix(in oklab, var(--cat-budget) 18%, var(--surface-3)); border: 1px solid var(--cat-budget); }
+.toast-gain { font-family: var(--font-mono); color: var(--safe); }
+.toast-defer .toast-gain { color: var(--cat-budget); }
+.upgrade-cost { font-size: var(--fs-xs); color: var(--caution); }
+.incident-sev.trust { background: rgb(0 0 0 / 0.35); color: var(--text); }
+.ev-head .ev-cost { white-space: nowrap; font-size: 11px; }
+.ev-head .ev-name { min-width: 0; }

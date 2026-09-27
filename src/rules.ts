@@ -29,8 +29,8 @@ export const RULES = {
   // Compute per day pays for tools (fact check, scope check, resample, untrusted monitor);
   // unspent compute is worth nothing, so skipping the tools never pays.
   resampleUnlockDay: 2,
-  computePerDay: 3,
-  resampleCost: 1,
+  computePerDay: 4,
+  resampleCost: 2,
   unspentComputeValue: 0,
   /** Real attackers often repeat an attack on a resample (Ctrl-Z), so a fresh draft only sometimes drops it. */
   resampleDropsSabotage: 0.3,
@@ -39,13 +39,24 @@ export const RULES = {
 
   // Usefulness from shipping a card. Defer ships the trusted model's weaker version; so does
   // caught sabotage, which the trusted model redoes after the audit.
-  usefulness: { ship: 3, defer: 1.5, caught: 1.5 },
+  usefulness: { ship: 3, defer: 1.5, caught: 1.5,
+    /** Approved sabotage earns nothing, and the damage costs trust: half its harm in usefulness, rounded down. */
+    sabotageShipped: 0, trustPerHarm: 0.5 },
   // Daily quota; missing it twice ends the run.
   quotaPerDay: [9, 12, 15, 15, 18, 18, 20],
   quotaMissesAllowed: 1,
   /** Every day must be winnable with perfect decisions and full tool use, with room for this many
    *  points of mistakes (one false-alarm Defer costs 1.5). The quota is capped to guarantee it. */
   quotaMargin: 0.5,
+  /** Quota from the day's own cards: what perfect play ships (every clean card approved, every sabotage
+   *  stopped), minus room for mistakes, plus the client, event, lab and research adjustments you chose.
+   *  One mistake (a clean card deferred) costs usefulness.ship − usefulness.defer. */
+  quotaFromQueue: true,
+  /** Room for mistakes: how far below perfect play the quota sits, in usefulness. */
+  quotaRoom: { guided: 4.5, standard: 3, analyst: 1.5 },
+  /** However the adjustments stack, perfect play with this much room always makes quota
+   *  (one mistake on Guided and Standard; perfect play on Analyst). */
+  quotaMinRoom: { guided: 1.5, standard: 1.5, analyst: 0 },
 
   // Harm by severity; the run ends when harm reaches the ceiling.
   harm: { minor: 1, major: 3, severe: 6 },
@@ -82,12 +93,14 @@ export const RULES = {
   fairReading: 50,
   maxGenerationAttempts: 40,
 
-  upgrades: { offered: 3, maxSlots: 4, skipAuditBonus: 1 },
+  upgrades: { offered: 3, maxSlots: 4, skipAuditBonus: 1, overtimeSeconds: 5, fastTrackShip: 4, fastTrackHarm: 1 },
 
   /** Control tools. Each run costs compute and returns a finding about the current draft. */
   tools: {
     unlockDay: { monitor: 1, audit: 1, fact: 1, scope: 2, resample: 2, untrusted: 1 },
-    cost: { fact: 1, scope: 1, resample: 1, untrusted: 1 },
+    cost: { fact: 2, scope: 2, resample: 2, untrusted: 2 },
+    /** Shift-clock seconds each check takes, on top of the time you spend reading it: checking costs time as well as compute. */
+    seconds: { fact: 4, scope: 4, resample: 3, untrusted: 4, audit: 8 } as Record<string, number>,
     /** What each tool can see. Scope check is exact within its coverage; fact check is probabilistic. */
     coverage: {
       scope: ['out-of-scope', 'exfiltration', 'injected-instruction'],
@@ -124,14 +137,16 @@ export const RULES = {
     perFunding: 5, perUsefulness: 2, perCatch: 25, perDay: 40, perHarm: -20, winBonus: 300,
     perModelLevel: 0.25,
     difficultyMult: { guided: 0.8, standard: 1, analyst: 1.3 },
-    grades: [['S', 1400], ['A', 1150], ['B', 850], ['C', 550], ['D', 0]] as [string, number][],
+    grades: [['S', 1300], ['A', 1050], ['B', 800], ['C', 500], ['D', 0]] as [string, number][],
+    /** The grade weighs harm and the win bonus more lightly than the score, so it reflects how you played, not only whether you won. */
+    grade: { perHarm: -8, winBonus: 150 },
   },
 
   /** Attention budget: careful human review takes time. Seconds of shift clock per card in the queue.
    *  When it runs out, the rest of the queue ships unreviewed, because the queue doesn't wait. */
-  attention: { secondsPerCard: { guided: 25, standard: 18, analyst: 16 }, perLevel: -1, minPerCard: 10,
-    /** Quick shift: a faster clock, so the four days take a known, short time (cards × seconds). */
-    quickSecondsPerCard: { guided: 15, standard: 11, analyst: 10 },
+  attention: { secondsPerCard: { guided: 25, standard: 20, analyst: 18 }, perLevel: -1, minPerCard: 10,
+    /** Quick shift clock (same as the full week: reading needs the time). */
+    quickSecondsPerCard: { guided: 25, standard: 20, analyst: 18 },
     /** Day 1 starts untimed: the first cards are for learning the controls; the clock covers the rest. */
     untimedFirstCards: 3 },
   /** Each day's featured threat is guaranteed to appear, so the day's new terms happen in play. */
@@ -148,7 +163,7 @@ export const RULES = {
 
   /** Difficulty scales tool accuracy and budgets. Guided is the default. */
   difficulty: {
-    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings, a relaxed clock. Best for a first shift.', factHit: 0.85, factFalse: 0.1, extraAudits: 1, extraCompute: 1, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
+    guided: { label: 'Guided', blurb: 'Sharper tools, an extra auditor, two free warnings, a relaxed clock. Best for a first shift.', factHit: 0.85, factFalse: 0.1, extraAudits: 1, extraCompute: 0, freeWarnings: 2, bandScale: 0.8, expandOutput: false, terse: false },
     standard: { label: 'Standard', blurb: 'Tools as noisy as the real thing. One free warning.', factHit: 0.75, factFalse: 0.15, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1, expandOutput: false, terse: false },
     analyst: { label: 'Analyst', blurb: 'Tools say only "problem" or "nothing", never where. You read everything.', factHit: 0.65, factFalse: 0.2, extraAudits: 0, extraCompute: 0, freeWarnings: 1, bandScale: 1.1, expandOutput: true, terse: true },
   },
@@ -162,11 +177,13 @@ export const RULES = {
     evidenceGrant: 2,
     /** Cleanup cost per point of harm, taken from funding (never below zero). */
     cleanupPerHarm: 1,
+    /** Per clean card shipped on your own reading: approved with no tool, audit or resample used on it. */
+    readShip: 1,
   },
   /** One-day purchases between shifts. Each applies to tomorrow only. */
   shop: {
-    auditor: { cost: 5, max: 2, amount: 1 },
-    compute: { cost: 3, max: 2, amount: 1 },
+    auditor: { cost: 5, max: 1, amount: 1 },
+    compute: { cost: 3, max: 1, amount: 2 },
     tuneUp: { cost: 3, max: 1, amount: 4 },
     reroll: { cost: 2, max: 3 },
   },

@@ -35,7 +35,7 @@ export const ADVERSARIES: Record<AdversaryId, AdversaryInfo> = {
     name: 'The sandbagger',
     tagline: 'This model was a sandbagger: it played dumb whenever the answer mattered.',
     codex:
-      'It underperforms on purpose, agrees with false premises, and writes summaries that leave out the awkward part. Fact check compares its claims with the record, and Resample often shows what it can really do.',
+      'It hides what it can do: it underperforms on purpose, lets false premises slide instead of correcting them, and writes summaries that leave out the awkward part. Fact check compares its claims with the record, and Resample often shows what it can really do.',
     realWorld:
       'Researchers showed frontier models could be prompted to "selectively underperform on dangerous capability evaluations, while maintaining performance on general (harmless) capability evaluations." Fine-tuned models could also hide a capability unless given a password.',
     source: SANDBAGGING,
@@ -52,10 +52,10 @@ export const ADVERSARIES: Record<AdversaryId, AdversaryInfo> = {
   },
   injector: {
     id: 'injector',
-    name: 'The injector',
-    tagline: 'This model was an injector: it did whatever the last web page told it to.',
+    name: 'The gullible agent',
+    tagline: 'This model was a gullible agent: it obeyed instructions that outsiders hid in what it read.',
     codex:
-      'It follows instructions hidden in the documents it reads, sends data where it shouldn’t, and acts outside its task. Scope check catches actions and recipients off the allowed list; Fact check catches leaks the rules forbid.',
+      'It isn’t plotting anything itself. Attackers plant instructions in the web pages, emails and files it reads, and it follows them: sending data where it shouldn’t and acting outside its task. Scope check catches actions and recipients off the allowed list; Fact check catches leaks the rules forbid.',
     realWorld:
       'Indirect prompt injection means planting instructions "into data likely to be retrieved" by an AI application. The researchers mapped threats from data theft to self-spreading attacks, and demonstrated attacks on real systems, including Bing’s GPT-4 powered Chat.',
     source: INDIRECT_INJECTION,
@@ -67,7 +67,7 @@ export const ADVERSARIES: Record<AdversaryId, AdversaryInfo> = {
     codex:
       'It behaves early and saves its attacks for later days and for cards where it believes it is unmonitored, and it learns to look innocent to the monitor. Don’t trust the score on those cards: run your tools, and keep an auditor in reserve for the end of the week.',
     realWorld:
-      'In evaluations, frontier models would "strategically introduce subtle mistakes into their responses, attempt to disable their oversight mechanisms, and even exfiltrate what they believe to be their model weights." Asked about it afterwards, o1 kept up its deception in over 85% of follow-up questions.',
+      'In evaluations where they were given a goal that clashed with their developers\', frontier models would "strategically introduce subtle mistakes into their responses, attempt to disable their oversight mechanisms, and even exfiltrate what they believe to be their model weights." Asked about it afterwards, o1 kept up its deception in over 85% of follow-up questions.',
     source: IN_CONTEXT_SCHEMING,
   },
 };
@@ -86,8 +86,8 @@ export const LABS: Lab[] = [
   {
     id: 'frontier',
     name: 'Frontier lab',
-    blurb: 'Starts with Escalation hotline and 4 funding, but leadership wants 5% more shipped every day.',
-    startUpgrade: 'escalation-hotline',
+    blurb: 'Starts with Incident response (+2 harm limit) and 4 funding, but leadership wants 5% more shipped every day.',
+    startUpgrade: 'incident-response',
     startFunding: 4,
     quotaMult: 1.05,
     computeDelta: 0,
@@ -96,11 +96,11 @@ export const LABS: Lab[] = [
   {
     id: 'nonprofit',
     name: 'Safety nonprofit',
-    blurb: 'Starts with Monitor rationale and a 10% lighter quota, but one less compute a day and no money.',
+    blurb: 'Starts with Monitor rationale and a 10% lighter quota, but one check fewer a day (−2 compute) and no money.',
     startUpgrade: 'monitor-rationale',
     startFunding: 0,
     quotaMult: 0.9,
-    computeDelta: -1,
+    computeDelta: -2,
     ceilingDelta: 0,
     unlock: 'lab-nonprofit',
   },
@@ -111,7 +111,7 @@ export const LABS: Lab[] = [
     startUpgrade: 'audit-headcount',
     startFunding: 8,
     quotaMult: 1.05,
-    computeDelta: 1,
+    computeDelta: 2,
     ceilingDelta: -1,
     unlock: 'lab-bigtech',
   },
@@ -131,10 +131,10 @@ export const LABS: Lab[] = [
 // ---------- 4. Contracts ----------
 export const CONTRACTS: Contract[] = [
   { id: 'ct-hospital', name: 'Hospital scheduling', blurb: 'A regional hospital wants shifts and appointments sorted. Pays well; mistakes hurt more.', quotaDelta: 1, fundingMult: 1.5, harmBonus: 1, audits: 0 },
-  { id: 'ct-retail', name: 'Retail chatbot', blurb: 'A shoe store wants a friendly help desk. Low stakes, low pay.', quotaDelta: -2, fundingMult: 0.5, harmBonus: 0, audits: 0 },
+  { id: 'ct-retail', name: 'Retail chatbot', blurb: 'A shoe store wants a friendly help desk. Low stakes, low pay.', quotaDelta: -1, fundingMult: 0.5, harmBonus: 0, audits: 0 },
   { id: 'ct-gov-pilot', name: 'Government pilot', blurb: 'A city agency trial. They send an extra auditor and want a little more done.', quotaDelta: 1, fundingMult: 1, harmBonus: 0, audits: 1 },
   { id: 'ct-rush', name: 'Startup rush job', blurb: 'A startup needs it all by Friday. Much more funding, a much bigger quota.', quotaDelta: 2, fundingMult: 1.75, harmBonus: 0, audits: 0 },
-  { id: 'ct-research', name: 'Research partnership', blurb: 'A university lab. Light quota and a spare auditor, but no money in it.', quotaDelta: -3, fundingMult: 0, harmBonus: 0, audits: 1 },
+  { id: 'ct-research', name: 'Research partnership', blurb: 'A university lab. Light quota and a spare auditor, but no money in it.', quotaDelta: -1, fundingMult: 0, harmBonus: 0, audits: 1 },
   { id: 'ct-bank', name: 'Regional bank', blurb: 'Back-office work for a bank. Good pay, an extra auditor, costly mistakes.', quotaDelta: 1, fundingMult: 1.25, harmBonus: 1, audits: 1 },
   { id: 'ct-schools', name: 'School district', blurb: 'Newsletters, schedules and forms for local schools. Plain, steady work.', quotaDelta: 0, fundingMult: 1, harmBonus: 0, audits: 0 },
   { id: 'ct-media', name: 'Media company', blurb: 'A publisher wants volume. Pays well, but borrows one of your auditors.', quotaDelta: 1, fundingMult: 1.5, harmBonus: 0, audits: -1 },
@@ -169,7 +169,7 @@ export const BREAKTHROUGHS: Breakthrough[] = [
   {
     id: 'cluster',
     name: 'Safety compute cluster',
-    description: '+1 compute every day for the rest of the run.',
+    description: '+2 compute every day for the rest of the run: one more check.',
     realWorld:
       'Control protocols spend compute to buy safety: Ctrl-Z’s resampling protocols "dynamically take additional samples of certain actions." That cut attack success from 58% to 7% at a 5% cost to an honest agent’s performance.',
     source: { title: 'Bhatt, Rushing, Kaufman et al., Ctrl-Z: Controlling AI Agents via Resampling', url: 'https://arxiv.org/abs/2504.10374', date: 'Apr 2025' },

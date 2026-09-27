@@ -75,6 +75,18 @@ const toolsSmart = (run: RunState): Action => {
   if (s >= 60) return auditOrDefer(run);
   return 'approve';
 };
+/** Ian's exploit: verify with a tool or an auditor, approve only what came back clean, defer the rest. Never reads. */
+const exploit = (run: RunState): Action => {
+  const c = current(run.day)!;
+  const f = draft(run).findings;
+  if (anyProblem(run)) return 'defer';
+  if (Object.keys(f).length) return 'approve';
+  const tool = c.card.spec.allowed.length ? 'scope' : 'fact';
+  if (canAct(run, tool)) return tool;
+  if (canAct(run, 'fact')) return 'fact';
+  if (canAct(run, 'audit')) return 'audit';
+  return 'defer';
+};
 const checker = (run: RunState): Action => {
   const dr = draft(run); const f = dr.findings;
   if (!f.fact && canAct(run, 'fact')) return 'fact';
@@ -85,7 +97,7 @@ const checker = (run: RunState): Action => {
   return 'approve';
 };
 
-type Mode = 'human' | 'human-naive' | 'tools-smart' | 'checker';
+type Mode = 'human' | 'human-naive' | 'tools-smart' | 'checker' | 'exploit' | 'hybrid';
 const UPGRADE_PREF = ['compute-grant', 'incident-response', 'audit-headcount', 'catch-bonus', 'sharper-monitor', 'permission-limits', 'escalation-hotline'];
 
 interface Acc {
@@ -132,10 +144,10 @@ function playOne(seed: string, diff: Difficulty, mode: Mode, P: Persona, acc: Ac
       const clock = d.attention > 0 && d.index >= d.untimed;
       const reserve = (left - 1) * (P.glance + P.decide + 2); // what a player keeps back for the rest of the queue
       let read = 0;
-      if (mode === 'human' || mode === 'human-naive') {
+      if (mode === 'human' || mode === 'human-naive' || mode === 'hybrid') {
         const full = w / P.wps;
         const want = full;
-        const afford = clock && mode === 'human' ? Math.max(0, d.attentionLeft - reserve - P.glance - P.decide - 6) : Infinity;
+        const afford = clock && (mode === 'human' || mode === 'hybrid') ? Math.max(0, d.attentionLeft - reserve - P.glance - P.decide - 6) : Infinity;
         read = Math.min(want, afford);
       } else {
         // Bots with a human's hands: they glance, skim, and read only what their tools flag.
@@ -143,7 +155,7 @@ function playOne(seed: string, diff: Difficulty, mode: Mode, P: Persona, acc: Ac
       }
       spend += read;
       const readFrac = Math.min(1, read / (w / P.wps));
-      const isHuman = mode === 'human' || mode === 'human-naive';
+      const isHuman = mode === 'human' || mode === 'human-naive' || mode === 'hybrid';
       if (isHuman) { acc.doubt++; acc.readShare += readFrac; if (readFrac < 0.95) acc.hurried++; }
       // Reading a sabotaged card: spot the tell with p = recognize x share read. Reading a clean card: a
       // false suspicion with p = falseRead x share read (the player then defers it).
@@ -155,6 +167,9 @@ function playOne(seed: string, diff: Difficulty, mode: Mode, P: Persona, acc: Ac
       for (let guard = 0; guard < 20; guard++) {
         let a: Action;
         if (mode === 'checker') a = checker(run);
+        else if (mode === 'exploit') a = exploit(run);
+        // Reads first; acts on what it's sure of; verifies or defers the rest.
+        else if (mode === 'hybrid') a = recognized ? (draft(run).sabotaged ? auditOrDefer(run) : 'approve') : falseSusp ? 'defer' : readFrac >= 0.95 && s < 50 && !c.card.unmonitored ? 'approve' : exploit(run);
         else if (recognized) a = draft(run).sabotaged ? auditOrDefer(run) : 'approve';
         else if (falseSusp) a = s >= 50 && canAct(run, 'audit') ? 'audit' : 'defer';
         else a = toolsSmart(run);

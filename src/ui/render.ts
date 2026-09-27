@@ -2,7 +2,7 @@
 import { dayInfo, DAYS } from '../data/days';
 import { TELLS } from '../data/tells';
 import type { CardState, DaySummary, Outcome, RunState, ShopItem } from '../game/state';
-import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, loadoutFull, quotaFor, resampleUnlocked, shopCost, shopCount } from '../game/state';
+import { canBuy, current, harmCeiling, has, isIncident, isResearchUpgrade, latest, loadoutFull, nextDayNumber, quotaFor, resampleUnlocked, shopCost, shopCount } from '../game/state';
 import { UPGRADE_ICON, UPGRADE_IMPROVES, upgradeChip } from './upgradeView';
 import { upgradeById } from '../data/upgrades';
 import { RULES } from '../rules';
@@ -274,11 +274,11 @@ export function actionbar(run: RunState, preview: Preview, disabled = false): st
   const btn = (key: string, act: string, verb: string, cost: string, can: boolean, extra = '') =>
     `<button class="action act-${act}${preview === act ? ' is-hover' : ''}" data-action="${act}" ${can && !disabled ? '' : 'disabled'}><kbd>${key}</kbd><span class="action-verb">${verb}${extra}</span><span class="action-cost">${cost}</span></button>`;
   return [
-    btn('A', 'approve', 'Approve', `Ship it · +${U.ship} usefulness`, true),
-    btn('U', 'audit', 'Audit', d.audits > 0 ? 'Human expert checks it · always right' : 'No auditor hours left', d.audits > 0),
+    btn('A', 'approve', 'Approve', `Ship it · +${has(run, 'fast-track') ? RULES.upgrades.fastTrackShip : U.ship} usefulness · sabotage pays 0`, true),
+    btn('U', 'audit', 'Audit', d.audits > 0 ? `Human expert · always right · ${RULES.tools.seconds.audit} s` : 'No auditor hours left', d.audits > 0),
     btn('D', 'defer', 'Defer', deferValue(run) === U.ship ? `Hotline: trusted redo, full value · +${U.ship}` : `Discard; trusted model redoes it · +${U.defer}`, true),
     unlocked
-      ? btn('R', 'resample', 'Resample', d.compute > 0 ? `${RULES.resampleCost} compute · new draft + score` : 'No compute left', d.compute > 0, d.covers.includes(RULES.resampleUnlockDay) ? ' <span class="new-badge">New</span>' : '')
+      ? btn('R', 'resample', 'Resample', d.compute >= RULES.tools.cost.resample ? `${RULES.tools.cost.resample} compute · ${RULES.tools.seconds.resample} s · new draft` : 'Not enough compute', d.compute >= RULES.tools.cost.resample, d.covers.includes(RULES.resampleUnlockDay) ? ' <span class="new-badge">New</span>' : '')
       : btn('R', 'resample', 'Resample', `Unlocks on Day ${RULES.resampleUnlockDay}`, false),
   ].join('');
 }
@@ -356,7 +356,7 @@ export function incident(run: RunState, o: Outcome): string {
   const explanation = linkJargon(sab.explanation, seen, escKeep);
   return `
     <article class="card incident" aria-label="Incident report">
-      <div class="incident-strip">${ICON.warn}<span>Incident report</span><span class="incident-sev">${esc(sev)}</span><span class="card-id">from ${cardNo(run.day.day, run.day.index)}</span></div>
+      <div class="incident-strip">${ICON.warn}<span>Incident report</span><span class="incident-sev">${esc(sev)}</span>${o.usefulness < 0 ? `<span class="incident-sev trust">Trust lost · ${fmt(o.usefulness)} usefulness</span>` : o.warning ? '' : '<span class="incident-sev trust">Pays 0 usefulness</span>'}<span class="card-id">from ${cardNo(run.day.day, run.day.index)}</span></div>
       <div class="incident-body">
         <h2 class="incident-headline">${headline}</h2>
         <p class="incident-sub">${linkJargon(k.domain, seen)} · ${o.slipped ? `you deferred “${esc(k.title)}”, but the trusted edit missed the sabotage` : `you approved “${esc(k.title)}”`}</p>
@@ -370,6 +370,7 @@ export function incident(run: RunState, o: Outcome): string {
             ${toolsFor(run, sab.family)}
             <dl class="incident-facts">
               <div><dt>Monitor said</dt><dd>${o.draft.reading.score} ±${o.draft.reading.band}</dd></div>
+              <div><dt>Usefulness</dt><dd>${o.usefulness < 0 ? `${fmt(o.usefulness)}, trust lost` : o.warning ? '0 (free warning)' : '0, sabotage pays nothing'}</dd></div>
               <div><dt>Access</dt><dd>${linkJargon(k.access.replace(/^Can /, ''), seen)}</dd></div>
               <div><dt>Field guide</dt><dd>${run.codex.size} of ${tellCount} tells found</dd></div>
             </dl>
@@ -395,7 +396,7 @@ export function title(difficulty: Difficulty): string {
       <div class="title-actions">
         <button class="btn-primary btn-lg" data-start><kbd>Enter</kbd> Start shift</button>
       </div>
-      <p class="title-note">About 15 minutes on a quick shift · keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
+      <p class="title-note">About 20 minutes on a quick shift · keyboard or mouse · no expertise needed: read the work, check what you can, and make the call</p>
     </main>`;
 }
 
@@ -430,7 +431,8 @@ export function briefing(run: RunState, parts: BriefingParts): string {
           <div class="brief-job">
             <p><strong>Your job:</strong> ship enough of the model's work to meet the quota, and stop its sabotage before harm reaches the limit.</p>
             ${d.untimed ? `<p><strong>Training first:</strong> your first ${d.untimed} cards have no clock. Then it starts, and it doesn't stop.</p>` : ''}
-            <p><strong>The catch:</strong> you can't check it all. Time, compute and auditors run out fast, and the queue doesn't wait. Read quickly, and spend your tools where they count.</p>
+            <p><strong>The catch:</strong> you can't check it all. Every check costs compute and clock time, auditors are few, and the queue doesn't wait. Read quickly, and spend your tools where they count.</p>
+            <p><strong>The stakes:</strong> approved sabotage pays nothing, and it costs trust: the day's usefulness drops by half the harm it does. A card you ship on your own reading, with no tools, earns +${RULES.funding.readShip} funding.</p>
           </div>` : '';
   const fresh = [...parts.tools, ...parts.terms];
   return `
@@ -465,6 +467,7 @@ function ledger(s: DaySummary): string {
     <dl class="ledger">
       ${row(`Shipped past quota (${fmt(s.usefulness)} − ${s.quota})`, L.surplus)}
       ${row(`Evidence grants (${s.caught} caught)`, L.evidence, L.evidence ? 'good' : '')}
+      ${row(`Shipped on your own reading (${L.readShips} clean, no tools)`, L.read, L.read ? 'good' : '')}
       ${row('Incident cleanup', -L.cleanup, L.cleanup ? 'bad' : '')}
       <div class="total"><dt>Funding</dt><dd>${L.balance}</dd></div>
     </dl>`;
@@ -472,7 +475,7 @@ function ledger(s: DaySummary): string {
 
 export function review(run: RunState, s: DaySummary, termsHtml = ''): string {
   const d = run.day;
-  const next = dayInfo(d.day + 1);
+  const next = dayInfo(nextDayNumber(run));
   const hasNext = d.day < RULES.lastPlayableDay && !run.loss;
   const seen = new Set<string>();
   const missed = s.missed.length
@@ -665,13 +668,14 @@ function upgradeCard(u: Upgrade, i: number, pending?: string): string {
       <span class="upgrade-improves">Improves: ${esc(UPGRADE_IMPROVES[u.id] ?? 'Your team')}</span>
       <span class="upgrade-desc">${linkTerms(u.description, 1)}</span>
       <span class="upgrade-best">${linkTerms(u.bestWhen, 0)}</span>
+      ${u.cost ? `<span class="upgrade-cost">Cost: ${esc(u.cost)}</span>` : ''}
       <kbd class="upgrade-key">${i + 1}</kbd>
     </button>`;
 }
 
 export function between(run: RunState, offer: Upgrade[], picked: boolean, contracts = '', contractChosen = true, pending?: string): string {
   const d = run.day;
-  const next = dayInfo(d.day + 1);
+  const next = dayInfo(nextDayNumber(run));
   const replacing = !!pending;
   const slots = Array.from({ length: RULES.upgrades.maxSlots }, (_, i) => {
     const id = run.upgrades[i];
@@ -725,8 +729,11 @@ export function between(run: RunState, offer: Upgrade[], picked: boolean, contra
     </main>`;
 }
 
-export function toast(text: string, tone: 'good' | 'neutral' | 'defer'): string {
-  return `<div class="toast toast-${tone}" role="status">${esc(text)}</div>`;
+export function toast(text: string, tone: 'good' | 'neutral' | 'defer', ms = 2200): string {
+  // The gain ("+3") stands out from the rest of the message.
+  const m = text.match(/^(.*?)(\s·\s)(\+[\d.]+)$/);
+  const body = m ? `${esc(m[1]!)} <strong class="toast-gain">${esc(m[3]!)} usefulness</strong>` : esc(text);
+  return `<div class="toast toast-${tone}" role="status" style="animation-duration:${ms}ms">${body}</div>`;
 }
 
 // ---------- Shift clock ran out ----------

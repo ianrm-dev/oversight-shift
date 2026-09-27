@@ -119,7 +119,9 @@ function checkDayStart(run: RunState, seen: Set<string>, repro: () => string, is
   const perfect = perfectUsefulness(d.queue);
   const slack = perfect - d.quota;
   stats.minSlack = Math.min(stats.minSlack, slack);
-  if (slack < RULES.quotaMargin - 1e-9) fail('quota exceeds perfect − margin', `${repro()} day ${d.day}: quota ${d.quota}, perfect ${perfect}`);
+  // Perfect play always makes quota, with the difficulty's minimum room (one mistake on Guided and Standard).
+  const minRoom = RULES.quotaFromQueue ? RULES.quotaMinRoom[run.difficulty] : RULES.quotaMargin;
+  if (slack < minRoom - 1e-9) fail('quota exceeds perfect − margin', `${repro()} day ${d.day}: quota ${d.quota}, perfect ${perfect}`);
   if (d.quotaAsked > d.quota) stats.capTriggers++;
   stats.maxAsked = Math.max(stats.maxAsked, d.quotaAsked);
   stats.maxAskedOver = Math.max(stats.maxAskedOver, d.quotaAsked - d.quota);

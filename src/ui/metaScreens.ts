@@ -35,7 +35,7 @@ export function title(p: Progress): string {
       <p class="title-tag">Your lab is deploying a model smarter than the tools watching it.<br/>Keep its work shipping. Keep what it breaks below the line.</p>
       <button class="menu-start" data-go="setup">
         <span class="menu-start-name"><kbd>Enter</kbd> New shift</span>
-        <span class="menu-start-desc">A quick shift takes about 15 minutes. Pick a difficulty, then play.</span>
+        <span class="menu-start-desc">A quick shift takes about 20 minutes. Pick a difficulty, then play.</span>
       </button>
       <div class="title-menu">
         <button class="menu-opt" data-go="daily-info">
@@ -135,7 +135,7 @@ export function setup(p: Progress, s: Setup): string {
       <section class="setup-row"><span class="eyebrow">Length <kbd>Q</kbd></span>
         <div class="len-picker">
           <button class="len-opt${s.quick ? '' : ' is-selected'}" data-length="full"><strong>Full week</strong><span>All 7 days</span></button>
-          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>A demo: Days 1, 3, 5 and 7 on a fast clock</span></button>
+          <button class="len-opt${s.quick ? ' is-selected' : ''}" data-length="quick"><strong>Quick shift</strong><span>A demo: Days 1, 3, 5 and 7, about 20 minutes</span></button>
         </div>
       </section>
       ${s.quick
@@ -287,7 +287,7 @@ export function endExtras(run: RunState, score: number, update: RunUpdate | null
     return `
     <div class="end-extras">
       <div class="reveal-adv"><span class="eyebrow">The model you faced</span><h3>${esc(a.name)}</h3><p>${linkTerms(a.tagline, 1)}</p><p class="muted">${attacks.length} sabotage attempt${attacks.length === 1 ? '' : 's'} reached you: ${early} before Day ${RULES.schemerLateFrom}, ${attacks.length - early} after.</p></div>
-      <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}</div>
+      <div class="score-box"><span class="eyebrow">Score</span><div class="score-line"><span class="grade g-${grade}">${grade}</span><strong>${score}</strong></div>${update?.newBest ? '<span class="good">New best</span>' : ''}<p class="grade-note">The grade rates how you played${run.quick ? ', scaled to a full week' : ''}: sabotage caught, work shipped, funding raised, days survived and harm kept down. Winning adds a bonus.</p></div>
       ${run.quick
         ? `<div class="unlocks"><span class="eyebrow">Quick shift</span><p class="urgent-note">A demo run: no Insight, and it doesn't count toward research or model versions. Play the full week to fund research that carries into every run.</p></div>`
         : postMortem ? `<div class="unlocks"><span class="eyebrow">Post-mortem · +${update!.insightTotal} insight</span>${postMortem}</div>` : ''}
@@ -344,7 +344,7 @@ export function labDetail(id?: string): string {
 const COUNTERS: Record<string, string> = {
   sandbagger: 'Fact check compares its results with what it did elsewhere; Resample often shows its real ability.',
   colluder: 'Read threads as one piece of work. Fact check compares them with the rule on file; the Paraphraser breaks many of their signals.',
-  injector: 'Scope check catches actions and recipients outside the rules. Text the agent read is never an instruction.',
+  injector: 'An order hidden in something it read is the attack, not the task. Scope check catches actions and recipients outside the rules.',
   schemer: 'It behaves until it thinks no one is watching. Save auditors for cards marked unmonitored, late in the week.',
 };
 

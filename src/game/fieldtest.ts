@@ -58,15 +58,3 @@ export function buildFieldTest(run: RunState, termsMet: string[]): Question[] {
   }
   return questions;
 }
-
-/** Three things the player can now bring up in conversation, picked from this run. */
-export function talkingPoints(run: RunState, termsMet: string[]): Term[] {
-  const outcomes = [...run.history, run.day].flatMap((d) => d.outcomes);
-  const fromRun = outcomes.filter((o) => o.draft.sabotaged).map((o) => TERMS.find((t) => t.family === o.card.sabotage!.family)).filter((t): t is Term => !!t);
-  const picks: Term[] = [];
-  for (const t of [...fromRun, ...TERMS.filter((x) => termsMet.includes(x.id) && x.category !== 'basics'), ...TERMS.filter((x) => termsMet.includes(x.id))]) {
-    if (picks.length >= 3) break;
-    if (!picks.includes(t)) picks.push(t);
-  }
-  return picks;
-}

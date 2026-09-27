@@ -109,6 +109,10 @@ export interface Upgrade {
   bestWhen: string;
   /** Only offered once this upgrade is owned. */
   requires?: string;
+  /** Leadership wants the extra capacity paid for: the quota rises this much every day. */
+  quotaCost?: number;
+  /** The catch, shown on the card, e.g. "Quota +1 every day". */
+  cost?: string;
 }
 
 export interface ResearchNote {

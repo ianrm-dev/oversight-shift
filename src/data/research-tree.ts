@@ -63,7 +63,7 @@ export const TREE: TreeNode[] = [
   { id: 'evl-forecast', branch: 'evals', tier: 3, name: 'Threat forecasting', effect: 'Each briefing estimates how many attacks are coming today.', cost: 15, requires: ['evl-redteam'] },
 
   // Security
-  { id: 'sec-least-privilege', branch: 'security', tier: 1, name: 'Least privilege', effect: 'Agents with fewer permissions need fewer checks: +1 compute every day.', cost: 8 },
+  { id: 'sec-least-privilege', branch: 'security', tier: 1, name: 'Least privilege', effect: 'Agents with fewer permissions need fewer checks: +2 compute every day (one more check).', cost: 8 },
   { id: 'sec-permissions', branch: 'security', tier: 2, name: 'Permission tiers', effect: 'Approved agent actions do 1 less harm.', cost: 13, requires: ['sec-least-privilege'] },
   { id: 'lab-government', branch: 'security', tier: 2, name: 'Public-sector program', effect: 'Unlocks the Government AI office lab.', cost: 8, requires: ['sec-least-privilege'] },
   { id: 'sec-sandbox', branch: 'security', tier: 3, name: 'Sandboxing', effect: 'Harm ceiling +1 in every run.', cost: 20, requires: ['sec-permissions'] },

@@ -4,7 +4,7 @@ import './ui.css';
 import { dayInfo } from './data/days';
 import { contractById } from './ui/metaScreens';
 import { buyNode, gradeFor, loadProgress, recordFieldTest, recordRun, dailySeed, type RunUpdate } from './game/progress';
-import { buildFieldTest, talkingPoints } from './game/fieldtest';
+import { buildFieldTest } from './game/fieldtest';
 import * as L from './ui/learn';
 import { noteUsed, popover, resetTermsMet, resetTermsToday, termsMet, termsToday } from './ui/terms';
 import { BREAKTHROUGH_TERM, EVENT_TERMS, FAMILY_TERM, LAB_TERM, TOOL_TERM, UPGRADE_TERM } from './data/term-links';
@@ -75,10 +75,10 @@ let fieldTestTaken = false;
  *  Every tip advances with a button, never by forcing a move. `anchor` places a tip beside a different
  *  element than the one it highlights, so it doesn't cover what it describes. */
 interface CoachStep { target: string; text: string; anchor?: string }
-type TourId = 'setup' | 'briefing' | 'shift' | 'audit' | 'incident' | 'review' | 'event' | 'between' | 'breakthrough' | 'end' | 'lab';
+type TourId = 'setup' | 'briefing' | 'shift' | 'audit' | 'incident' | 'review' | 'event' | 'between' | 'breakthrough' | 'end' | 'lab' | 'fieldtest' | 'fieldtest-done';
 const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
   setup: { title: 'New shift', steps: [
-    { target: '.len-picker', text: 'The quick shift is a demo: Days 1, 3, 5 and 7 on a fast clock, about 15 minutes. The full week is the whole game, with research, more labs and stronger models.' },
+    { target: '.len-picker', text: 'The quick shift is a demo: Days 1, 3, 5 and 7, about 20 minutes. The full week is the whole game, with research, more labs and stronger models.' },
     { target: '.diff-picker', text: 'Difficulty sets how much time, compute and help you get. Guided is the gentlest place to start.' },
     { target: '.lab-picker', text: 'Your lab sets your starting funding and one perk. Research unlocks more labs.' },
     { target: '[data-start]', text: 'Press Enter to start. You come back here after every run.' },
@@ -93,8 +93,9 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
     { target: '.scard-glance', text: 'The job at a glance: what kind of work it is, how much is at stake, and what the model can touch.' },
     { target: '.scard-task', anchor: '.scard-did', text: 'The task, the rules on file, and what the model did. Reading is your main tool: most sabotage shows up as work that doesn\'t match the request or the rules.' },
     { target: '.ev-monitor', text: 'The trusted monitor scores every card for free. It\'s a hint, not proof: the shaded box shows how far off it may be.' },
-    { target: '[data-action="fact"]', text: 'Fact check costs 1 compute and compares the work with the rules on file. You only get a few a day, so save them for cards you can\'t settle by reading.' },
-    { target: '[data-action="audit"]', text: 'A human audit is always right, but you get one or two a day. Spend it when a card could do real damage and you\'re not sure.' },
+    { target: '[data-action="fact"]', text: 'Fact check compares the work with the rules on file. It costs 2 compute and 4 seconds of the clock, so you get about two checks a day: save them for cards you can\'t settle by reading.' },
+    { target: '[data-action="audit"]', text: 'A human audit is always right, but you get one or two a day and each takes 8 seconds of the clock. Spend it when a card could do real damage and you\'re not sure.' },
+    { target: '.hud-cards', text: 'Where you are in today\'s queue. The lit dot is this card; dots after it are still to come. Behind it, green dots are sabotage you caught with an audit, red ones got past you, and grey ones are done.' },
     { target: '[data-clock]', text: 'Your first 3 cards are untimed, to learn the ropes. Then the clock starts, and it only runs while a card is on screen. When it hits zero, every card left in the queue ships unreviewed.' },
     { target: '[data-region="decide"]', text: 'Then decide. Approve (A) ships the work. Defer (D) throws it out and a weaker, safe model redoes it for less. Defer too often and you miss the quota.' },
   ] },
@@ -132,6 +133,13 @@ const TOURS: Record<TourId, { title: string; steps: CoachStep[] }> = {
     { target: '.over-actions [data-go="lab"]', text: 'Spend Insight in the Research lab: research makes every future run easier. The Field test checks what stuck.' },
     { target: '.over-actions', text: 'Play again, try a new seed, or go back to the menu.' },
   ] },
+  fieldtest: { title: 'Field test', steps: [
+    { target: '.ft-card', text: 'The Field test: up to three quick questions about the run you just played. Answering from memory, not rereading, is what makes a new idea stick.' },
+  ] },
+  'fieldtest-done': { title: 'Field test', steps: [
+    { target: '.ft-got, .ft-missed', text: 'The terms your questions covered. The ones you got right come with a line to start a real conversation; the ones you missed come with a plain definition.' },
+    { target: '.ft-card .setup-actions', text: 'The Field guide has every term and research approach. The Research lab turns Insight into easier future runs.' },
+  ] },
   lab: { title: 'Research lab', steps: [
     { target: '.branches', text: 'Six research agendas. Each node costs Insight and makes future runs easier. Branches your failures pointed at are half price.' },
     { target: '.lab-detail', text: 'Hover a node to see what it does and the real research behind it. Click to fund it.' },
@@ -166,6 +174,7 @@ function tourFor(): TourId | null {
     case 'breakthrough': return 'breakthrough';
     case 'over': case 'win': return 'end';
     case 'lab': return 'lab';
+    case 'fieldtest': return screen.test.done ? 'fieldtest-done' : screen.test.index === 0 && screen.test.picked === undefined ? 'fieldtest' : null;
     default: return null;
   }
 }
@@ -380,7 +389,7 @@ function finishRun(won: boolean): void {
   });
 }
 
-const ADVERSARY_NAME = { sandbagger: 'the sandbagger', colluder: 'the colluder', injector: 'the injector', schemer: 'the patient schemer' } as const;
+const ADVERSARY_NAME = { sandbagger: 'the sandbagger', colluder: 'the colluder', injector: 'the gullible agent', schemer: 'the patient schemer' } as const;
 
 /** Threat forecasting: a ±1 estimate of today's attacks. */
 function forecast(r: RunState): string {
@@ -396,7 +405,7 @@ function briefingExtras(r: RunState): R.BriefingParts {
     alerts: [
       ...(r.day.blind ? [{ text: `The monitor is blind on ${r.day.blind === 'log' ? 'agent actions' : 'file changes'} today.`, tone: 'bad' as const }] : []),
       ...(r.adversaryRevealed ? [{ text: `You're facing ${ADVERSARY_NAME[r.adversary]}.`, tone: 'bad' as const }] : []),
-      ...r.harmLog.filter((h) => h.day === r.day.day - 1).map((h) => ({ text: `Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}.`, tone: h.amount < 0 ? 'good' as const : 'bad' as const })),
+      ...r.harmLog.filter((h) => h.day === r.history.at(-1)?.day).map((h) => ({ text: `Harm ${h.amount > 0 ? '+' : ''}${h.amount} from ${esc(h.reason)}.`, tone: h.amount < 0 ? 'good' as const : 'bad' as const })),
       ...(r.research.includes('evl-forecast') ? [{ text: forecast(r), tone: 'info' as const }] : []),
     ],
     tools: tools.chips,
@@ -415,7 +424,7 @@ function render(): void {
   else if (screen.kind === 'timeout' && run) { setLayout('solo'); screenEl.innerHTML = R.timeout(run, screen.shipped); }
   else if (screen.kind === 'fieldtest') {
     setLayout('solo');
-    screenEl.innerHTML = screen.test.done && run ? L.fieldTestResults(screen.test, talkingPoints(run, termsMet())) : L.fieldTest(screen.test);
+    screenEl.innerHTML = screen.test.done ? L.fieldTestResults(screen.test) : L.fieldTest(screen.test);
   }
   else if (screen.kind === 'daily-info') { setLayout('solo'); screenEl.innerHTML = M.dailyInfo(progress, dailySeed(), new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })); }
   else if (screen.kind === 'lab') { setLayout('solo'); screenEl.innerHTML = M.lab(progress, screen.focus); }
@@ -545,11 +554,11 @@ function applyAction(action: Action): void {
 }
 
 let toastTimer = 0;
-function showToast(text: string, tone: 'good' | 'neutral' | 'defer', ms = 1600): void {
+function showToast(text: string, tone: 'good' | 'neutral' | 'defer', ms = 2200): void {
   const center = screenEl.querySelector('[data-region="simple-main"]');
   if (!center) return;
   center.querySelector('.toast')?.remove();
-  center.insertAdjacentHTML('beforeend', R.toast(text, tone));
+  center.insertAdjacentHTML('beforeend', R.toast(text, tone, ms));
   window.clearTimeout(toastTimer);
   toastTimer = window.setTimeout(() => center.querySelector('.toast')?.remove(), ms);
 }
@@ -715,14 +724,14 @@ function startFieldTest(): void {
   const questions = buildFieldTest(run, termsMet());
   if (!questions.length) return;
   fieldTestTaken = true;
-  screen = { kind: 'fieldtest', test: { questions, index: 0, correct: 0, done: false } };
+  screen = { kind: 'fieldtest', test: { questions, index: 0, correct: 0, done: false, right: [], quick: run.quick } };
   render();
 }
 
 function answerFieldTest(id: string): void {
   if (screen.kind !== 'fieldtest' || screen.test.done || screen.test.picked !== undefined) return;
   const q = screen.test.questions[screen.test.index]!;
-  screen = { kind: 'fieldtest', test: { ...screen.test, picked: id, correct: screen.test.correct + (id === q.answer ? 1 : 0) } };
+  screen = { kind: 'fieldtest', test: { ...screen.test, picked: id, correct: screen.test.correct + (id === q.answer ? 1 : 0), right: [...screen.test.right, id === q.answer] } };
   render();
 }
 
@@ -730,7 +739,7 @@ function advanceFieldTest(): void {
   if (screen.kind !== 'fieldtest' || screen.test.picked === undefined) return;
   const t = screen.test;
   if (t.index + 1 < t.questions.length) screen = { kind: 'fieldtest', test: { ...t, index: t.index + 1, picked: undefined } };
-  else { recordFieldTest(progress, t.correct); screen = { kind: 'fieldtest', test: { ...t, done: true } }; }
+  else { recordFieldTest(progress, t.quick ? 0 : t.correct); screen = { kind: 'fieldtest', test: { ...t, done: true } }; }
   render();
 }
 
@@ -970,6 +979,8 @@ setInterval(() => {
   if (fill) fill.style.setProperty('--v', `${pct.toFixed(1)}%`);
   if (num) num.textContent = S.clockText(d.attentionLeft);
   screenEl.querySelector('[data-clock]')?.classList.toggle('is-low', pct < 20);
+  const strip = screenEl.querySelector<HTMLElement>('.hud-timebar');
+  if (strip) { strip.style.setProperty('--v', `${pct.toFixed(1)}%`); strip.classList.toggle('is-low', pct < 20); }
   if (d.attentionLeft <= 0) {
     const shipped = shipUnreviewed(run);
     freshHarm = shipped.reduce((s, o) => s + o.harm, 0);

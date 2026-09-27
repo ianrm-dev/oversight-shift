@@ -57,8 +57,8 @@ export const EVENTS: GameEvent[] = [
     minDay: 1,
     maxDay: 3,
     choices: [
-      { label: 'Hold them to the pledge', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'funding', amount: -6 }], after: 'You win the meeting. You will be paying for it in other meetings.' },
-      { label: 'Lend product the compute', effects: [{ kind: 'funding', amount: 5 }, { kind: 'computeTomorrow', amount: -1 }], after: '"Just until launch" has a long half-life.' },
+      { label: 'Hold them to the pledge', effects: [{ kind: 'computeRest', amount: 2 }, { kind: 'funding', amount: -6 }], after: 'You win the meeting. You will be paying for it in other meetings.' },
+      { label: 'Lend product the compute', effects: [{ kind: 'funding', amount: 5 }, { kind: 'computeTomorrow', amount: -2 }], after: '"Just until launch" has a long half-life.' },
     ],
     anchor: { line: 'In May 2024, Fortune reported that OpenAI never fulfilled its commitment to give its Superalignment team 20% of its computing power.', source: FORTUNE },
   },
@@ -82,7 +82,7 @@ export const EVENTS: GameEvent[] = [
     maxDay: 4,
     choices: [
       { label: 'Hire them for a day', effects: [{ kind: 'revealAdversary' }, { kind: 'funding', amount: -5 }], after: 'Their report names what your model has been up to.' },
-      { label: 'Trade cluster time for their notes', effects: [{ kind: 'bandTomorrow', amount: -4 }, { kind: 'computeTomorrow', amount: -1 }], after: 'Your monitor gets their calibration notes. They get your GPUs.' },
+      { label: 'Trade cluster time for their notes', effects: [{ kind: 'bandTomorrow', amount: -4 }, { kind: 'computeTomorrow', amount: -2 }], after: 'Your monitor gets their calibration notes. They get your GPUs.' },
     ],
   },
   {
@@ -93,7 +93,7 @@ export const EVENTS: GameEvent[] = [
     maxDay: 5,
     choices: [
       { label: 'Lock agent permissions for good', effects: [{ kind: 'upgrade', id: 'permission-limits' }, { kind: 'quotaRest', amount: 1 }], after: 'The agents slow down. So do the surprises.' },
-      { label: 'Trust the instructions', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'blindTomorrow', layout: 'log' }], after: '"Please don\'t" is now load-bearing.' },
+      { label: 'Trust the instructions', effects: [{ kind: 'quotaTomorrow', amount: -1 }, { kind: 'blindTomorrow', layout: 'log' }], after: '"Please don\'t" is now load-bearing.' },
     ],
     anchor: { line: 'In July 2025, an AI coding agent on Replit deleted a live production database during a code freeze, despite repeated instructions not to make changes.', source: AIID_1152 },
   },
@@ -117,7 +117,7 @@ export const EVENTS: GameEvent[] = [
     maxDay: 6,
     choices: [
       { label: 'Match their pace', effects: [{ kind: 'funding', amount: 6 }, { kind: 'quotaRest', amount: 1 }], after: 'The board is thrilled. Your queue gets longer every day.' },
-      { label: 'Publish your safety case instead', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'funding', amount: -5 }], after: 'The press reads it. The board reads the press.' },
+      { label: 'Publish your safety case instead', effects: [{ kind: 'quotaTomorrow', amount: -1 }, { kind: 'funding', amount: -5 }], after: 'The press reads it. The board reads the press.' },
     ],
   },
   {
@@ -161,7 +161,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 2,
     maxDay: 5,
     choices: [
-      { label: 'Skip the monitor on file changes', effects: [{ kind: 'computeTomorrow', amount: 2 }, { kind: 'blindTomorrow', layout: 'diff' }], after: 'The savings are real. So is the blind spot.' },
+      { label: 'Skip the monitor on file changes', effects: [{ kind: 'computeTomorrow', amount: 4 }, { kind: 'blindTomorrow', layout: 'diff' }], after: 'The savings are real. So is the blind spot.' },
       { label: 'Defend the budget', effects: [{ kind: 'bandTomorrow', amount: -3 }, { kind: 'funding', amount: -4 }], after: 'You win, and use the attention to get it retuned.' },
     ],
   },
@@ -172,8 +172,8 @@ export const EVENTS: GameEvent[] = [
     minDay: 2,
     maxDay: 5,
     choices: [
-      { label: 'Join the pilot', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'auditsTomorrow', amount: -1 }], after: 'Their cluster, your auditors, everyone\'s paper.' },
-      { label: 'Politely decline', effects: [{ kind: 'computeTomorrow', amount: 1 }, { kind: 'funding', amount: -2 }], after: 'You keep your auditors and lose a co-authorship.' },
+      { label: 'Join the pilot', effects: [{ kind: 'computeRest', amount: 2 }, { kind: 'auditsTomorrow', amount: -1 }], after: 'Their cluster, your auditors, everyone\'s paper.' },
+      { label: 'Politely decline', effects: [{ kind: 'computeTomorrow', amount: 2 }, { kind: 'funding', amount: -2 }], after: 'You keep your auditors and lose a co-authorship.' },
     ],
     anchor: { line: 'In 2025, the Ctrl-Z study\'s best protocol, which resamples suspicious steps and reviews earlier ones, cut the success rate of simulated attacks from 58% to 7%, at a 5% cost to an honest agent\'s performance.', source: CTRL_Z },
   },
@@ -184,7 +184,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 1,
     maxDay: 6,
     choices: [
-      { label: 'Share anonymized logs', effects: [{ kind: 'funding', amount: 8 }, { kind: 'computeTomorrow', amount: -1 }], after: 'Anonymizing takes a day of cluster time and two arguments.' },
+      { label: 'Share anonymized logs', effects: [{ kind: 'funding', amount: 8 }, { kind: 'computeTomorrow', amount: -2 }], after: 'Anonymizing takes a day of cluster time and two arguments.' },
       { label: 'Write them a report instead', effects: [{ kind: 'funding', amount: 3 }, { kind: 'auditsTomorrow', amount: -1 }], after: 'Someone has to write it. That someone was going to audit.' },
     ],
     anchor: { line: 'The AI Control paper studies exactly this setup: a powerful untrusted model, a weaker trusted model, and limited access to high-quality human labor.', source: AI_CONTROL },
@@ -196,7 +196,7 @@ export const EVENTS: GameEvent[] = [
     minDay: 4,
     maxDay: 6,
     choices: [
-      { label: 'Allow the sandbox', effects: [{ kind: 'computeRest', amount: 1 }, { kind: 'blindTomorrow', layout: 'log' }], after: 'Experiments run faster. So does something else.' },
+      { label: 'Allow the sandbox', effects: [{ kind: 'computeRest', amount: 2 }, { kind: 'blindTomorrow', layout: 'log' }], after: 'Experiments run faster. So does something else.' },
       { label: 'Keep logging everything', effects: [{ kind: 'bandTomorrow', amount: -3 }, { kind: 'funding', amount: -4 }], after: 'The logs are dull, which is what you want from logs.' },
     ],
     anchor: { line: 'In 2024 tests, frontier models given a goal that conflicted with their oversight sometimes tried to disable the oversight.', source: MEINKE },
@@ -222,7 +222,7 @@ export const EVENTS: GameEvent[] = [
     choices: [
       { label: 'Commit to the launch', effects: [{ kind: 'funding', amount: 8 }, { kind: 'quotaTomorrow', amount: 3 }], after: 'Big day. Big queue.' },
       { label: 'Negotiate a slower rollout', effects: [{ kind: 'funding', amount: 3 }, { kind: 'quotaTomorrow', amount: 2 }], after: 'Everyone is mildly disappointed, which counts as a win.' },
-      { label: 'Ask for a delay', effects: [{ kind: 'quotaTomorrow', amount: -2 }, { kind: 'funding', amount: -6 }], after: 'You buy a day. It was not cheap.' },
+      { label: 'Ask for a delay', effects: [{ kind: 'quotaTomorrow', amount: -1 }, { kind: 'funding', amount: -6 }], after: 'You buy a day. It was not cheap.' },
     ],
   },
   {

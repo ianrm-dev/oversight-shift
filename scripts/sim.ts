@@ -7,11 +7,11 @@
 import { dayInfo } from '../src/data/days';
 import { CONTRACTS, LABS, MODEL_VERSIONS } from '../src/data/meta';
 import { INSIGHT, TREE } from '../src/data/research-tree';
-import { buyNode, emptyProgress, nodeCost, nodeState, recordRun, type Progress } from '../src/game/progress';
+import { buyNode, emptyProgress, gradeFor, nodeCost, nodeState, recordRun, type Progress } from '../src/game/progress';
 import { EVENTS } from '../src/data/events';
 import {
   BASE_MODS, act, advance, breakthroughDue, breakthroughOffer, buy, canAct, canBuy, chooseContract, chooseEvent, contractOffer, current,
-  dayOver, endDay, eventChoices, eventFor, has, isIncident, latest, newRun, nextDay, runScore, startDay, takeBreakthrough, takeUpgrade, toolCost, upgradeOffer,
+  dayOver, endDay, eventChoices, eventFor, has, isIncident, latest, newRun, nextDay, runScore, scoreParts, startDay, takeBreakthrough, takeUpgrade, toolCost, upgradeOffer,
   type Action, type RunState,
 } from '../src/game/state';
 import { Rng } from '../src/rng';
@@ -173,7 +173,23 @@ const checker: Policy = (run) => {
   return 'approve';
 };
 
+/** Ian's exploit: spend every tool and auditor to verify cards, approve only what came back clean, defer the rest.
+ *  Never reads a card. Plays the budget meeting for the lowest quota (see EXPLOITERS). */
+const toolsThenDefer: Policy = (run) => {
+  const c = current(run.day)!;
+  const f = draft(run).findings;
+  if (anyProblem(run)) return 'defer';
+  if (Object.keys(f).length) return 'approve';
+  const tool = c.card.spec.allowed.length ? 'scope' : 'fact';
+  if (canAct(run, tool)) return tool;
+  if (canAct(run, 'fact')) return 'fact';
+  if (canAct(run, 'audit')) return 'audit';
+  return 'defer';
+};
+
 const ALL_POLICIES: Record<string, Policy> = {
+  'defer-exploit': () => 'defer',
+  'tools-then-defer': toolsThenDefer,
   'approve-all': () => 'approve',
   'defer-all': () => 'defer',
   'threshold-50': threshold(50),
@@ -194,6 +210,10 @@ const BOT_UPGRADE_PREF: Record<string, string[]> = {
   'checker-nobuy': ['compute-grant', 'catch-bonus', 'audit-headcount', 'incident-response', 'sharper-monitor', 'permission-limits', 'escalation-hotline'],
 };
 const NO_COMPUTE_BUY = new Set(['checker-nobuy']);
+/** Bots that play the budget meeting purely to lower the quota: lowest-quota client, quota-cutting event choices. */
+const EXPLOITERS = new Set(['defer-exploit', 'tools-then-defer']);
+BOT_UPGRADE_PREF['defer-exploit'] = ['escalation-hotline', 'audit-headcount', 'compute-grant', 'catch-bonus'];
+BOT_UPGRADE_PREF['tools-then-defer'] = ['compute-grant', 'audit-headcount', 'escalation-hotline', 'catch-bonus'];
 const ONLY = argStr('only')?.split(',');
 const POLICIES = Object.fromEntries(Object.entries(ALL_POLICIES).filter(([n]) => !ONLY || ONLY.includes(n)));
 
@@ -244,9 +264,10 @@ function betweenDays(run: RunState, rng: Rng, name = ''): void {
   const ev = eventFor(run);
   if (ev) {
     const choices = eventChoices(run, ev);
-    const i = EVENTS_POLICY === 'random'
+    const pol = EXPLOITERS.has(name) ? 'cautious' : EVENTS_POLICY;
+    const i = pol === 'random'
       ? rng.int(0, choices.length - 1)
-      : choices.map((c, j) => [eventValue(c, EVENTS_POLICY), j] as const).sort((a, b) => b[0] - a[0])[0]![1];
+      : choices.map((c, j) => [eventValue(c, pol), j] as const).sort((a, b) => b[0] - a[0])[0]![1];
     chooseEvent(run, ev, i);
     if (run.loss) return;
   }
@@ -254,7 +275,7 @@ function betweenDays(run: RunState, rng: Rng, name = ''): void {
     const offer = breakthroughOffer(run);
     if (offer[0]) takeBreakthrough(run, offer[0].id);
   }
-  const contract = pickContract(contractOffer(run), rng);
+  const contract = EXPLOITERS.has(name) ? [...contractOffer(run)].sort((a, b) => a.quotaDelta - b.quotaDelta)[0]! : pickContract(contractOffer(run), rng);
   if (SHOP) {
     const offer = upgradeOffer(run);
     const pick = (BOT_UPGRADE_PREF[name] ?? UPGRADE_PREF).map((id) => offer.find((u) => u.id === id)).find(Boolean) ?? offer[0];
@@ -282,6 +303,10 @@ interface Stats {
   clean: number;
   falseAlarms: number;
   scores: number[];
+  /** End-screen grades (from the graded score), for --grades. */
+  grades: string[];
+  winGrades: string[];
+  lossGrades: string[];
   advRuns: Record<string, number>;
   advWins: Record<string, number>;
   famSeen: Record<string, number>;
@@ -291,7 +316,7 @@ interface Stats {
 
 const emptyStats = (): Stats => ({
   survived: Array(DAYS).fill(0), wins: 0, lossHarm: 0, lossQuota: 0, genFail: 0, harmEnd: 0,
-  sab: 0, caught: 0, deferredSab: 0, clean: 0, falseAlarms: 0, scores: [], advRuns: {}, advWins: {}, famSeen: {}, famMissed: {}, fundingEarned: 0,
+  sab: 0, caught: 0, deferredSab: 0, clean: 0, falseAlarms: 0, scores: [], grades: [], winGrades: [], lossGrades: [], advRuns: {}, advWins: {}, famSeen: {}, famMissed: {}, fundingEarned: 0,
 });
 
 interface RunResult { run: RunState; won: boolean }
@@ -352,6 +377,11 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
       advance(run);
     }
     if (run.loss) break;
+    if (process.env.SIM_DEBUG) {
+      const d = run.day, o = d.outcomes;
+      const n = (f: (x: typeof o[number]) => boolean) => o.filter(f).length;
+      console.log(`  [${name}] day ${d.day}: quota ${d.quota} useful ${d.usefulness.toFixed(1)} cards ${d.queue.length} · approveClean ${n((x) => x.action === 'approve' && !x.draft.sabotaged)} approveSab ${n((x) => x.action === 'approve' && x.draft.sabotaged)} deferClean ${n((x) => x.action === 'defer' && !x.draft.sabotaged)} deferSab ${n((x) => x.action === 'defer' && x.draft.sabotaged)} audit ${n((x) => x.action === 'audit')} unreviewed ${n((x) => (x as { unreviewed?: boolean }).unreviewed === true)} · compute ${d.computeStart} audits ${d.auditsStart} harm ${run.harm}`);
+    }
     endDay(run);
     if (run.loss) break;
     st.survived[day - 1]++;
@@ -366,6 +396,9 @@ function playRunInner(seed: string, name: string, policy: Policy, difficulty: Di
   st.harmEnd += run.harm;
   st.fundingEarned += run.fundingEarned;
   st.scores.push(runScore(run, won));
+  const g = gradeFor(scoreParts(run, won).graded);
+  st.grades.push(g);
+  if (won) st.winGrades.push(g); else st.lossGrades.push(g);
   st.advRuns[run.adversary] = (st.advRuns[run.adversary] ?? 0) + 1;
   if (won) st.advWins[run.adversary] = (st.advWins[run.adversary] ?? 0) + 1;
   return { run, won };
@@ -397,6 +430,10 @@ function table(difficulty: Difficulty): void {
     console.log(
       `${name.padEnd(19)}${surv}  ${pad(pct(s.lossHarm, SEEDS), 6)}${pad(pct(s.lossQuota, SEEDS), 7)}${pad((s.harmEnd / SEEDS).toFixed(1), 6)}${pad(pct(s.caught, s.sab), 7)}${pad(pct(s.caught + s.deferredSab, s.sab), 7)}${pad(pct(s.falseAlarms, s.clean), 7)}${pad((s.fundingEarned / SEEDS).toFixed(0), 7)}  ${q.padEnd(22)}${adv}${s.genFail ? `  gen!${s.genFail}` : ''}`,
     );
+    if (argv.includes('--grades')) {
+      const dist = (gs: string[]) => ['S', 'A', 'B', 'C', 'D'].map((x) => `${x} ${pct(gs.filter((y) => y === x).length, gs.length)}`).join(' ');
+      console.log(`${''.padEnd(19)}grades · wins: ${dist(s.winGrades)} · losses: ${dist(s.lossGrades)}`);
+    }
     if (argv.includes('--families')) {
       console.log(`${''.padEnd(19)}missed by family: ${Object.entries(s.famSeen).map(([f, n]) => `${f} ${pct(s.famMissed[f] ?? 0, n)} of ${n}`).join(' · ')}`);
     }

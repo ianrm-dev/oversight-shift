@@ -71,14 +71,15 @@ export function hud(run: RunState, preview: Preview, fresh = 0): string {
       <span class="eyebrow">Harm</span><div class="bar seg">${segs}</div><span class="hud-num">${run.harm}<small>/${ceiling}</small></span>
     </div>
     ${d.attention && d.index < d.untimed
-      ? `<div class="hud-clock is-waiting" data-clock title="The first ${d.untimed} cards of Day 1 are untimed, to learn the controls. Then the shift clock starts: careful review takes time, and when it runs out the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><span class="hud-num clock-num">training · starts on card ${d.untimed + 1}</span></div>`
+      ? `<div class="hud-clock is-waiting" data-clock title="The first ${d.untimed} cards of Day 1 are untimed, to learn the controls. Then the shift clock starts: careful review takes time, and when it runs out the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><span class="hud-num clock-num">starts on card ${d.untimed + 1}</span></div>`
       : d.attention ? `<div class="hud-clock" data-clock title="Shift clock: careful review takes time. When it runs out, the rest of the queue ships unreviewed."><span class="eyebrow">Clock</span><div class="bar"><div class="bar-fill clock-fill" style="--v:${((d.attentionLeft / d.attention) * 100).toFixed(1)}%"></div></div><span class="hud-num clock-num">${clockText(d.attentionLeft)}</span></div>` : ''}
     <div class="hud-res" title="Human audits left today"><span class="eyebrow">${chip(TOOL_TERM.audit, 'Auditors')}</span><span class="dots">${dots(d.audits, d.auditsStart, preview === 'audit')}</span></div>
     <div class="hud-res" title="Compute left today for tools. It resets each day; unused compute is simply lost."><span class="eyebrow">${chip('compute', 'Compute')}</span><span class="dots compute">${dots(d.compute, d.computeStart, toolPreview)}</span></div>
     <div class="hud-res" title="Funding for your team, spent between days"><span class="eyebrow">Funding</span><strong class="funding">${run.funding}</strong></div>
     <button class="hud-toolkit" data-toolkit><kbd>T</kbd> Toolkit</button>
     <button class="hud-toolkit" data-pause="open" aria-label="Pause menu"><kbd>Esc</kbd> Menu</button>
-    <ol class="hud-progress" aria-label="Cards today">${progress}</ol>`;
+    <div class="hud-cards"><span class="eyebrow">Card ${Math.min(d.index + 1, d.queue.length)} of ${d.queue.length}</span><ol class="hud-progress" aria-label="Cards today">${progress}</ol></div>
+    ${d.attention && d.index >= d.untimed ? `<div class="hud-timebar${d.attentionLeft / d.attention < 0.2 ? ' is-low' : ''}" style="--v:${((d.attentionLeft / d.attention) * 100).toFixed(1)}%" aria-hidden="true"></div>` : ''}`;
 }
 
 // ---------- The card ----------
@@ -169,7 +170,7 @@ function toolButton(run: RunState, tool: 'fact' | 'scope' | 'resample' | 'untrus
   const cost = RULES.tools.cost[tool];
   return `
     <button class="ev ev-tool${preview === tool ? ' is-hover' : ''}" data-action="${tool}" ${blocked ? 'disabled' : ''}>
-      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} ${chip('compute', 'compute')}`}</span></div>
+      <div class="ev-head"><span class="ev-name"><kbd>${TOOL_KEY[tool]}</kbd>${icon(tool, 16)}${chip(TOOL_TERM[tool], toolName(tool))}</span><span class="info-btn" data-toolkit="${tool}" role="button" aria-label="About ${toolName(tool)}">?</span><span class="ev-cost">${blocked ?? `${cost} ${chip('compute', 'compute')} · ${RULES.tools.seconds[tool] ?? 0}s`}</span></div>
     </button>`;
 }
 
@@ -233,7 +234,7 @@ export function evidence(run: RunState, c: CardState, preview: Preview): string 
     ${resampleBlock(run, c, preview)}
     ${probeBlock(run, c, preview)}
     <button class="ev ev-tool human${preview === 'audit' ? ' is-hover' : ''}" data-action="audit" ${run.day.audits > 0 ? '' : 'disabled'}>
-      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? `1 ${chip(TOOL_TERM.audit, 'auditor')}` : 'None left'}</span></div>
+      <div class="ev-head"><span class="ev-name"><kbd>U</kbd>${icon('audit', 16)}${chip(TOOL_TERM.audit, 'Human audit')}</span><span class="info-btn" data-toolkit="audit" role="button" aria-label="About human audit">?</span><span class="ev-cost">${run.day.audits > 0 ? `1 ${chip(TOOL_TERM.audit, 'auditor')} · ${RULES.tools.seconds.audit}s` : 'None left'}</span></div>
     </button>
     ${run.upgrades.length || run.labPerk ? `<div class="ev-loadout"><span class="eyebrow">Your upgrades</span>${[run.labPerk, ...run.upgrades].filter((x): x is string => !!x).map((id) => upgradeIcon(id)).join('')}</div>` : ''}`;
 }
@@ -243,7 +244,7 @@ export function decide(run: RunState, preview: Preview, disabled: boolean): stri
   const U = RULES.usefulness;
   const dv = deferValue(run);
   return `
-    <button class="action act-approve${preview === 'approve' ? ' is-hover' : ''}" data-action="approve" ${disabled ? 'disabled' : ''}><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +${U.ship}</span></button>
+    <button class="action act-approve${preview === 'approve' ? ' is-hover' : ''}" data-action="approve" ${disabled ? 'disabled' : ''}><kbd>A</kbd><span class="action-verb">Approve</span><span class="action-cost">Ship it · +${has(run, 'fast-track') ? RULES.upgrades.fastTrackShip : U.ship} · sabotage pays 0 and costs trust</span></button>
     <button class="action act-defer${preview === 'defer' ? ' is-hover' : ''}" data-action="defer" ${disabled ? 'disabled' : ''}><kbd>D</kbd><span class="action-verb">${chip(TOOL_TERM.defer, 'Defer')}</span><span class="action-cost">${dv === U.ship ? `Hotline: trusted redo, full value · +${U.ship}` : `Discard; trusted model redoes it · +${U.defer}`}</span></button>`;
 }
 

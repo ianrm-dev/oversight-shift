@@ -7,7 +7,7 @@ export const UPGRADE_ICON: Record<string, IconId> = {
   'sharper-monitor': 'monitor', 'monitor-rationale': 'monitor', 'untrusted-monitor': 'untrusted',
   'audit-headcount': 'audit', 'catch-bonus': 'target', 'compute-grant': 'compute', 'escalation-hotline': 'defer',
   'trusted-editing': 'edit', 'permission-limits': 'least-privilege', paraphraser: 'paraphrase', canary: 'canary',
-  'incident-response': 'shield',
+  'incident-response': 'shield', overtime: 'people', 'fast-track': 'read',
 };
 
 /** Which part of your toolkit an upgrade improves. */
@@ -16,6 +16,7 @@ export const UPGRADE_IMPROVES: Record<string, string> = {
   'untrusted-monitor': 'A new tool', 'audit-headcount': 'Human audit', 'catch-bonus': 'Human audit',
   'compute-grant': 'Compute', 'escalation-hotline': 'Defer', 'trusted-editing': 'Defer',
   'permission-limits': 'Agent actions', paraphraser: 'Agent teams', canary: 'Untrusted monitor', 'incident-response': 'Harm ceiling',
+  overtime: 'Shift clock', 'fast-track': 'Approve',
 };
 
 const ESC: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
